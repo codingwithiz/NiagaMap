@@ -21,6 +21,8 @@ function App() {
   const [places, setPlaces] = useState([]);
   const [activeCategory, setActiveCategory] = useState("4d4b7105d754a06377d81259");
     const [recommendedPlace, setRecommendedPlace] = useState(null);
+    const [darkMode, setDarkMode] = useState(false);
+
 
   // New: Handler for recommendations from Chatbot
   const handleShowRecommendations = (locations, referencePoint) => {
@@ -151,267 +153,316 @@ function App() {
 
   return (
       <>
-          <nav
-              style={{
-                  padding: "0.75rem 2rem",
-                  background: "#fff",
-                  boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  position: "sticky",
-                  top: 0,
-                  zIndex: 100,
-                  minHeight: 64,
-              }}
-          >
-              <div
-                  style={{ display: "flex", alignItems: "center", gap: "2rem" }}
-              >
-                  <span
+          <div className={darkMode ? "dark" : ""}>
+              <nav className="bg-white dark:bg-neutral-900 text-black dark:text-white shadow-md px-8 py-4 flex justify-between items-center">
+                  {/* Left Side: Logo + Links */}
+                  <div
                       style={{
-                          fontWeight: 700,
-                          fontSize: 22,
-                          color: "#1976d2",
-                          letterSpacing: 1,
                           display: "flex",
                           alignItems: "center",
-                          gap: 8,
+                          gap: "2rem",
                       }}
                   >
-                      <svg
-                          width="28"
-                          height="28"
-                          fill="#1976d2"
-                          viewBox="0 0 24 24"
+                      <span
+                          style={{
+                              fontWeight: 700,
+                              fontSize: 22,
+                              color: "#1976d2",
+                              letterSpacing: 1,
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 8,
+                          }}
                       >
-                          <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5S10.62 6.5 12 6.5s2.5 1.12 2.5 2.5S13.38 11.5 12 11.5z" />
-                      </svg>
-                      NiagaMap
-                  </span>
-                  {user && (
-                      <>
-                          <Link
-                              to="/map"
-                              style={{
-                                  color: "#1976d2",
-                                  fontWeight: 500,
-                                  textDecoration: "none",
-                                  padding: "8px 16px",
-                                  borderRadius: 6,
-                                  transition: "background 0.2s",
-                              }}
-                              onMouseOver={(e) =>
-                                  (e.currentTarget.style.background = "#f0f7ff")
-                              }
-                              onMouseOut={(e) =>
-                                  (e.currentTarget.style.background =
-                                      "transparent")
-                              }
+                          <svg
+                              width="28"
+                              height="28"
+                              fill="#1976d2"
+                              viewBox="0 0 24 24"
                           >
-                              Places Services
-                          </Link>
-                          <Link
-                              to="/basemap"
-                              style={{
-                                  color: "#1976d2",
-                                  fontWeight: 500,
-                                  textDecoration: "none",
-                                  padding: "8px 16px",
-                                  borderRadius: 6,
-                                  transition: "background 0.2s",
-                              }}
-                              onMouseOver={(e) =>
-                                  (e.currentTarget.style.background = "#f0f7ff")
-                              }
-                              onMouseOut={(e) =>
-                                  (e.currentTarget.style.background =
-                                      "transparent")
-                              }
-                          >
-                              Basemap
-                          </Link>
+                              <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5S10.62 6.5 12 6.5s2.5 1.12 2.5 2.5S13.38 11.5 12 11.5z" />
+                          </svg>
+                          NiagaMap
+                      </span>
 
-                          <Link
-                              to="/analysis"
-                              style={{
-                                  color: "#1976d2",
-                                  fontWeight: 500,
-                                  textDecoration: "none",
-                                  padding: "8px 16px",
-                                  borderRadius: 6,
-                                  transition: "background 0.2s",
-                              }}
-                              onMouseOver={(e) =>
-                                  (e.currentTarget.style.background = "#f0f7ff")
-                              }
-                              onMouseOut={(e) =>
-                                  (e.currentTarget.style.background =
-                                      "transparent")
-                              }
-                          >
-                              Analysis
-                          </Link>
-                      </>
-                  )}
-              </div>
-              {user && (
-                  <button
-                      onClick={handleLogout}
-                      style={{
-                          marginLeft: "auto",
-                          background: "#f44336",
-                          color: "#fff",
-                          border: "none",
-                          borderRadius: 6,
-                          padding: "8px 20px",
-                          fontWeight: 600,
-                          fontSize: 16,
-                          cursor: "pointer",
-                          boxShadow: "0 2px 8px rgba(244,67,54,0.08)",
-                          transition: "background 0.2s",
-                      }}
-                      onMouseOver={(e) =>
-                          (e.currentTarget.style.background = "#d32f2f")
-                      }
-                      onMouseOut={(e) =>
-                          (e.currentTarget.style.background = "#f44336")
-                      }
-                  >
-                      Logout
-                  </button>
-              )}
-          </nav>
-
-          <Routes>
-              {/* Default route redirects to auth page */}
-              <Route path="/" element={<Navigate to="/auth" replace />} />
-
-              {/* Auth login/signup */}
-              <Route path="/auth" element={<AuthPage />} />
-
-              {/* Protected routes */}
-              <Route
-                  path="/map"
-                  element={
-                      <ProtectedRoute>
-                          <div
-                              className="app-container"
-                              style={{
-                                  height: "100vh",
-                                  width: "100vw",
-                                  position: "relative",
-                              }}
-                          >
-                              {/* Remove sidebar */}
-                              <div
-                                  className="map-container"
-                                  style={{ flex: 1, height: "100vh" }}
+                      {user && (
+                          <>
+                              <Link
+                                  to="/map"
+                                  style={{
+                                      color: "#1976d2",
+                                      fontWeight: 500,
+                                      textDecoration: "none",
+                                      padding: "8px 16px",
+                                      borderRadius: 6,
+                                      transition: "background 0.2s",
+                                  }}
+                                  onMouseOver={(e) =>
+                                      (e.currentTarget.style.background =
+                                          "#f0f7ff")
+                                  }
+                                  onMouseOut={(e) =>
+                                      (e.currentTarget.style.background =
+                                          "transparent")
+                                  }
                               >
-                                  <MapViewComponent
-                                      activeCategory={activeCategory}
-                                      onPlacesFound={handlePlacesFound}
-                                      onPlaceSelect={handlePlaceSelect}
-                                      recommendedPlace={recommendedPlace}
-                                      currentLocationCoordinate={
-                                          currentLocationCoordinate
-                                      }
-                                      apiKey={apiKey}
-                                  />
-                              </div>
-                              {/* Floating Chatbot Button */}
-                              {!chatbotOpen && (
-                                  <button
-                                      onClick={() => setChatbotOpen(true)}
-                                      style={{
-                                          position: "fixed",
-                                          bottom: 32,
-                                          right: 32,
-                                          zIndex: 1001,
-                                          borderRadius: "50%",
-                                          width: 64,
-                                          height: 64,
-                                          background: "#1976d2",
-                                          color: "#fff",
-                                          fontSize: 32,
-                                          border: "none",
-                                          boxShadow:
-                                              "0 4px 16px rgba(0,0,0,0.2)",
-                                          cursor: "pointer",
-                                      }}
-                                      aria-label="Open Chatbot"
-                                  >
-                                      💬
-                                  </button>
-                              )}
-                              {/* Floating Chatbot Panel */}
-                              {chatbotOpen && (
-                                  <div
-                                      style={{
-                                          position: "fixed",
-                                          bottom: 32,
-                                          right: 32,
-                                          width: 400,
-                                          maxWidth: "90vw",
-                                          height: 520,
-                                          background: "#fff",
-                                          borderRadius: 16,
-                                          boxShadow:
-                                              "0 8px 32px rgba(0,0,0,0.25)",
-                                          zIndex: 1002,
-                                          display: "flex",
-                                          flexDirection: "column",
-                                          overflow: "hidden",
-                                          animation: "fadeInUp 0.3s",
-                                      }}
-                                  >
-                                      <div
-                                          style={{ flex: 1, overflow: "auto" }}
-                                      >
-                                          <Chatbot
-                                              onExtracted={handleChatbotResult}
-                                              onClose={() => setChatbotOpen(false)}
-                                              onShowRecommendations={handleShowRecommendations}
-                                          />
-                                      </div>
-                                  </div>
-                              )}
+                                  Places Services
+                              </Link>
+                              <Link
+                                  to="/basemap"
+                                  style={{
+                                      color: "#1976d2",
+                                      fontWeight: 500,
+                                      textDecoration: "none",
+                                      padding: "8px 16px",
+                                      borderRadius: 6,
+                                      transition: "background 0.2s",
+                                  }}
+                                  onMouseOver={(e) =>
+                                      (e.currentTarget.style.background =
+                                          "#f0f7ff")
+                                  }
+                                  onMouseOut={(e) =>
+                                      (e.currentTarget.style.background =
+                                          "transparent")
+                                  }
+                              >
+                                  Basemap
+                              </Link>
+                              <Link
+                                  to="/analysis"
+                                  style={{
+                                      color: "#1976d2",
+                                      fontWeight: 500,
+                                      textDecoration: "none",
+                                      padding: "8px 16px",
+                                      borderRadius: 6,
+                                      transition: "background 0.2s",
+                                  }}
+                                  onMouseOver={(e) =>
+                                      (e.currentTarget.style.background =
+                                          "#f0f7ff")
+                                  }
+                                  onMouseOut={(e) =>
+                                      (e.currentTarget.style.background =
+                                          "transparent")
+                                  }
+                              >
+                                  Analysis
+                              </Link>
+                          </>
+                      )}
+                  </div>
+
+                  <div
+                      style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "2rem",
+                      }}
+                  >
+                      {/* Right Side: Dark Mode Toggle */}
+                      <div style={{ display: "flex", alignItems: "center" }}>
+                          <span style={{ marginRight: 8, fontSize: 18 }}>
+                              ☀️
+                          </span>
+                          <div
+                              onClick={() => setDarkMode(!darkMode)}
+                              style={{
+                                  width: 60,
+                                  height: 30,
+                                  background: darkMode ? "#444" : "#ccc",
+                                  borderRadius: 9999,
+                                  position: "relative",
+                                  cursor: "pointer",
+                                  transition: "background 0.3s",
+                              }}
+                          >
+                              <div
+                                  style={{
+                                      width: 26,
+                                      height: 26,
+                                      background: darkMode ? "#fff" : "#000",
+                                      borderRadius: "50%",
+                                      position: "absolute",
+                                      top: 2,
+                                      left: darkMode ? 32 : 2,
+                                      transition: "left 0.25s",
+                                  }}
+                              />
                           </div>
-                      </ProtectedRoute>
-                  }
-              />
+                          <span style={{ marginLeft: 8, fontSize: 18 }}>
+                              🌙
+                          </span>
+                      </div>
+                      {user && (
+                          <button
+                              onClick={handleLogout}
+                              className="ml-4 px-4 py-2 rounded bg-gray-200 dark:bg-gray-700 dark:text-white"
+                              onMouseOver={(e) =>
+                                  (e.currentTarget.style.background = "#d32f2f")
+                              }
+                              onMouseOut={(e) =>
+                                  (e.currentTarget.style.background = "#f44336")
+                              }
+                          >
+                              Logout
+                          </button>
+                      )}
+                  </div>
+              </nav>
 
-              <Route
-                  path="/basemap"
-                  element={
-                      <ProtectedRoute>
-                          <Basemap />
-                      </ProtectedRoute>
-                  }
-              />
+              <Routes>
+                  {/* Default route redirects to auth page */}
+                  <Route path="/" element={<Navigate to="/auth" replace />} />
 
-              <Route
-                  path="/analysis"
-                  element={
-                      <ProtectedRoute>
-                          <AnalysesPage />
-                      </ProtectedRoute>
-                  }
-              />
+                  {/* Auth login/signup */}
+                  <Route
+                      path="/auth"
+                      element={<AuthPage darkMode={darkMode} />}
+                  />
 
-              {/* Any other path redirects to auth */}
-              <Route path="*" element={<Navigate to="/auth" replace />} />
-          </Routes>
+                  {/* Protected routes */}
+                  <Route
+                      path="/map"
+                      element={
+                          <ProtectedRoute>
+                              <div
+                                  className="app-container"
+                                  style={{
+                                      height: "100vh",
+                                      width: "100vw",
+                                      position: "relative",
+                                  }}
+                              >
+                                  {/* Remove sidebar */}
+                                  <div
+                                      className="map-container"
+                                      style={{ flex: 1, height: "100vh" }}
+                                  >
+                                      <MapViewComponent
+                                          activeCategory={activeCategory}
+                                          onPlacesFound={handlePlacesFound}
+                                          onPlaceSelect={handlePlaceSelect}
+                                          recommendedPlace={recommendedPlace}
+                                          currentLocationCoordinate={
+                                              currentLocationCoordinate
+                                          }
+                                          apiKey={apiKey}
+                                          darkMode={darkMode}
+                                      />
+                                  </div>
+                                  {/* Floating Chatbot Button */}
+                                  {!chatbotOpen && (
+                                      <button
+                                          onClick={() => setChatbotOpen(true)}
+                                          style={{
+                                              position: "fixed",
+                                              bottom: 32,
+                                              right: 32,
+                                              zIndex: 1001,
+                                              borderRadius: "50%",
+                                              width: 64,
+                                              height: 64,
+                                              background: "#1976d2",
+                                              color: "#fff",
+                                              fontSize: 32,
+                                              border: "none",
+                                              boxShadow:
+                                                  "0 4px 16px rgba(0,0,0,0.2)",
+                                              cursor: "pointer",
+                                          }}
+                                          aria-label="Open Chatbot"
+                                      >
+                                          💬
+                                      </button>
+                                  )}
+                                  {/* Floating Chatbot Panel */}
+                                  {chatbotOpen && (
+                                      <div
+                                          style={{
+                                              position: "fixed",
+                                              bottom: 32,
+                                              right: 32,
+                                              width: 400,
+                                              maxWidth: "90vw",
+                                              height: 520,
+                                              background: "#fff",
+                                              borderRadius: 16,
+                                              boxShadow:
+                                                  "0 8px 32px rgba(0,0,0,0.25)",
+                                              zIndex: 1002,
+                                              display: "flex",
+                                              flexDirection: "column",
+                                              overflow: "hidden",
+                                              animation: "fadeInUp 0.3s",
+                                          }}
+                                      >
+                                          <div
+                                              style={{
+                                                  flex: 1,
+                                                  overflow: "auto",
+                                                  //add dark mode styling
+                                                  background: darkMode
+                                                      ? "#1e1e1e"
+                                                      : "#fff",
+                                                  color: darkMode
+                                                      ? "#e0e0e0"
+                                                      : "#000",
+                                              }}
+                                          >
+                                              <Chatbot
+                                                  onExtracted={
+                                                      handleChatbotResult
+                                                  }
+                                                  onClose={() =>
+                                                      setChatbotOpen(false)
+                                                  }
+                                                  onShowRecommendations={
+                                                      handleShowRecommendations
+                                                  }
+                                                  darkMode={darkMode}
+                                              />
+                                          </div>
+                                      </div>
+                                  )}
+                              </div>
+                          </ProtectedRoute>
+                      }
+                  />
 
-          {/* Add fadeInUp animation */}
-          <style>
-              {`
+                  <Route
+                      path="/basemap"
+                      element={
+                          <ProtectedRoute>
+                              <Basemap />
+                          </ProtectedRoute>
+                      }
+                  />
+
+                  <Route
+                      path="/analysis"
+                      element={
+                          <ProtectedRoute>
+                              <AnalysesPage darkMode={darkMode} />
+                          </ProtectedRoute>
+                      }
+                  />
+
+                  {/* Any other path redirects to auth */}
+                  <Route path="*" element={<Navigate to="/auth" replace />} />
+              </Routes>
+
+              {/* Add fadeInUp animation */}
+              <style>
+                  {`
         @keyframes fadeInUp {
           from { opacity: 0; transform: translateY(40px);}
           to { opacity: 1; transform: translateY(0);}
         }
         `}
-          </style>
+              </style>
+          </div>
       </>
   );
 }

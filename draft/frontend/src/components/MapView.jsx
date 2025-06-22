@@ -14,6 +14,7 @@ const MapViewComponent = ({
     recommendedPlace,
     onPlaceSelect,
     apiKey,
+    darkMode = false,
 }) => {
     const mapRef = useRef(null);
     const bufferLayerRef = useRef(null);
@@ -96,7 +97,9 @@ const MapViewComponent = ({
                     placesLayerRef.current = placesLayer;
 
                     const map = new Map({
-                        basemap: "streets-vector", // default basemap
+                        basemap: darkMode
+                            ? "dark-gray-vector"
+                            : "streets-vector", // default basemap
                         layers: [bufferLayer, placesLayer],
                     });
 
@@ -197,7 +200,7 @@ const MapViewComponent = ({
                 mapView.destroy();
             }
         };
-    }, [apiKey]);
+    }, [apiKey, darkMode]);
 
     useEffect(() => {
         if (view && initialized && lastClickPoint) {
@@ -461,10 +464,10 @@ const MapViewComponent = ({
             const isNearbyMe = locations.reference_point === undefined; // adjust this key based on your API
             console.log(
                 "reference point location name: ",
-                
+
                 locations.reference_point.name
             );
-            
+
             const refMarker = new Graphic({
                 geometry: refPoint,
                 symbol: isNearbyMe

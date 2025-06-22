@@ -184,3 +184,22 @@ calcite-flow-item {
 .map-container > div {
   height: 100%;
 }
+
+.dark {
+  background-color: #121212;
+  color: #e0e0e0;
+}
+
+.dark nav {
+  background-color: #1e1e1e;
+  color: white;
+}
+
+.dark a {
+  color: #90caf9;
+}
+
+.dark button {
+  background-color: #333;
+  color: #fff;
+}
