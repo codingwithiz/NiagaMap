@@ -430,7 +430,20 @@ const MapViewComponent = ({
                     },
                     popupTemplate: {
                         title: "Recommended Location",
-                        content: `Score: ${score}<br>Reason: ${reason}`,
+                        content: `
+        <b>Score:</b> ${score}<br>
+        <b>Reason:</b> ${reason}<br>
+        <div style="display: flex; gap: 10px; margin-top: 6px;">
+            <a href="https://www.google.com/maps/search/?api=1&query=${lat},${lon}" 
+               target="_blank" rel="noopener noreferrer" style="text-decoration: underline; color: #1976d2;">
+               🌍 Google Maps
+            </a>
+            <a href="https://www.openstreetmap.org/?mlat=${lat}&mlon=${lon}#map=19/${lat}/${lon}" 
+               target="_blank" rel="noopener noreferrer" style="text-decoration: underline; color: #1976d2;">
+               🗺️ OSM
+            </a>
+        </div>
+    `,
                     },
                 });
 
@@ -446,7 +459,12 @@ const MapViewComponent = ({
             });
 
             const isNearbyMe = locations.reference_point === undefined; // adjust this key based on your API
-
+            console.log(
+                "reference point location name: ",
+                
+                locations.reference_point.name
+            );
+            
             const refMarker = new Graphic({
                 geometry: refPoint,
                 symbol: isNearbyMe
@@ -473,7 +491,7 @@ const MapViewComponent = ({
                     title: "Reference Point",
                     content: isNearbyMe
                         ? `Address: Your current location`
-                        : `Address: ${locations.reference_point.address}`,
+                        : `Address: ${locations.reference_point.name}`,
                 },
             });
 
