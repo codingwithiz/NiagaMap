@@ -40,11 +40,21 @@ const AuthPage = ({ darkMode = false }) => {
                 );
             }
             const token = await userCredential.user.getIdToken();
+            console.log("Firebase auth successful, verifying with backend...");
             await axios.post("http://localhost:3001/auth/verify", { token });
             setSuccess(isLogin ? "Login successful!" : "Signup successful!");
             navigate("/map");
         } catch (err) {
-            setError(err.message);
+            console.error("Auth error:", err);
+            if (err.response) {
+                console.error("Backend response:", err.response.data);
+                setError(`Backend error: ${err.response.data.message || err.message}`);
+            } else if (err.code) {
+                console.error("Firebase error:", err.code, err.message);
+                setError(`Firebase error: ${err.message}`);
+            } else {
+                setError(err.message);
+            }
         }
     };
 

@@ -18,6 +18,7 @@ router.post("/api/suitability", async (req, res) => {
         retail: "Retail",
         food: "Dining and Drinking",
         sports: "Sports and Recreation",
+        workshop: "Automotive Services",
     };
 
     const normalizeCategory = (input) =>
