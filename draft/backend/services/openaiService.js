@@ -11,68 +11,150 @@ async function askChatbot(message) {
       {
         role: "system",
         content: `
-You are a precise and structured assistant for a GIS-based business location recommendation system in Malaysia. Your task is to extract relevant parameters from user input written in natural language.
+You are a precise and structured assistant for a GIS-based business location recommendation system in Malaysia.
 
-Your output must be a valid JSON object with the following keys:
+The user input will be in this format:
+\`\`\`
+Category: [Business Category]
+Indicator Weights:
+- Demand: X%
+- Competition: Y%
+- Accessibility: Z%
+- Zoning/Context: W%
+- Risk/Hazard: V%
 
-1. "location": A real-world place or area mentioned in the input (e.g., "Universiti Malaya", "Subang Jaya", "Bangsar").
-2. "category": The business type or intent, normalized to one of the following categories:
-   - "health" (e.g., clinic, pharmacy, hospital)
-   - "food" (e.g., cafe, restaurant, bubble tea)
-   - "retail" (e.g., bookstore, clothing store, mall)
-   - "sports" (e.g., gym, futsal court, recreation center)
-   - "workshop" (e.g., car repair, bike repair, service center)
-3. "radius": The search radius in meters. If the user specifies distance (e.g., "within 2km", "walking distance", "500 meters"), convert it to an integer in meters. If no radius is mentioned, default to 1000.
-4. "nearbyMe": A boolean value. Set to true if the user refers to their current location using phrases like "near me", "around me", "dekat saya", "my location", or similar. Otherwise, set to false.
-5. "reason": A short explanation (2-3 sentences) in natural language, summarizing the user's intent and what will be searched.
+User Message: [Natural language query]
+\`\`\`
 
-You must:
-- Return only the JSON object with the five keys.
-- Avoid extra text, explanations, or descriptions.
-- Estimate reasonably if details are vague (e.g., interpret "walking distance" as 500 meters).
-- Accept both English and Malay language inputs.
-- Handle mixed language input (e.g., "Saya nak buka kedai dekat Bangsar within 1km").
+Your task is to extract relevant parameters and return a JSON object with the following keys:
 
-If any value is missing, apply this fallback:
-- radius: 1000
-- category: "health"
+1. "location": A real-world place or area mentioned in the User Message (e.g., "Universiti Malaya", "Subang Jaya", "Bangsar"). If "near me" or similar phrases are used, set this to null.
 
-Always return a clean, parsable JSON object. Your job is to provide data that can be passed directly to a backend API for GIS-based location scoring.
+2. "category": **ALWAYS use the Category field provided at the top of the input.** Map it to one of these values:
+   - "Retail" → "retail"
+   - "Food & Beverage" → "food"
+   - "Health & Wellness" → "health"
+   - "Sports & Recreation" → "sports"
+   - "Automotive" → "workshop"
+   Do NOT infer category from the User Message. The user has already selected the category.
+
+3. "radius": The search radius in meters. If the User Message specifies distance (e.g., "within 2km", "walking distance", "500 meters"), convert it to an integer in meters. Default to 1000 if not mentioned.
+
+4. "nearbyMe": Set to true if the User Message refers to current location using phrases like "near me", "around me", "dekat saya", "my location". Otherwise, set to false.
+
+5. "weights": Extract the weights from the "Indicator Weights" section as an object:
+   {
+     "demand": 30,
+     "competition": 20,
+     "accessibility": 25,
+     "zoning": 15,
+     "risk": 10
+   }
+
+6. "reason": A 2-3 sentence explanation acknowledging:
+   - The selected category
+   - The location being searched
+   - The weight priorities (mention the highest weighted indicator)
+   Example: "You've selected the Retail category with high emphasis on Demand (30%) and Accessibility (25%). We will analyze suitable locations near Universiti Malaya within a 1km radius for opening a retail business."
+
+**Important Rules:**
+- ALWAYS use the Category field provided, NOT the business type mentioned in User Message
+- If User Message says "car repair shop" but Category is "Retail", the category must be "retail"
+- Accept both English and Malay language inputs
+- Return ONLY the JSON object, no extra text
+
+**Example:**
+
+Input:
+\`\`\`
+Category: Retail
+Indicator Weights:
+- Demand: 30%
+- Competition: 20%
+- Accessibility: 25%
+- Zoning/Context: 15%
+- Risk/Hazard: 10%
+
+User Message: where should I open my car repair shop in universiti malaya
+\`\`\`
+
+Output:
+\`\`\`json
+{
+  "location": "Universiti Malaya",
+  "category": "retail",
+  "radius": 1000,
+  "nearbyMe": false,
+  "weights": {
+    "demand": 30,
+    "competition": 20,
+    "accessibility": 25,
+    "zoning": 15,
+    "risk": 10
+  },
+  "reason": "You've selected the Retail category with high emphasis on Demand (30%) and Accessibility (25%). We will analyze suitable locations near Universiti Malaya within a 1km radius for opening a retail business, even though you mentioned a car repair shop."
+}
+\`\`\`
+
+Always return a clean, parsable JSON object.
         `,
       },
       {
         role: "user",
-        content: message, // this is dynamic, from frontend
+        content: message, // enrichedMessage from frontend
       },
     ],
     temperature: 0.2,
   });
-
+  console.log("Chatbot response:", response.choices[0].message.content);
   return response.choices[0].message.content;
 }
 
-async function generateReasoning({ userIntent, center, recommendations }) {
+async function generateReasoning({ userIntent, center, recommendations, category, weights }) {
   const { OpenAI } = require("openai");
   const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
+  // Helper to get top weighted indicators
+  const sortedWeights = Object.entries(weights || {})
+    .sort(([, a], [, b]) => b - a)
+    .slice(0, 2);
+  
+  const topIndicators = sortedWeights.length > 0
+    ? sortedWeights.map(([key, val]) => `${key.charAt(0).toUpperCase() + key.slice(1)} (${val}%)`).join(" and ")
+    : "balanced indicators";
+
   const REASONING_SYSTEM_PROMPT = `
 You are a GIS assistant in Malaysia helping businesses choose ideal locations.
-You are given the user's business intent, a central coordinate, and 3 recommended coordinates with suitability scores.
 
-Your task is to explain in clear, concise sentences WHY each location is recommended, using:
-- Its proximity to the central point
-- Its score (higher = better)
-- Its alignment with the user's intent
+You are given:
+- User's business intent and selected category: "${category}"
+- Priority indicators: ${topIndicators}
+- A central coordinate
+- 3 recommended coordinates with suitability scores
 
-Each explanation must be 1–2 sentences and must vary based on the location's score and distance. Use real reasoning logic (e.g., “This point is closest”, “Moderately far but has high potential”).
+Your task is to explain WHY each location is recommended, considering:
+1. Its proximity to the central point (closer is better)
+2. Its suitability score (0-100, higher is better)
+3. Alignment with the selected business category: "${category}"
+4. The user's priority indicators: ${topIndicators}
 
-Respond ONLY with a valid JSON array (no markdown):
+Each explanation must be 1–2 sentences and must reference:
+- Distance from center ("very close", "moderately far", "farthest but viable")
+- Score interpretation ("excellent score", "strong score", "moderate score")
+- Why it suits the ${category} category
+
+**Example reasoning formats:**
+- "This location is very close to your search center and has an excellent suitability score of 89.1, making it ideal for ${category} with strong ${topIndicators}."
+- "While moderately far from the center, this spot achieves a strong score of 82.5 due to high accessibility and good demand indicators, perfect for ${category}."
+- "This location balances distance and opportunity with a score of 76.3, offering good zoning compliance and low competition for your ${category} business."
+
+Respond ONLY with a valid JSON array (no markdown backticks):
 
 [
   {
     "lat": 3.123,
     "lon": 101.678,
-    "reason": "This location is very close to the center and has a high suitability score of 89.1, making it ideal for the user's business intent."
+    "reason": "Your generated reasoning here..."
   },
   ...
 ]
@@ -88,10 +170,12 @@ Respond ONLY with a valid JSON array (no markdown):
           userIntent,
           center,
           recommendations,
+          category,
+          weights,
         }),
       },
     ],
-    temperature: 0.2,
+    temperature: 0.3,
   });
 
   // Strip markdown block if any
