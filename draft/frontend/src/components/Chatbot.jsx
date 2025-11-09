@@ -169,10 +169,6 @@ function Chatbot({ onExtracted, onClose, onShowRecommendations, darkMode = false
         Object.keys(normalizedWeights).forEach(key => {
           normalizedWeights[key] = Math.round(normalizedWeights[key] * scale);
         });
-<<<<<<< HEAD
-=======
-        // Fix rounding errors
->>>>>>> e5dafd3978e7d55b609730480aeaf98f17160db9
         const newTotal = Object.values(normalizedWeights).reduce((sum, val) => sum + val, 0);
         if (newTotal !== 100) {
           const diff = 100 - newTotal;
@@ -180,11 +176,7 @@ function Chatbot({ onExtracted, onClose, onShowRecommendations, darkMode = false
         }
       }
 
-<<<<<<< HEAD
       // Construct enriched message (for OpenAI)
-=======
-      // Construct enriched message
->>>>>>> e5dafd3978e7d55b609730480aeaf98f17160db9
       const enrichedMessage = `
 Category: ${CATEGORY_PRESETS[selectedCategory].label}
 Indicator Weights:
@@ -211,15 +203,9 @@ User Message: ${input}
         botResult = res.data;
       }
 
-<<<<<<< HEAD
       // ✅ Save enriched message (for AI)
       const saveRes = await axios.put(`${API}/chats/${selectedChat}/messages`, {
         user_prompt: enrichedMessage,     // ✅ Full context for OpenAI
-=======
-      // Save conversation
-      const saveRes = await axios.put(`${API}/chats/${selectedChat}/messages`, {
-        user_prompt: input,
->>>>>>> e5dafd3978e7d55b609730480aeaf98f17160db9
         bot_answer: JSON.stringify(botResult),
       });
       const conversationId = saveRes.data.conversationId;
@@ -248,11 +234,7 @@ User Message: ${input}
       console.error(err);
       alert("Something went wrong.");
     } finally {
-<<<<<<< HEAD
       setLoading(false);
-=======
-      setLoading(false); // ✅ Always stop loading
->>>>>>> e5dafd3978e7d55b609730480aeaf98f17160db9
     }
   };
 
@@ -560,7 +542,6 @@ User Message: ${input}
                 <p style={{ fontSize: 13, marginTop: 10, lineHeight: 1.6 }}>
                   Select a category, adjust weights, and ask about locations.
                 </p>
-<<<<<<< HEAD
               </div>
             )}
             
@@ -719,82 +700,6 @@ User Message: ${input}
                 </div>
               );
             })}
-=======
-              </div>
-            )}
-            
-            {conversation.map((msg, idx) => (
-              <div key={idx} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-                {/* User Message */}
-                <div style={{ display: "flex", justifyContent: "flex-end" }}>
-                  <div
-                    style={{
-                      background: "linear-gradient(135deg, #1976d2 0%, #1565c0 100%)",
-                      color: "#fff",
-                      borderRadius: "18px 18px 4px 18px",
-                      padding: "12px 18px",
-                      maxWidth: "70%",
-                      wordBreak: "break-word",
-                      fontSize: 14,
-                      lineHeight: 1.5,
-                      boxShadow: "0 3px 10px rgba(25, 118, 210, 0.3)",
-                    }}
-                  >
-                    {msg.user_prompt}
-                  </div>
-                </div>
-
-                {/* Bot Response */}
-                <div style={{ display: "flex", justifyContent: "flex-start", flexDirection: "column", gap: 10 }}>
-                  <div
-                    style={{
-                      background: darkMode ? "#2a2a2a" : "#f1f3f4",
-                      color: darkMode ? "#e0e0e0" : "#222",
-                      borderRadius: "18px 18px 18px 4px",
-                      padding: "12px 18px",
-                      maxWidth: "70%",
-                      wordBreak: "break-word",
-                      fontSize: 14,
-                      lineHeight: 1.5,
-                      border: `1px solid ${darkMode ? "#3d3d3d" : "#e0e0e0"}`,
-                    }}
-                  >
-                    {(() => {
-                      try {
-                        const parsed = JSON.parse(msg.bot_answer);
-                        return parsed.reason || parsed.text || msg.bot_answer;
-                      } catch {
-                        return msg.bot_answer;
-                      }
-                    })()}
-                  </div>
-                  
-                  {msg.analysisId && (
-                    <button
-                      style={{
-                        background: "linear-gradient(135deg, #4caf50 0%, #45a049 100%)",
-                        color: "#fff",
-                        border: "none",
-                        borderRadius: 8,
-                        padding: "8px 16px",
-                        fontSize: 13,
-                        cursor: "pointer",
-                        alignSelf: "flex-start",
-                        fontWeight: 600,
-                        boxShadow: "0 3px 10px rgba(76, 175, 80, 0.3)",
-                        transition: "transform 0.2s",
-                      }}
-                      onMouseEnter={(e) => e.target.style.transform = "translateY(-2px)"}
-                      onMouseLeave={(e) => e.target.style.transform = "translateY(0)"}
-                      onClick={() => handleShowRecommendations(msg.analysisId)}
-                    >
-                      📍 View on Map
-                    </button>
-                  )}
-                </div>
-              </div>
-            ))}
->>>>>>> e5dafd3978e7d55b609730480aeaf98f17160db9
             <div ref={messagesEndRef} />
           </div>
 
