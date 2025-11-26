@@ -13,8 +13,16 @@ import AnalysesPage from "./components/Analysis";
 
 
 function ProtectedRoute({ children }) {
-  const { user } = useAuth();
-  return user ? children : <Navigate to="/auth" replace />;
+  const { user, loading } = useAuth();
+
+  // while Firebase initializes, don't redirect (avoid flash)
+  if (loading) return null; // or return a spinner component
+
+  if (!user) {
+    return <Navigate to="/auth" replace />;
+  }
+
+  return children;
 }
 
 function App() {
