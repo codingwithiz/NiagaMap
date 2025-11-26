@@ -23,16 +23,11 @@ function polygonCentroid(ring) {
 }
 
 /**
- * Call ArcGIS Route solve endpoint to obtain distance to nearest road.
- * Note: the Route service typically expects routes between two or more stops.
- * Here we submit a single stop and attempt to parse any returned route distance.
- * If the service doesn't return a distance, null is returned.
- */
-/**
- * Query a FeatureServer layer for features that intersect the given polygon rings.
- * If none are found, do a buffered search around the centroid using `distance` (meters).
+ * Query a FeatureServer layer to obtain distance to nearest facility.
+ * If the service doesn't return a facility, score is 0.
  * Returns { distanceMeters, rawResponse }
  */
+
 async function queryNearestFacilityDistance(polygonRings, centroid, token, opts = {}) {
     // feature service URL can be provided via opts or environment
     const defaultUrl = process.env.FACILITIES_FEATURE_URL || 'https://services6.arcgis.com/MpOjf90wsc96wTq1/ArcGIS/rest/services/Public_Facilities_WFL1/FeatureServer';
