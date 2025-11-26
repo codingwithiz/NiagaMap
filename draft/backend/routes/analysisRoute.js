@@ -9,6 +9,7 @@ const {
 } = require("../services/analysisService");
 const catchmentController = require('../controllers/catchmentController');
 const poiController = require('../controllers/poiController');
+const accessibilityController = require('../controllers/accessibilityController');
 
 router.get("/analysis/:userId", async (req, res) => {
     const { userId } = req.params;
@@ -143,6 +144,37 @@ router.post('/analysis/pois', async (req, res) => {
     } catch (err) {
         console.error('POI scoring failed:', err);
         res.status(500).json({ error: 'POI scoring failed', detail: String(err) });
+    }
+});
+
+// POST /analysis/accessibility
+// body: { radius, center_x, center_y, category, maxCount? }
+router.post('/analysis/accessibility', async (req, res) => {
+    const { radius, center_x, center_y, category, maxCount } = req.body || {};
+
+    if (radius == null || center_x == null || center_y == null) {
+        return res.status(400).json({ error: 'radius, center_x and center_y are required in the request body' });
+    }
+
+    const authHeader = req.get('authorization') || req.get('Authorization') || '';
+    let token = null;
+    if (authHeader && typeof authHeader === 'string' && authHeader.toLowerCase().startsWith('bearer ')) {
+        token = authHeader.slice(7).trim();
+    }
+    if (!token) {
+        token = process.env.ARC_API_KEY || null;
+    }
+
+    if (!token) {
+        return res.status(400).json({ error: 'ArcGIS Route API token is required. Set ARC_API_KEY in env or provide Authorization: Bearer <token>' });
+    }
+
+    try {
+        const result = await accessibilityController.runAccessibility({ radius: Number(radius), center_x: Number(center_x), center_y: Number(center_y), category, token, maxCount });
+        res.status(200).json(result);
+    } catch (err) {
+        console.error('Accessibility processing failed:', err);
+        res.status(500).json({ error: 'Accessibility processing failed', detail: String(err) });
     }
 });
 
