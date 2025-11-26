@@ -9,6 +9,7 @@ const CATEGORY_MAP = {
         retry: 2,
         delayMs: 300,
         max_competitors: 10,
+        accessibilityThreshold: 400,
     },
     FnB: {
         category_name: 'Food & Beverage',
@@ -19,6 +20,7 @@ const CATEGORY_MAP = {
         retry: 2,
         delayMs: 300,
         max_competitors: 8,
+        accessibilityThreshold: 400,
     },
     Health: {
         category_name: 'Health and Medicine',
@@ -29,6 +31,7 @@ const CATEGORY_MAP = {
         retry: 2,
         delayMs: 300,
         max_competitors: 6,
+        accessibilityThreshold: 400,
     },
     Automotive: {
         category_name: 'Automotive Services',
@@ -39,6 +42,7 @@ const CATEGORY_MAP = {
         retry: 2,
         delayMs: 300,
         max_competitors: 5,
+        accessibilityThreshold: 400,
     },
     Sports: {
         category_name: 'Sports and Recreation',
@@ -49,6 +53,7 @@ const CATEGORY_MAP = {
         retry: 2,
         delayMs: 300,
         max_competitors: 6,
+        accessibilityThreshold: 400,
     },
     default: {
         category_name: 'Other',
@@ -59,6 +64,7 @@ const CATEGORY_MAP = {
         retry: 2,
         delayMs: 300,
         max_competitors: 5,
+        accessibilityThreshold: 400,
     },
 };
 
