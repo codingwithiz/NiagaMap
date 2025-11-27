@@ -10,6 +10,48 @@ const {
 const catchmentController = require('../controllers/catchmentController');
 const poiController = require('../controllers/poiController');
 const accessibilityController = require('../controllers/accessibilityController');
+const zoningController = require('../controllers/zoningController');
+const riskController = require('../controllers/riskController');
+
+// Token extractor: prefer "Authenticator", then "Authorization", then env ARC_API_KEY
+function extractToken(req) {
+    // Fallback to env variable if req is invalid
+    if (!req || typeof req.get !== "function") {
+        return process.env.ARC_API_KEY || null;
+    }
+
+    // Normalize header lookup (case-insensitive)
+    const headers = req.headers || {};
+    const getHeader = (name) =>
+        headers[name] ||
+        headers[name.toLowerCase()] ||
+        req.get(name) ||
+        req.get(name.toLowerCase());
+
+    // Prefer "Authenticator" → "Authorization"
+    const raw =
+        getHeader("Authenticator") ||
+        getHeader("Authorization") ||
+        "";
+
+    if (typeof raw === "string") {
+        const trimmed = raw.trim();
+
+        // Accept "Bearer <token>"
+        if (trimmed.toLowerCase().startsWith("bearer ")) {
+            return trimmed.slice(7).trim() || null;
+        }
+
+        // Accept raw token as-is
+        if (trimmed.length > 0) {
+            return trimmed;
+        }
+    }
+
+    // Fallback to env
+    return process.env.ARC_API_KEY || null;
+}
+
 
 router.get("/analysis/:userId", async (req, res) => {
     const { userId } = req.params;
@@ -95,14 +137,7 @@ router.post('/analysis/catchment', async (req, res) => {
 
     // Token can be provided via Authorization header (Bearer ...) or from environment variables.
     // Prefer Authorization header if present (safer for per-request overrides), otherwise use env.
-    const authHeader = req.get('authorization') || req.get('Authorization') || '';
-    let token = null;
-    if (authHeader && typeof authHeader === 'string' && authHeader.toLowerCase().startsWith('bearer ')) {
-        token = authHeader.slice(7).trim();
-    }
-    if (!token) {
-        token = process.env.ARC_API_KEY || null;
-    }
+    const token = extractToken(req);
 
     if (!token) {
         return res.status(400).json({ error: 'ArcGIS token is required. Set ARC_API_KEY in the backend environment or provide a Bearer token in Authorization header.' });
@@ -123,16 +158,7 @@ router.post('/analysis/pois', async (req, res) => {
     const { hexagons, radius, center_x, center_y, category, maxCount } = req.body || {};
 
     // Token can be provided via Authorization header (Bearer ...) or from environment variables.
-    const authHeader = req.get('authorization') || req.get('Authorization') || '';
-    let token = null;
-    if (authHeader && typeof authHeader === 'string' && authHeader.toLowerCase().startsWith('bearer ')) {
-        token = authHeader.slice(7).trim();
-    }
-    if (!token) {
-        token =
-            process.env.ARC_API_KEY ||
-            null;
-    }
+    const token = extractToken(req);
 
     if (!token) {
         return res.status(400).json({ error: 'ArcGIS Places API token is required. Set ARC_API_KEY/ARC_TOKEN in env or provide Authorization: Bearer <token>' });
@@ -156,17 +182,10 @@ router.post('/analysis/accessibility', async (req, res) => {
         return res.status(400).json({ error: 'radius, center_x and center_y are required in the request body' });
     }
 
-    const authHeader = req.get('authorization') || req.get('Authorization') || '';
-    let token = null;
-    if (authHeader && typeof authHeader === 'string' && authHeader.toLowerCase().startsWith('bearer ')) {
-        token = authHeader.slice(7).trim();
-    }
-    if (!token) {
-        token = process.env.ARC_API_KEY || null;
-    }
+    const token = extractToken(req);
 
     if (!token) {
-        return res.status(400).json({ error: 'ArcGIS Route API token is required. Set ARC_API_KEY in env or provide Authorization: Bearer <token>' });
+        return res.status(400).json({ error: 'ArcGIS token is required. Set ARC_API_KEY in env or provide an Authenticator/Authorization header.' });
     }
 
     try {
@@ -175,6 +194,45 @@ router.post('/analysis/accessibility', async (req, res) => {
     } catch (err) {
         console.error('Accessibility processing failed:', err);
         res.status(500).json({ error: 'Accessibility processing failed', detail: String(err) });
+    }
+});
+
+// POST /analysis/zoning
+// body: { radius, center_x, center_y, category, maxCount? }
+router.post('/analysis/zoning', async (req, res) => {
+    const { radius, center_x, center_y, category, maxCount } = req.body || {};
+
+    if (radius == null || center_x == null || center_y == null) {
+        return res.status(400).json({ error: 'radius, center_x and center_y are required in the request body' });
+    }
+
+    const token = extractToken(req);
+
+    try {
+        const result = await zoningController.runZoning({ radius: Number(radius), center_x: Number(center_x), center_y: Number(center_y), category, token, maxCount });
+        res.status(200).json(result);
+    } catch (err) {
+        console.error('Zoning processing failed:', err);
+        res.status(500).json({ error: 'Zoning processing failed', detail: String(err) });
+    }
+});
+
+// POST /analysis/risk
+// body: { radius, center_x, center_y, category, maxCount? }
+router.post('/analysis/risk', async (req, res) => {
+    const { radius, center_x, center_y, category, maxCount } = req.body || {};
+
+    if (radius == null || center_x == null || center_y == null) {
+        return res.status(400).json({ error: 'radius, center_x and center_y are required in the request body' });
+    }
+
+    const token = extractToken(req);
+    try {
+        const result = await riskController.runRiskAnalysis({ radius: Number(radius), center_x: Number(center_x), center_y: Number(center_y), category, token, maxCount });
+        res.status(200).json(result);
+    } catch (err) {
+        console.error('Risk processing failed:', err);
+        res.status(500).json({ error: 'Risk processing failed', detail: String(err) });
     }
 });
 
