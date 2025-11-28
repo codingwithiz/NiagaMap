@@ -140,7 +140,7 @@ function InputArea({
             </div>
           )}
           
-          {/* Location Suggestions Dropdown */}
+          {/* Location Suggestions Dropdown - Updated for ArcGIS format */}
           {showLocationDropdown && locationSuggestions.length > 0 && (
             <div style={{
               position: 'absolute',
@@ -173,11 +173,13 @@ function InputArea({
                   onMouseLeave={(e) => e.target.style.background = "transparent"}
                 >
                   <div style={{ fontWeight: 600, marginBottom: 2 }}>
-                    📍 {suggestion.display_name.split(',')[0]}
+                    📍 {suggestion.text}
                   </div>
-                  <div style={{ fontSize: 11, color: darkMode ? "#aaa" : "#666" }}>
-                    {suggestion.display_name}
-                  </div>
+                  {suggestion.score && (
+                    <div style={{ fontSize: 11, color: darkMode ? "#aaa" : "#666" }}>
+                      Score: {suggestion.score}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
