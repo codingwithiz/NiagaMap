@@ -1,23 +1,40 @@
 import axios from "axios";
 import { LOCATION_KEYWORDS, NEAR_ME_PATTERNS } from "../constants/chatbotConstants";
 
+const ARCGIS_GEOCODE_URL = "https://geocode-api.arcgis.com/arcgis/rest/services/World/GeocodeServer";
+const ARCGIS_API_KEY = import.meta.env.VITE_ARCGIS_API_KEY; // For Vite
+
 export const fetchLocationSuggestions = async (query) => {
   if (!query || query.length < 3) {
     return [];
   }
 
   try {
-    const response = await axios.get(`https://nominatim.openstreetmap.org/search`, {
+    // Use findAddressCandidates directly for autocomplete with more details
+    const response = await axios.get(`${ARCGIS_GEOCODE_URL}/findAddressCandidates`, {
       params: {
-        q: `${query}, Malaysia`,
-        format: 'json',
-        limit: 5,
-        countrycodes: 'my',
+        SingleLine: query,
+        category: "Address,Populated Place",
+        countryCode: "MYS", // Malaysia
+        maxLocations: 5,
+        outFields: "PlaceName,Place_addr,City,Region",
+        f: "json",
+        token: ARCGIS_API_KEY,
       },
     });
-    return response.data;
+    
+    const candidates = response.data.candidates || [];
+    
+    // Transform to match expected format
+    return candidates.map(candidate => ({
+      text: candidate.address,
+      magicKey: null, // Not needed since we have full data
+      location: candidate.location,
+      score: candidate.score,
+      attributes: candidate.attributes,
+    }));
   } catch (error) {
-    console.error("Location search error:", error);
+    console.error("ArcGIS location search error:", error);
     return [];
   }
 };
@@ -53,25 +70,29 @@ export const validateLocation = async (message) => {
   }
   
   try {
-    const response = await axios.get(`https://nominatim.openstreetmap.org/search`, {
+    const response = await axios.get(`${ARCGIS_GEOCODE_URL}/findAddressCandidates`, {
       params: {
-        q: `${locationPart}, Malaysia`,
-        format: 'json',
-        limit: 1,
-        countrycodes: 'my',
+        SingleLine: locationPart,
+        category: "Address,Populated Place",
+        countryCode: "MYS",
+        maxLocations: 1,
+        f: "json",
+        token: ARCGIS_API_KEY,
       },
     });
     
-    if (response.data.length === 0) {
+    const candidates = response.data.candidates || [];
+    
+    if (candidates.length === 0) {
       return { 
         valid: false, 
         error: `Location "${locationPart}" not found in Malaysia. Please select from suggestions.` 
       };
     }
     
-    return { valid: true, isNearMe: false };
+    return { valid: true, isNearMe: false, locationData: candidates[0] };
   } catch (error) {
-    console.error("Location validation error:", error);
+    console.error("ArcGIS location validation error:", error);
     return { 
       valid: false, 
       error: "Unable to validate location. Please try again." 

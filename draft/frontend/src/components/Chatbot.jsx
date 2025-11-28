@@ -111,7 +111,9 @@ function Chatbot({ onExtracted, onClose, onShowRecommendations, darkMode = false
   };
 
   const handleLocationSelect = (suggestion) => {
-    const locationName = suggestion.display_name.split(',')[0];
+    // ArcGIS returns 'text' instead of 'display_name'
+    const locationName = suggestion.text;
+    
     setInput(replaceLocationInInput(input, locationName));
     setShowLocationDropdown(false);
     setLocationSuggestions([]);
