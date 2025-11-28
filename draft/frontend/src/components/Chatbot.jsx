@@ -300,6 +300,8 @@ function Chatbot({ onExtracted, onClose, onShowRecommendations, darkMode = false
                 <WeightPanel
                   showWeightPanel={showWeightPanel}
                   weights={weightManager.weights}
+                  lockedIndicators={weightManager.lockedIndicators}
+                  toggleLock={weightManager.toggleLock}
                   handleWeightChange={weightManager.handleWeightChange}
                   resetWeights={weightManager.resetWeights}
                   totalWeight={weightManager.totalWeight}
