@@ -28,8 +28,10 @@ function extractToken(req) {
         req.get(name) ||
         req.get(name.toLowerCase());
 
-    // Prefer "Authenticator" → "Authorization"
+    // Prefer in this order: body.token -> "Authenticator" -> "Authorization"
+    const bodyToken = (req.body && req.body.token) ? req.body.token : null;
     const raw =
+        bodyToken ||
         getHeader("Authenticator") ||
         getHeader("Authorization") ||
         "";
@@ -226,9 +228,10 @@ router.post('/analysis/risk', async (req, res) => {
         return res.status(400).json({ error: 'radius, center_x and center_y are required in the request body' });
     }
 
-    const token = extractToken(req);
     try {
-        const result = await riskController.runRiskAnalysis({ radius: Number(radius), center_x: Number(center_x), center_y: Number(center_y), category, token, maxCount });
+        // Force server-side token generation inside the controller/helper.
+        // Do NOT accept token from client for this endpoint.
+        const result = await riskController.runRiskAnalysis({ radius: Number(radius), center_x: Number(center_x), center_y: Number(center_y), category, token: null, maxCount });
         res.status(200).json(result);
     } catch (err) {
         console.error('Risk processing failed:', err);

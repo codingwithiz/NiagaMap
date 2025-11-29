@@ -16,7 +16,7 @@ async function runZoning(opts = {}) {
     const hexagons = catchmentService.generateCatchmentHexagons(center_x, center_y, radius, settings.sideLength);
     const limitedHexagons = (maxCount && Number.isFinite(Number(maxCount))) ? hexagons.slice(0, Number(maxCount)) : hexagons;
 
-    const scores = await zoningService.computeZoningScores(limitedHexagons, category, token, { featureServiceUrl: process.env.ZONING_FEATURE_URL, delayMs: settings.delayMs });
+    const scores = await zoningService.computeZoningScores(limitedHexagons, category, { featureServiceUrl: process.env.ZONING_FEATURE_URL, delayMs: settings.delayMs });
 
     const rawResponses = scores.map(s => s.rawResponse || null);
 

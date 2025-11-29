@@ -11,6 +11,8 @@ const CATEGORY_MAP = {
         max_competitors: 10,
         accessibilityThreshold: 400,
         floodRiskThresholdHa: 1,
+        landslideRiskThreshold: 1,
+        riskRatio: 0.8,
     },
     FnB: {
         category_name: "Dining and Drinking",
@@ -23,6 +25,8 @@ const CATEGORY_MAP = {
         max_competitors: 8,
         accessibilityThreshold: 400,
         floodRiskThresholdHa: 1,
+        landslideRiskThreshold: 1,
+        riskRatio: 0.5,
     },
     Health: {
         category_name: "Health and Medicine",
@@ -35,6 +39,8 @@ const CATEGORY_MAP = {
         max_competitors: 6,
         accessibilityThreshold: 400,
         floodRiskThresholdHa: 1,
+        landslideRiskThreshold: 1,
+        riskRatio: 0.5,
     },
     Automotive: {
         category_name: "Automotive Services",
@@ -47,6 +53,8 @@ const CATEGORY_MAP = {
         max_competitors: 5,
         accessibilityThreshold: 400,
         floodRiskThresholdHa: 1,
+        landslideRiskThreshold: 1,
+        riskRatio: 0.5,
     },
     Sports: {
         category_name: "Sports and Recreation",
@@ -59,6 +67,8 @@ const CATEGORY_MAP = {
         max_competitors: 6,
         accessibilityThreshold: 400,
         floodRiskThresholdHa: 1,
+        landslideRiskThreshold: 1,
+        riskRatio: 0.5,
     },
     default: {
         category_name: "Other",
@@ -71,6 +81,8 @@ const CATEGORY_MAP = {
         max_competitors: 5,
         accessibilityThreshold: 400,
         floodRiskThresholdHa: 1,
+        landslideRiskThreshold: 1,
+        riskRatio: 0.5,
     },
 };
 
