@@ -1,6 +1,6 @@
 const catchmentService = require('../services/catchmentService');
 const riskService = require('../services/riskService');
-const arcgisAuth = require('../services/arcgisAuth');
+const arcgisAuth = require('../api/arcgisAuth');
 const CATEGORY_MAP = require('../constants/categoryMap');
 
 /**

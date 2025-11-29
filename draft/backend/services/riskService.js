@@ -1,5 +1,5 @@
 const axios = require('axios');
-const arcgisAuth = require('./arcgisAuth');
+const arcgisAuth = require('../api/arcgisAuth');
 
 /**
  * Compute centroid for a polygon represented as [[lon,lat],...]
