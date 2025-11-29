@@ -8,25 +8,20 @@ const CATEGORY_MAP = require('../constants/categoryMap');
  * opts: { radius, center_x, center_y, category, token, maxCount }
  */
 async function runRiskAnalysis(opts = {}) {
-    const { radius, center_x, center_y, category, maxCount = null } = opts;
+    const { hexagons, category, maxCount = null, riskRatio = null } = opts;
 
-    if (![radius, center_x, center_y].every(n => Number.isFinite(Number(n)))) {
-        throw new Error('radius, center_x and center_y must be numeric');
+    if (!Array.isArray(hexagons) || hexagons.length === 0) {
+        throw new Error('`hexagons` (array of rings) is required for risk analysis (generation is handled by workflow)');
     }
 
     const settings = catchmentService.getSettingsForCategory(category);
-    const hexagons = catchmentService.generateCatchmentHexagons(center_x, center_y, radius, settings.sideLength);
     const limitedHexagons = (maxCount && Number.isFinite(Number(maxCount))) ? hexagons.slice(0, Number(maxCount)) : hexagons;
 
-    // prefer provided token, otherwise attempt to generate/get one from server helper
-    const tokenToUse = await arcgisAuth.getToken();
+    // prefer provided token, otherwise attempt to generate/get one from server helper inside riskService
+    const tokenToUse = null; // riskService will generate server-side token as needed
 
-    // determine riskRatio here: prefer opts.riskRatio (incoming), then category settings, then default
-    let ratioVal = null;
-    if (Number.isFinite(Number(opts.riskRatio))) ratioVal = Number(opts.riskRatio);
-    else if (settings && Number.isFinite(Number(settings.riskRatio))) ratioVal = Number(settings.riskRatio);
-    else if (CATEGORY_MAP && CATEGORY_MAP.default && Number.isFinite(Number(CATEGORY_MAP.default.riskRatio))) ratioVal = Number(CATEGORY_MAP.default.riskRatio);
-    else ratioVal = 0.5;
+    // determine riskRatio: prefer incoming opts.riskRatio, then category settings, then default in riskService
+    const ratioVal = Number.isFinite(Number(riskRatio)) ? Number(riskRatio) : (settings && Number.isFinite(Number(settings.riskRatio)) ? Number(settings.riskRatio) : null);
 
     const scores = await riskService.computeFloodRiskScores(limitedHexagons, category, tokenToUse, {
         sideLengthMeters: settings.sideLength,

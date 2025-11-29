@@ -8,10 +8,12 @@ const {
     deleteAnalysis,
 } = require("../services/analysisService");
 const catchmentController = require('../controllers/catchmentController');
+const demandController = require('../controllers/demandController');
 const poiController = require('../controllers/poiController');
 const accessibilityController = require('../controllers/accessibilityController');
 const zoningController = require('../controllers/zoningController');
 const riskController = require('../controllers/riskController');
+const workflowController = require('../controllers/workflowController');
 
 // Token extractor: prefer "Authenticator", then "Authorization", then env ARC_API_KEY
 function extractToken(req) {
@@ -154,6 +156,76 @@ router.post('/analysis/catchment', async (req, res) => {
     }
 });
 
+// POST /analysis/demand
+// body: { hexagons?, radius?, center_x?, center_y?, category?, maxCount?, returnResponses? }
+router.post('/analysis/demand', async (req, res) => {
+    const { hexagons, radius, center_x, center_y, category, maxCount, returnResponses } = req.body || {};
+
+    // require either hexagons or center/radius
+    if ((!Array.isArray(hexagons) || hexagons.length === 0) && (radius == null || center_x == null || center_y == null)) {
+        return res.status(400).json({ error: 'Provide `hexagons` or radius, center_x and center_y in the request body' });
+    }
+
+    // Token can be provided via Authorization header (Bearer ...) or from environment variables.
+    const token = extractToken(req);
+
+    if (!token) {
+        return res.status(400).json({ error: 'ArcGIS token is required. Set ARC_API_KEY in the backend environment or provide a Bearer token in Authorization header.' });
+    }
+
+    try {
+        const result = await demandController.runDemand({ hexagons, radius: Number(radius), center_x: Number(center_x), center_y: Number(center_y), category, token, maxCount, returnResponses });
+
+        // Per request: compute demand indicator but return the generated hexagons only (with centroids)
+        res.status(200).json(result);
+    } catch (err) {
+        console.error('Demand processing failed:', err);
+        res.status(500).json({ error: 'Demand processing failed', detail: String(err) });
+    }
+});
+
+// POST /analysis/workflow
+// body: { radius, center_x, center_y, category, maxCount?, token? }
+router.post('/analysis/workflow', async (req, res) => {
+    const { radius, center_x, center_y, category, maxCount } = req.body || {};
+    // Token can be provided via Authorization header (Bearer ...) or from environment variables.
+    const token = extractToken(req);
+
+    if (!token) {
+        return res
+            .status(400)
+            .json({
+                error: "ArcGIS token is required. Set ARC_API_KEY in the backend environment or provide a Bearer token in Authorization header.",
+            });
+    }
+
+    if (radius == null || center_x == null || center_y == null) {
+        return res
+            .status(400)
+            .json({
+                error: "radius, center_x and center_y are required in the request body",
+            });
+    }
+
+    try {
+        const results = await workflowController.runWorkflow({
+            radius: Number(radius),
+            center_x: Number(center_x),
+            center_y: Number(center_y),
+            category,
+            token,
+            maxCount,
+        });
+        res.status(200).json({ results });
+    } catch (err) {
+        console.error("Workflow processing failed:", err);
+        res.status(500).json({
+            error: "Workflow processing failed",
+            detail: String(err),
+        });
+    }
+});
+
 // POST /analysis/pois
 // body: { hexagons? (3d array), radius?, center_x?, center_y?, category? }
 router.post('/analysis/pois', async (req, res) => {
@@ -240,4 +312,5 @@ router.post('/analysis/risk', async (req, res) => {
 });
 
 module.exports = router;
+
 

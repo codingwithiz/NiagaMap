@@ -6,15 +6,13 @@ const accessibilityService = require('../services/accessibilityService');
  * opts: { radius, center_x, center_y, category, token, maxCount }
  */
 async function runAccessibility(opts = {}) {
-    const { radius, center_x, center_y, category, token, maxCount = null } = opts;
+    const { hexagons, category, token, maxCount = null } = opts;
 
-    if (![radius, center_x, center_y].every(n => Number.isFinite(Number(n)))) {
-        throw new Error('radius, center_x and center_y must be numeric');
+    if (!Array.isArray(hexagons) || hexagons.length === 0) {
+        throw new Error('`hexagons` (array of rings) is required for accessibility analysis (generation is handled by workflow)');
     }
 
     const settings = catchmentService.getSettingsForCategory(category);
-    const hexagons = catchmentService.generateCatchmentHexagons(center_x, center_y, radius, settings.sideLength);
-
     const limitedHexagons = (maxCount && Number.isFinite(Number(maxCount))) ? hexagons.slice(0, Number(maxCount)) : hexagons;
 
     const scores = await accessibilityService.computeAccessibilityScores(limitedHexagons, token, {

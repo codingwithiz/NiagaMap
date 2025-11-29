@@ -1,14 +1,24 @@
 const catchmentService = require('../services/catchmentService');
-const demandService = require('../services/demandService');
+
+// small local helper to compute centroid for a single ring [[lon,lat],...]
+function polygonCentroid(ring) {
+    if (!Array.isArray(ring) || ring.length === 0) return null;
+    const last = ring[ring.length - 1];
+    const first = ring[0];
+    const pts = (last && first && last[0] === first[0] && last[1] === first[1]) ? ring.slice(0, -1) : ring.slice();
+    let sumX = 0, sumY = 0;
+    for (const p of pts) { sumX += Number(p[0]); sumY += Number(p[1]); }
+    const n = pts.length || 1;
+    return { lon: sumX / n, lat: sumY / n };
+}
 
 /**
- * Controller entrypoint. Given inputs, generate hexagons and compute demand scores.
- * @param {Object} opts - { radius, center_x, center_y, category, token, maxCount, returnResponses }
- * @returns {Object} { hexagons, pops: [], demandScores: [], settings }
+ * Controller entrypoint. Given inputs, generate hexagons and return them.
+ * @param {Object} opts - { radius, center_x, center_y, category, maxCount }
+ * @returns {Object} { hexagons, numberOfHexagons, settings }
  */
 async function runCatchment(opts = {}) {
-    //category should be "Sports", "Retail", "FnB", "Automotive", "Health"
-    const { radius, center_x, center_y, category, token, maxCount = null, returnResponses = false } = opts;
+    const { radius, center_x, center_y, category, maxCount = null } = opts;
 
     if (![radius, center_x, center_y].every(n => Number.isFinite(Number(n)))) {
         throw new Error('radius, center_x and center_y must be numeric');
@@ -21,17 +31,12 @@ async function runCatchment(opts = {}) {
     // Optionally limit count
     const limitedHexagons = (maxCount && Number.isFinite(Number(maxCount))) ? hexagons.slice(0, Number(maxCount)) : hexagons;
 
-    // Call demand service to fetch populations and compute scores
-    const { pops_array, rawResponses } = await demandService.fetchPopulationsForHexagons(limitedHexagons, token, { returnResponses, country: settings.country, dataCollections: settings.dataCollections, retry: settings.retry, delayMs: settings.delayMs });
-
-    const demandScores = demandService.calculateDemandScore(pops_array, radius, settings.baseMaxPerKm2);
+    const centroids = limitedHexagons.map(h => polygonCentroid(h));
 
     return {
         hexagons: limitedHexagons,
-        pops: pops_array,
+        centroids,
         numberOfHexagons: limitedHexagons.length,
-        rawResponses,
-        demandScores,
         settings
     };
 }

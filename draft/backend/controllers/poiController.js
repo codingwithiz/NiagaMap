@@ -13,18 +13,10 @@ async function runPOIScoring(opts = {}) {
     const usedToken = token || process.env.ARC_TOKEN || process.env.ARCGIS_TOKEN || process.env.ARCGIS_API_KEY;
     if (!usedToken) throw new Error('ArcGIS Places API token required (pass token or set ARC_TOKEN/ARCGIS_TOKEN)');
 
-    let rings = hexagons;
-    if (!rings) {
-        if (![radius, center_x, center_y].every(n => Number.isFinite(Number(n)))) {
-            throw new Error('Either provide `hexagons` or radius, center_x and center_y values');
-        }
-        // reuse catchmentController to generate hexagons
-        const cc = await catchmentController.runCatchment({ radius, center_x, center_y, category, token: usedToken, maxCount });
-        rings = cc.hexagons;
+    const rings = hexagons;
+    if (!Array.isArray(rings) || rings.length === 0) {
+        throw new Error('`hexagons` must be provided as an array of rings to run POI scoring (generation is handled by workflow)');
     }
-
-    // Validate format
-    if (!Array.isArray(rings)) throw new Error('hexagons must be an array of rings');
 
     // Determine category_name from CATEGORY_MAP if possible, otherwise fall back to provided category
     let categoryNameToUse = category;
