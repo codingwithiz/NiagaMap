@@ -34,9 +34,22 @@ function getNumericScore(item) {
  */
 async function runWorkflow(opts = {}) {
     const { radius, center_x, center_y, category, token = null, maxCount = null } = opts;
-
-    if (![radius, center_x, center_y].every(n => Number.isFinite(Number(n)))) {
+    
+    if (!category) {
+        throw new Error('category is required for workflow');
+    }
+    else if (![radius, center_x, center_y].every(n => Number.isFinite(Number(n)))) {
         throw new Error('radius, center_x and center_y must be numeric');
+    }
+    else if (!token) {
+        throw new Error('token is required for workflow (some controllers need it)');
+    }
+    else if (maxCount != null && (!Number.isFinite(Number(maxCount)) || maxCount < 0 || !Number.isInteger(Number(maxCount))))
+    {
+        throw new Error('maxCount must be a non-negative integer if provided');
+    }
+    else if (!Number.isFinite(Number(center_x)) || !Number.isFinite(Number(center_y))) {
+        throw new Error('center_x and center_y must be numeric');
     }
 
     const settings = catchmentService.getSettingsForCategory(category);

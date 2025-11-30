@@ -14,6 +14,7 @@ const accessibilityController = require('../controllers/accessibilityController'
 const zoningController = require('../controllers/zoningController');
 const riskController = require('../controllers/riskController');
 const workflowController = require('../controllers/workflowController');
+const arcgis = require("../services/arcgisServices");
 
 // Token extractor: prefer "Authenticator", then "Authorization", then env ARC_API_KEY
 function extractToken(req) {
@@ -185,9 +186,9 @@ router.post('/analysis/demand', async (req, res) => {
 });
 
 // POST /analysis/workflow
-// body: { radius, center_x, center_y, category, maxCount?, token? }
+// body: { radius, center_x?, center_y?, locationName?, currentLocation?, nearbyMe?, category, maxCount?, token? }
 router.post('/analysis/workflow', async (req, res) => {
-    const { radius, center_x, center_y, category, maxCount } = req.body || {};
+    const { radius, locationName, currentLocation, nearbyMe, category, maxCount } = req.body || {};
     // Token can be provided via Authorization header (Bearer ...) or from environment variables.
     const token = extractToken(req);
 
@@ -198,20 +199,54 @@ router.post('/analysis/workflow', async (req, res) => {
                 error: "ArcGIS token is required. Set ARC_API_KEY in the backend environment or provide a Bearer token in Authorization header.",
             });
     }
+    let coord;
+    if (nearbyMe && currentLocation) {
+        if (currentLocation.lat == null || currentLocation.lon == null || isNaN(Number(currentLocation.lat)) || isNaN(Number(currentLocation.lon))) {
+            return res
+                .status(400)
+                .json({
+                    error: "currentLocation must include lat and lon fields",
+                });
+        }
+        if (currentLocation.lat < -90 || currentLocation.lat > 90 || currentLocation.lon < -180 || currentLocation.lon > 180) {
+            return res
+                .status(400)
+                .json({
+                    error: "currentLocation lat must be between -90 and 90 and lon must be between -180 and 180",
+                });
+        }
+        coord = {
+            location: {
+                y: currentLocation.lat,
+                x: currentLocation.lon,
+            }
+        };
+        console.log("Geocoded location using current location:", coord);
+    } else {
+        if (!locationName || locationName.trim().length === 0) {
+            return res
+                .status(400)
+                .json({
+                    error: "locationName is required in the request body when nearbyMe is false",
+                });
+        }
+        coord = await arcgis.geocodeLocation(locationName); // returns { x, y }
+        console.log("Geocoded location using location name:", coord);
+    }
 
-    if (radius == null || center_x == null || center_y == null) {
+    if (radius == null || (locationName == null && !(nearbyMe && currentLocation))) {
         return res
             .status(400)
             .json({
-                error: "radius, center_x and center_y are required in the request body",
+                error: "radius is required in the request body",
             });
     }
-
+  
     try {
         const results = await workflowController.runWorkflow({
             radius: Number(radius),
-            center_x: Number(center_x),
-            center_y: Number(center_y),
+            center_x: coord.location.x,
+            center_y: coord.location.y,
             category,
             token,
             maxCount,
