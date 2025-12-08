@@ -17,7 +17,7 @@ router.post("/verify", async (req, res) => {
 
     // Create user in DB if not exists
     await userService.createUser({
-      userId: decoded.uid, // use Firebase UID as userId
+      user_id: decoded.uid, // use Firebase UID as userId
       name: decoded.name || decoded.email || "", // fallback to email if name not present
       preferenceId: null, // or set a default/null value
     });

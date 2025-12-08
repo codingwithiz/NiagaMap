@@ -23,27 +23,27 @@ router.get("/", async (req, res) => {
 });
 
 // GET user by userId
-router.get("/:userId", async (req, res) => {
+router.get("/:user_id", async (req, res) => {
     try {
-        const user = await userService.getUserById(req.params.userId);
+        const user = await userService.getUserById(req.params.user_id);
         res.json(user);
     } catch (err) {
         res.status(500).send(err.message);
     }
 });
 
-router.put("/:id", async (req, res) => {
+router.put("/:user_id", async (req, res) => {
     try {
-        const updatedUser = await userService.updateUser(req.params.id, req.body);
+        const updatedUser = await userService.updateUser(req.params.user_id, req.body);
         res.json({  message: "User updated.", updatedUser });
     } catch (err) {
         res.status(500).send(err.message);
     }
 });
 
-router.delete("/:userId", async (req, res) => {
+router.delete("/:user_id", async (req, res) => {
     try {
-        const deletedUser = await userService.deleteUser(req.params.userId);
+        const deletedUser = await userService.deleteUser(req.params.user_id);
         res.json({ message: "User deleted. ", deletedUser: deletedUser });
     } catch (err) {
         res.status(500).send(err.message);

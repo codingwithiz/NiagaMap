@@ -53,9 +53,9 @@ function ChatSidebar({
             <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
               {chats.map((chat) => (
                 <div
-                  key={chat.chatId}
+                  key={chat.chat_id}
                   style={{
-                    background: selectedChat === chat.chatId 
+                    background: selectedChat === chat.chat_id 
                       ? `linear-gradient(135deg, ${darkMode ? "#1976d2" : "#e3f2fd"} 0%, ${darkMode ? "#1565c0" : "#bbdefb"} 100%)` 
                       : "transparent",
                     padding: "12px 14px",
@@ -66,16 +66,16 @@ function ChatSidebar({
                     alignItems: "center",
                     fontSize: 13,
                     transition: "all 0.2s",
-                    border: selectedChat === chat.chatId 
+                    border: selectedChat === chat.chat_id 
                       ? "2px solid #1976d2" 
                       : `1px solid ${darkMode ? "#3d3d3d" : "#e0e0e0"}`,
                     marginBottom: 8,
-                    boxShadow: selectedChat === chat.chatId 
+                    boxShadow: selectedChat === chat.chat_id 
                       ? "0 4px 12px rgba(25, 118, 210, 0.2)" 
                       : "none",
                   }}
                 >
-                  {selectedChat === chat.chatId && (
+                  {selectedChat === chat.chat_id && (
                     <span style={{ marginRight: 8, fontSize: 16 }}>💬</span>
                   )}
                   
@@ -85,9 +85,9 @@ function ChatSidebar({
                       overflow: "hidden",
                       textOverflow: "ellipsis",
                       whiteSpace: "nowrap",
-                      fontWeight: selectedChat === chat.chatId ? 600 : 400,
+                      fontWeight: selectedChat === chat.chat_id ? 600 : 400,
                     }}
-                    onClick={() => fetchConversation(chat.chatId)}
+                    onClick={() => fetchConversation(chat.chat_id)}
                     title={chat.title}
                   >
                     {chat.title}
@@ -112,7 +112,7 @@ function ChatSidebar({
                     }}
                     onClick={(e) => {
                       e.stopPropagation();
-                      handleDeleteChat(chat.chatId);
+                      handleDeleteChat(chat.chat_id);
                     }}
                     title="Delete chat"
                   >

@@ -62,7 +62,7 @@ function Chatbot({ onExtracted, onClose, onShowRecommendations, darkMode = false
 
   const fetchChats = async () => {
     if (!userId) return;
-    const res = await axios.get(`${API}/chats/${userId}`);
+    const res = await axios.get(`${API}/chats/user/${userId}`);
     setChats(res.data);
   };
 

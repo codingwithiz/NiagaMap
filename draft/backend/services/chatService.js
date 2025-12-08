@@ -11,7 +11,6 @@ exports.createChat = async (reqBody) => {
             .from("chat")
             .insert([
                 {
-                    
                     title,
                     thread_id,
                     user_id: userId,

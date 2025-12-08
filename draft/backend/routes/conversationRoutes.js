@@ -3,11 +3,11 @@ const router = express.Router({ mergeParams: true });
 const conversationService = require("../services/conversationService");
 
 // Get conversations for a chat
-router.get("/:chatId", async (req, res) => {
-    const { chatId } = req.params;
+router.get("/:chat_id", async (req, res) => {
+    const { chat_id } = req.params;
     try {
         const conversations = await conversationService.getConversationsByChatId(
-            chatId
+            chat_id
         );
         res.json(conversations);
     } catch (err) {
@@ -16,12 +16,12 @@ router.get("/:chatId", async (req, res) => {
 });
 
 // Add new conversation
-router.post("/:chatId", async (req, res) => {
-    const { chatId } = req.params;
+router.post("/:chat_id", async (req, res) => {
+    const { chat_id } = req.params;
     const { user_prompt, bot_answer } = req.body;
     try {
         const conversation = await conversationService.addConversation(
-            chatId,
+            chat_id,
             user_prompt,
             bot_answer
         );
