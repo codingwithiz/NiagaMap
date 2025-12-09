@@ -46,8 +46,8 @@ async function runWorkflow(opts = {}) {
         category,
         token = null,
         maxCount = null,
-        chatId = null,
-        userId = null,
+        chat_id = null,    // Changed from chatId
+        user_id = null,    // Changed from userId
     } = opts;
 
     if (!category) {
@@ -74,6 +74,8 @@ async function runWorkflow(opts = {}) {
         throw new Error("center_x and center_y must be numeric");
     }
 
+    console.log('Workflow params received:', { user_id, chat_id, radius, center_x, center_y }); // Add logging
+
     // 1. create reference point record
     const referencePoint = await referencePointService.createReferencePoint({
         name: locationName,
@@ -81,12 +83,16 @@ async function runWorkflow(opts = {}) {
         lon: center_x,
     });
 
-    // 2. create new analysis record
+    console.log('Created reference point:', referencePoint); // Add logging
+
+    // 2. create new analysis record with user_id and chat_id
     const newAnalysis = await analysisService.createAnalysis({
-        userId: userId,
+        userId: user_id,              // Pass user_id
         referencePointId: referencePoint.point_id,
-        chatId: chatId || null,
+        chatId: chat_id || null,      // Pass chat_id
     });
+
+    console.log('Created analysis:', newAnalysis); // Add logging
 
     const newAnalysisId = newAnalysis.analysis_id;
     // const settings = catchmentService.getSettingsForCategory(category);
