@@ -173,7 +173,6 @@ function Chatbot({ onExtracted, onClose, onShowRecommendations, darkMode = false
         let locationName = null;
 
         if (botResult.nearbyMe) {
-          // Get user's current location from browser
           console.log("Requesting user's current location...");
           
           try {
@@ -204,7 +203,6 @@ function Chatbot({ onExtracted, onClose, onShowRecommendations, darkMode = false
             throw new Error(`Unable to get your location: ${geoError.message}. Please enable location services or specify a location name.`);
           }
         } else {
-          // When nearbyMe is false, use the location name from botResult
           locationName = botResult.location;
           console.log("Using location name:", locationName);
         }
@@ -223,67 +221,60 @@ function Chatbot({ onExtracted, onClose, onShowRecommendations, darkMode = false
 
         console.log("Calling workflow with:", workflowPayload);
 
-        // Call the workflow endpoint
         const workflowRes = await axios.post(`${API}/analysis/workflow`, workflowPayload);
         const analysisResults = workflowRes.data.results;
 
         console.log("Workflow results:", analysisResults);
 
-        // Step 4: Extract top 3 locations and update conversation with analysis_id
+        // Step 4: Update conversation with analysis_id (but don't save reasoning as message)
         if (analysisResults && analysisResults.length > 0) {
           const analysisId = analysisResults[0].hexagon.analysis_id;
           
           console.log("Updating conversation", conversationId, "with analysis_id", analysisId);
 
-          // Update the conversation with the analysis_id
           await axios.patch(`${API}/conversations/${conversationId}`, {
             analysis_id: analysisId
           });
 
           console.log("Successfully linked conversation to analysis");
 
-          // Extract top 3 locations
-          const topLocations = analysisResults
-            .sort((a, b) => b.finalScore - a.finalScore)
-            .slice(0, 3)
-            .map(r => ({
-              lat: r.centroid.lat,
-              lon: r.centroid.lon,
-              score: r.finalScore,
-              breakdown: {
-                risk: r.riskScore.scores.find(s => 
-                  s.centroid.lat === r.centroid.lat
-                )?.score || 0,
-                accessibility: r.accessibilityScore.scores.find(s => 
-                  s.centroid.lat === r.centroid.lat
-                )?.score || 0,
-                zoning: r.zoningScore.scores.find(s => 
-                  s.centroid.lat === r.centroid.lat
-                )?.score || 0
-              }
-            }));
+          // Helper function to safely find score
+          const findScore = (scoreObj, lat) => {
+            if (!scoreObj || !scoreObj.scores || !Array.isArray(scoreObj.scores)) {
+              return 0;
+            }
+            const found = scoreObj.scores.find(s => 
+              s.centroid && s.centroid.lat === lat
+            );
+            return found?.score || 0;
+          };
 
-          // Generate reasoning using OpenAI
-          const reasoningRes = await axios.post(`${API}/api/chatbot/reasoning`, {
-            userIntent: input,
-            center: currentLocation || { lat: 0, lon: 0 },
-            recommendations: topLocations,
-            category: CATEGORY_PRESETS[selectedCategory].label,
-            weights: normalizedWeights
-          });
+          // Trigger map update with recommended locations
+          if (onShowRecommendations) {
+            const topLocations = analysisResults
+              .sort((a, b) => b.finalScore - a.finalScore)
+              .slice(0, 3)
+              .map(r => ({
+                lat: r.centroid.lat,
+                lon: r.centroid.lon,
+                score: r.finalScore,
+                breakdown: {
+                  demand: findScore(r.demandScore, r.centroid.lat),
+                  poi: findScore(r.poiScore, r.centroid.lat),
+                  risk: findScore(r.riskScore, r.centroid.lat),
+                  accessibility: findScore(r.accessibilityScore, r.centroid.lat),
+                  zoning: findScore(r.zoningScore, r.centroid.lat)
+                }
+              }));
 
-          const reasoningData = reasoningRes.data;
-          
-          // Save reasoning as a bot message
-          await axios.put(`${API}/chats/${selectedChat}/messages`, {
-            user_prompt: "",
-            bot_answer: JSON.stringify({
-              type: "analysis_complete",
-              analysisId: analysisId,
-              reasoning: reasoningData,
-              topLocations: topLocations
-            })
-          });
+            const referencePoint = {
+              lat: currentLocation?.lat || 0,
+              lon: currentLocation?.lon || 0,
+              name: locationName || "Reference Point"
+            };
+
+            onShowRecommendations(topLocations, referencePoint);
+          }
         }
 
         fetchConversation(selectedChat);

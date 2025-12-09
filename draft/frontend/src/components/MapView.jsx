@@ -406,119 +406,81 @@ const MapViewComponent = ({
         if (!esriModules || !placesLayerRef.current) return;
 
         const { Graphic, Point } = esriModules;
-        placesLayerRef.current.removeAll(); // Optional: Clear previous
+        placesLayerRef.current.removeAll();
 
-        locations.recommended_locations.forEach(
-            ({ lat, lon, score, reason }) => {
-                const point = new Point({ latitude: lat, longitude: lon });
+        // Handle both array and object structures
+        const locationsArray = Array.isArray(locations)
+            ? locations
+            : locations.recommended_locations || [];
 
-                const marker = new Graphic({
-                    geometry: point,
-                    symbol: {
-                        // type: "simple-marker",
-                        // style: "circle",
-                        // color: [0, 255, 100, 0.8],
-                        // size: 12,
-                        // outline: {
-                        //     color: [0, 100, 50],
-                        //     width: 1,
-                        // },
-                        type: "picture-marker",
-                        url: "/recommended-location.svg", // Place your SVG or image in public/images
-                        width: "48px",
-                        height: "48px",
-                    },
-                    attributes: {
-                        score: score,
-                    },
-                    popupTemplate: {
-                        title: "Recommended Location",
-                        content: `
-        <b>Score:</b> ${score}<br>
-        <b>Reason:</b> ${reason}<br>
-        <div style="display: flex; gap: 10px; margin-top: 6px;">
-            <a href="https://www.google.com/maps/search/?api=1&query=${lat},${lon}" 
-               target="_blank" rel="noopener noreferrer" style="text-decoration: underline; color: #1976d2;">
-               🌍 Google Maps
-            </a>
-            <a href="https://www.openstreetmap.org/?mlat=${lat}&mlon=${lon}#map=19/${lat}/${lon}" 
-               target="_blank" rel="noopener noreferrer" style="text-decoration: underline; color: #1976d2;">
-               🗺️ OSM
-            </a>
-        </div>
-    `,
-                    },
-                });
+        locationsArray.forEach(({ lat, lon, score, breakdown }) => {
+            const point = new Point({ latitude: lat, longitude: lon });
 
-                placesLayerRef.current.add(marker);
+            // Build content string without nested template literals
+            let content = `<b>Score:</b> ${score.toFixed(2)}<br>`;
+            
+            if (breakdown) {
+                content += `<b>Breakdown:</b><br>`;
+                content += `- Risk: ${breakdown.risk.toFixed(2)}<br>`;
+                content += `- Accessibility: ${breakdown.accessibility.toFixed(2)}<br>`;
+                content += `- Zoning: ${breakdown.zoning.toFixed(2)}<br>`;
             }
-        );
+            
+            content += `<div style="display: flex; gap: 10px; margin-top: 6px;">`;
+            content += `<a href="https://www.google.com/maps/search/?api=1&query=${lat},${lon}" target="_blank" rel="noopener noreferrer" style="text-decoration: underline; color: #1976d2;">🌍 Google Maps</a>`;
+            content += `<a href="https://www.openstreetmap.org/?mlat=${lat}&mlon=${lon}#map=19/${lat}/${lon}" target="_blank" rel="noopener noreferrer" style="text-decoration: underline; color: #1976d2;">🗺️ OSM</a>`;
+            content += `</div>`;
 
-        if (locations.reference_point) {
-            console.log("Adding reference point: ", locations.reference_point);
-            const refPoint = new Point({
-                latitude: locations.reference_point.lat,
-                longitude: locations.reference_point.lon,
+            const marker = new Graphic({
+                geometry: point,
+                symbol: {
+                    type: "picture-marker",
+                    url: "/recommended-location.svg",
+                    width: "48px",
+                    height: "48px",
+                },
+                attributes: { score },
+                popupTemplate: {
+                    title: "Recommended Location",
+                    content: content,
+                },
             });
 
-            const isNearbyMe = locations.reference_point === undefined; // adjust this key based on your API
-            console.log(
-                "reference point location name: ",
+            placesLayerRef.current.add(marker);
+        });
 
-                locations.reference_point.name
-            );
+        // Add reference point marker
+        const referencePoint = locations.reference_point || locations.referencePoint;
+        if (referencePoint) {
+            const refPoint = new Point({
+                latitude: referencePoint.lat,
+                longitude: referencePoint.lon,
+            });
 
             const refMarker = new Graphic({
                 geometry: refPoint,
-                symbol: isNearbyMe
-                    ? {
-                          type: "picture-marker",
-                          url: "/recommended-location.svg", // your SVG icon
-                          width: "64px",
-                          height: "64px",
-                      }
-                    : {
-                          type: "simple-marker",
-                          style: "cross",
-                          color: [0, 120, 255],
-                          size: 14,
-                          outline: {
-                              color: [0, 80, 200],
-                              width: 4,
-                          },
-                      },
-                attributes: {
-                    name: "Reference Point",
+                symbol: {
+                    type: "simple-marker",
+                    style: "cross",
+                    color: [0, 120, 255],
+                    size: 14,
+                    outline: { color: [0, 80, 200], width: 4 },
                 },
                 popupTemplate: {
                     title: "Reference Point",
-                    content: isNearbyMe
-                        ? `Address: Your current location`
-                        : `Address: ${locations.reference_point.name}`,
+                    content: `Address: ${referencePoint.name || "Reference Location"}`,
                 },
             });
 
             placesLayerRef.current.add(refMarker);
         }
 
-        if (
-            locations.recommended_locations.length > 0 &&
-            view &&
-            esriModules?.Point
-        ) {
-            const { Point } = esriModules;
-
-            const targetPoints = locations.recommended_locations.map(
-                ({ lat, lon }) =>
-                    new Point({
-                        latitude: lat,
-                        longitude: lon,
-                    })
+        // Zoom to show all markers
+        if (locationsArray.length > 0 && view) {
+            const targetPoints = locationsArray.map(
+                ({ lat, lon }) => new Point({ latitude: lat, longitude: lon })
             );
-
-            view.goTo(targetPoints, { zoom: 15 }).catch((error) => {
-                console.error("view.goTo failed:", error);
-            });
+            view.goTo(targetPoints, { zoom: 15 }).catch(console.error);
         }
     };
 
