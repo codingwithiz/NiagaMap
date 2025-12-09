@@ -257,17 +257,20 @@ async function runWorkflow(opts = {}) {
     //sort the locations by finalScore in descending order
     out.sort((a, b) => b.finalScore - a.finalScore);
 
-    // 4. save the top 1 recommended locations by analysis id
+    // 4. save the top 3 recommended locations by analysis id
     if (out.length > 0) {
-        const topLocation = out[0];
+        const topLocations = out.slice(0, 3); // Get top 3 locations
         try {
-            await recommendedLocationService.saveRecommendedLocation(
-                newAnalysisId,
-                center_y,
-                center_x,
-                topLocation.finalScore,
-                "reason"
-            );
+            for (const location of topLocations) {
+                const centroid = location.centroid || { lat: center_y, lon: center_x };
+                await recommendedLocationService.saveRecommendedLocation(
+                    newAnalysisId,
+                    centroid.lat,
+                    centroid.lon,
+                    location.finalScore,
+                    "reason"
+                );
+            }
         } catch (error) {
             console.error(
                 "Error saving recommended location to database:",
