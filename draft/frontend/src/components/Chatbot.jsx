@@ -46,12 +46,19 @@ function Chatbot({ onExtracted, onClose, onShowRecommendations, darkMode = false
   const [isValidatingLocation, setIsValidatingLocation] = useState(false);
   const [locationError, setLocationError] = useState("");
 
+  // Favourites state
+  const [favourites, setFavourites] = useState([]);
+  const [favouriteIds, setFavouriteIds] = useState(new Set());
+
   const messagesEndRef = useRef(null);
   const debounceTimeout = useRef(null);
   const conversationRef = useRef(null);
 
   useEffect(() => {
-    if (userId) fetchChats();
+    if (userId) {
+      fetchChats();
+      fetchFavourites();
+    }
   }, [userId]);
 
   useEffect(() => {
@@ -82,6 +89,17 @@ function Chatbot({ onExtracted, onClose, onShowRecommendations, darkMode = false
     } catch (error) {
         console.error("Error fetching conversation:", error);
         setConversation([]);
+    }
+  };
+
+  const fetchFavourites = async () => {
+    if (!userId) return;
+    try {
+      const res = await api.get(`/favourites/${userId}`);
+      setFavourites(res.data);
+      setFavouriteIds(new Set(res.data.map(f => f.analysis_id)));
+    } catch (err) {
+      console.error("Error fetching favourites:", err);
     }
   };
 
@@ -303,6 +321,46 @@ function Chatbot({ onExtracted, onClose, onShowRecommendations, darkMode = false
     }
   };
 
+  const handleToggleFavourite = async (analysisId) => {
+    if (!analysisId || !userId) return;
+
+    try {
+      if (favouriteIds.has(analysisId)) {
+        // Remove from favourites
+        await api.delete(`/favourites`, {
+          data: { user_id: userId, analysis_id: analysisId }
+        });
+      } else {
+        // Add to favourites
+        await api.post(`/favourites`, {
+          user_id: userId,
+          analysis_id: analysisId
+        });
+      }
+      fetchFavourites();
+    } catch (err) {
+      console.error("Error toggling favourite:", err);
+      alert(err.response?.data?.error || "Failed to update favourites");
+    }
+  };
+
+  const handleViewFavourite = async (analysisId) => {
+    await handleShowRecommendations(analysisId);
+  };
+
+  const handleRemoveFavourite = async (analysisId) => {
+    if (!analysisId || !userId) return;
+    try {
+      await api.delete(`/favourites`, {
+        data: { user_id: userId, analysis_id: analysisId }
+      });
+      fetchFavourites();
+    } catch (err) {
+      console.error("Error removing favourite:", err);
+      alert("Failed to remove favourite");
+    }
+  };
+
   if (!userId) {
     return (
       <div style={{ padding: 20, textAlign: "center" }}>
@@ -347,6 +405,9 @@ function Chatbot({ onExtracted, onClose, onShowRecommendations, darkMode = false
           newChatTitle={newChatTitle}
           setNewChatTitle={setNewChatTitle}
           handleCreateChat={handleCreateChat}
+          favourites={favourites}
+          handleViewFavourite={handleViewFavourite}
+          handleRemoveFavourite={handleRemoveFavourite}
           darkMode={darkMode}
         />
 
@@ -355,6 +416,8 @@ function Chatbot({ onExtracted, onClose, onShowRecommendations, darkMode = false
             ref={conversationRef}
             conversation={conversation}
             handleShowRecommendations={handleShowRecommendations}
+            handleToggleFavourite={handleToggleFavourite}
+            favourites={favouriteIds}
             darkMode={darkMode}
             messagesEndRef={messagesEndRef}
           />

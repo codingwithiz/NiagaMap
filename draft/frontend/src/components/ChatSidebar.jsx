@@ -8,6 +8,9 @@ function ChatSidebar({
   newChatTitle, 
   setNewChatTitle, 
   handleCreateChat,
+  favourites = [],
+  handleViewFavourite,
+  handleRemoveFavourite,
   darkMode 
 }) {
   return (
@@ -49,6 +52,111 @@ function ChatSidebar({
 
       {sidebarOpen && (
         <div style={{ flex: 1, display: "flex", flexDirection: "column", padding: "0 12px 12px", gap: 10, minHeight: 0 }}>
+          {/* Favourites Section */}
+          {favourites.length > 0 && (
+            <div style={{ marginBottom: 10 }}>
+              <h5 style={{ 
+                margin: "0 0 8px 0", 
+                fontSize: 12, 
+                fontWeight: 600, 
+                color: darkMode ? "#aaa" : "#666",
+                textTransform: "uppercase",
+                letterSpacing: "0.5px"
+              }}>
+                ⭐ Favourites
+              </h5>
+              <div style={{ 
+                maxHeight: "200px", 
+                overflowY: "auto", 
+                display: "flex", 
+                flexDirection: "column", 
+                gap: 6,
+                paddingRight: 6
+              }}>
+                {favourites.map((fav) => {
+                  // Safely handle null or undefined analysis_id
+                  const analysisId = fav.analysis_id || '';
+                  const displayId = analysisId ? analysisId.substring(0, 8) : 'N/A';
+                  
+                  return (
+                    <div
+                      key={fav.favourite_id}
+                      style={{
+                        background: darkMode ? "#2a2a2a" : "#fff5e6",
+                        padding: "10px 12px",
+                        borderRadius: 8,
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        fontSize: 12,
+                        border: `1px solid ${darkMode ? "#3d3d3d" : "#ffe0b2"}`,
+                        cursor: analysisId ? "pointer" : "default",
+                        transition: "all 0.2s",
+                        opacity: analysisId ? 1 : 0.5,
+                      }}
+                      onMouseEnter={(e) => {
+                        if (analysisId) {
+                          e.currentTarget.style.background = darkMode ? "#333" : "#ffecb3";
+                          e.currentTarget.style.transform = "translateX(2px)";
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = darkMode ? "#2a2a2a" : "#fff5e6";
+                        e.currentTarget.style.transform = "translateX(0)";
+                      }}
+                    >
+                      <span
+                        style={{
+                          flex: 1,
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                          fontWeight: 500,
+                        }}
+                        onClick={() => analysisId && handleViewFavourite(analysisId)}
+                        title={analysisId ? `Analysis ${displayId}...` : 'Invalid Analysis'}
+                      >
+                        📊 {displayId}...
+                      </span>
+                      
+                      <button
+                        style={{
+                          marginLeft: 8,
+                          color: "#d32f2f",
+                          background: "rgba(211, 47, 47, 0.1)",
+                          border: "none",
+                          fontWeight: "bold",
+                          cursor: "pointer",
+                          fontSize: 16,
+                          padding: 4,
+                          width: 22,
+                          height: 22,
+                          borderRadius: 4,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                        }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleRemoveFavourite(analysisId);
+                        }}
+                        title="Remove from favourites"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+              <div style={{ 
+                borderTop: `1px solid ${darkMode ? "#444" : "#e0e0e0"}`, 
+                marginTop: 10, 
+                paddingTop: 10 
+              }} />
+            </div>
+          )}
+
+          {/* Chat History Section */}
           <div style={{ flex: 1, overflowY: "auto", minHeight: 0, paddingRight: 6 }}>
             <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
               {chats.map((chat) => (
