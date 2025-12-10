@@ -268,6 +268,7 @@ router.post('/analysis/workflow', async (req, res) => {
     }
 
     let coord;
+    let finalLocationName; // Add this variable
     
     // Case 1: nearbyMe is true - use currentLocation
     if (nearbyMe && currentLocation) {
@@ -290,6 +291,7 @@ router.post('/analysis/workflow', async (req, res) => {
                 x: currentLocation.lon,
             }
         };
+        finalLocationName = "Current Location"; // Set name
         console.log("Using current location:", coord);
     } 
     // Case 2: nearbyMe is false - use locationName
@@ -300,6 +302,7 @@ router.post('/analysis/workflow', async (req, res) => {
             });
         }
         coord = await arcgis.geocodeLocation(locationName);
+        finalLocationName = coord.location.name || locationName; // Use geocoded name or fallback to input
         console.log("Geocoded location from name:", coord);
     }
     // Case 3: Invalid combination
@@ -314,7 +317,7 @@ router.post('/analysis/workflow', async (req, res) => {
             radius: Number(radius),
             center_x: coord.location.x,
             center_y: coord.location.y,
-            locationName: coord.location.name,
+            locationName: finalLocationName, // Pass the correct location name
             category,
             token,
             maxCount,
