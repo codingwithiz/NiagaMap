@@ -180,9 +180,9 @@ function Chatbot({ onExtracted, onClose, onShowRecommendations, darkMode = false
 
       console.log("Got conversation_id:", conversationId);
 
-      let analysisId = null; // Track analysisId
+      let analysisId = null;
 
-      // Step 3: Call analysis workflow instead of suitability
+      // Step 3: Call analysis workflow
       if ((botResult.location || botResult.nearbyMe) && botResult.category) {
         let currentLocation = null;
         let locationName = null;
@@ -241,7 +241,7 @@ function Chatbot({ onExtracted, onClose, onShowRecommendations, darkMode = false
 
         console.log("Workflow results:", analysisResults);
 
-        // Step 4: Update conversation with analysis_id
+        // Step 4: Update conversation with analysis_id and fetch recommendations
         if (analysisResults && analysisResults.length > 0) {
           analysisId = analysisResults[0].hexagon.analysis_id;
           
@@ -253,53 +253,29 @@ function Chatbot({ onExtracted, onClose, onShowRecommendations, darkMode = false
 
           console.log("Successfully linked conversation to analysis");
 
-          // Helper function to safely find score
-          const findScore = (scoreObj, lat) => {
-            if (!scoreObj || !scoreObj.scores || !Array.isArray(scoreObj.scores)) {
-              return 0;
+          // Fetch recommendations with AI-generated reasoning from API
+          try {
+            const recsResponse = await axios.get(`${API}/analysis/${analysisId}/recommendations`);
+            const { locations, referencePoint } = recsResponse.data;
+
+            console.log("Fetched recommendations with reasoning:", { locations, referencePoint });
+
+            // Trigger map update with AI-generated recommendations
+            if (onShowRecommendations) {
+              onShowRecommendations(locations, referencePoint);
             }
-            const found = scoreObj.scores.find(s => 
-              s.centroid && s.centroid.lat === lat
-            );
-            return found?.score || 0;
-          };
-
-          // Trigger map update with recommended locations
-          if (onShowRecommendations) {
-            const topLocations = analysisResults
-              .sort((a, b) => b.finalScore - a.finalScore)
-              .slice(0, 10)
-              .map(r => ({
-                lat: r.centroid.lat,
-                lon: r.centroid.lon,
-                score: r.finalScore,
-                breakdown: {
-                  demand: findScore(r.demandScore, r.centroid.lat),
-                  poi: findScore(r.poiScore, r.centroid.lat),
-                  risk: findScore(r.riskScore, r.centroid.lat),
-                  accessibility: findScore(r.accessibilityScore, r.centroid.lat),
-                  zoning: findScore(r.zoningScore, r.centroid.lat)
-                }
-              }));
-
-            const referencePoint = {
-              lat: currentLocation?.lat || 0,
-              lon: currentLocation?.lon || 0,
-              name: locationName || "Reference Point"
-            };
-
-            onShowRecommendations(topLocations, referencePoint);
+          } catch (recError) {
+            console.error("Error fetching recommendations:", recError);
+            alert("Analysis completed but failed to load recommendations. Please click 'View Locations on Map' button.");
           }
         }
       }
 
       // Refresh conversation to show the button
-      // Instead of fetchConversation which might not have analysisId yet,
-      // manually add the message with analysisId to local state
       setConversation(prev => [...prev, {
         user_prompt: enrichedMessage,
         bot_answer: JSON.stringify(botResult),
-        analysisId: analysisId // Add analysisId here
+        analysisId: analysisId
       }]);
 
       setSelectedFile(null);

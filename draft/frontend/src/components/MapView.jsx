@@ -408,7 +408,6 @@ const MapViewComponent = ({
         const { Graphic, Point } = esriModules;
         placesLayerRef.current.removeAll();
 
-        // Handle both array and object structures
         const locations = Array.isArray(data)
             ? data
             : (data.locations || data.recommended_locations || []);
@@ -423,7 +422,6 @@ const MapViewComponent = ({
                 longitude: location.lon,
             });
 
-            // Parse breakdown if it's a string (from database)
             let breakdown = location.breakdown;
             if (typeof breakdown === 'string') {
                 try {
@@ -443,28 +441,79 @@ const MapViewComponent = ({
 
             // Add AI-generated reasoning
             if (location.reason) {
-                content += `<div style="background-color: #f5f5f5; padding: 12px; border-radius: 8px; margin: 12px 0; border-left: 4px solid #1976d2;">`;
-                content += `<p style="margin: 0; font-style: italic; color: #333; line-height: 1.6;">${location.reason}</p>`;
+                content += `<div style="background-color: #e3f2fd; padding: 12px; border-radius: 8px; margin: 12px 0; border-left: 4px solid #1976d2;">`;
+                content += `<p style="margin: 0; color: #333; line-height: 1.6; font-size: 13px; font-style: italic;">${location.reason}</p>`;
                 content += `</div>`;
             }
 
             if (breakdown) {
                 content += `<hr style="margin: 12px 0; border: none; border-top: 1px solid #ddd;">`;
-                content += `<p style="margin: 8px 0 4px 0; font-weight: bold;">📈 Detailed Score Breakdown:</p>`;
-                content += `<div style="margin-left: 10px; line-height: 1.8;">`;
-                content += `<div>🛒 <b>Demand:</b> <span style="color: ${breakdown.demand >= 15 ? '#4caf50' : '#ff9800'}; font-weight: bold;">${(breakdown.demand || 0).toFixed(2)}</span></div>`;
-                content += `<div>📍 <b>POI:</b> <span style="color: ${breakdown.poi >= 15 ? '#2196f3' : '#ff9800'}; font-weight: bold;">${(breakdown.poi || 0).toFixed(2)}</span></div>`;
-                content += `<div>⚠️ <b>Risk:</b> <span style="color: ${breakdown.risk >= 15 ? '#4caf50' : '#ff9800'}; font-weight: bold;">${(breakdown.risk || 0).toFixed(2)}</span></div>`;
-                content += `<div>🚗 <b>Accessibility:</b> <span style="color: ${breakdown.accessibility >= 15 ? '#9c27b0' : '#ff9800'}; font-weight: bold;">${(breakdown.accessibility || 0).toFixed(2)}</span></div>`;
-                content += `<div>🏗️ <b>Zoning:</b> <span style="color: ${breakdown.zoning >= 15 ? '#795548' : '#ff9800'}; font-weight: bold;">${(breakdown.zoning || 0).toFixed(2)}</span></div>`;
+                content += `<p style="margin: 8px 0 8px 0; font-weight: bold; font-size: 14px;">📈 Detailed Score Breakdown:</p>`;
+                content += `<div style="margin-left: 8px; line-height: 2;">`;
+                
+                // Demand
+                const demandScore = breakdown.demand?.score || 0;
+                const population = breakdown.demand?.population || 0;
+                content += `<div style="margin-bottom: 8px;">`;
+                content += `<div style="font-weight: bold;">🛒 Demand: <span style="color: ${demandScore >= 15 ? '#4caf50' : '#ff9800'};">${demandScore.toFixed(2)}</span></div>`;
+                content += `<div style="font-size: 11px; color: #666; margin-left: 20px;">Population: ${population} residents</div>`;
+                content += `</div>`;
+                
+                // POI
+                const poiScore = breakdown.poi?.score || 0;
+                const poiCount = breakdown.poi?.count || 0;
+                content += `<div style="margin-bottom: 8px;">`;
+                content += `<div style="font-weight: bold;">📍 POI: <span style="color: ${poiScore >= 15 ? '#2196f3' : '#ff9800'};">${poiScore.toFixed(2)}</span></div>`;
+                content += `<div style="font-size: 11px; color: #666; margin-left: 20px;">${poiCount} nearby businesses</div>`;
+                content += `</div>`;
+                
+                // Risk - Show simplified breakdown
+                const riskScore = breakdown.risk?.score || 0;
+                const floodAreaHa = breakdown.risk?.floodAreaHa || 0;
+                const landslideCount = breakdown.risk?.landslideCount || 0;
+                
+                content += `<div style="margin-bottom: 8px;">`;
+                content += `<div style="font-weight: bold;">⚠️ Risk: <span style="color: ${riskScore >= 15 ? '#4caf50' : '#ff9800'};">${riskScore.toFixed(2)}</span></div>`;
+                content += `<div style="font-size: 11px; color: #666; margin-left: 20px;">`;
+                
+                if (floodAreaHa === 0 && landslideCount === 0) {
+                    content += `✅ Excellent safety - No hazards detected`;
+                } else {
+                    if (floodAreaHa > 0) {
+                        content += `• Flood zone: ${floodAreaHa.toFixed(2)} hectares<br>`;
+                    }
+                    if (landslideCount > 0) {
+                        content += `• Landslide areas: ${landslideCount}`;
+                    }
+                }
+                
+                content += `</div>`;
+                content += `</div>`;
+                
+                // Accessibility
+                const accessScore = breakdown.accessibility?.score || 0;
+                const distance = breakdown.accessibility?.distanceMeters || 0;
+                content += `<div style="margin-bottom: 8px;">`;
+                content += `<div style="font-weight: bold;">🚗 Accessibility: <span style="color: ${accessScore >= 15 ? '#9c27b0' : '#ff9800'};">${accessScore.toFixed(2)}</span></div>`;
+                content += `<div style="font-size: 11px; color: #666; margin-left: 20px;">${distance.toFixed(0)}m from main road</div>`;
+                content += `</div>`;
+                
+                // Zoning
+                const zoningScore = breakdown.zoning?.score || 0;
+                const landuse = breakdown.zoning?.landuse || 'N/A';
+                content += `<div style="margin-bottom: 8px;">`;
+                content += `<div style="font-weight: bold;">🏗️ Zoning: <span style="color: ${zoningScore >= 15 ? '#795548' : '#ff9800'};">${zoningScore.toFixed(2)}</span></div>`;
+                content += `<div style="font-size: 11px; color: #666; margin-left: 20px;">Land use: ${landuse}</div>`;
+                content += `</div>`;
+                
                 content += `</div>`;
             }
 
             content += `<hr style="margin: 12px 0; border: none; border-top: 1px solid #ddd;">`;
             content += `<p style="margin: 8px 0 4px 0; font-weight: bold;">🗺️ View on Map:</p>`;
             content += `<div style="display: flex; gap: 10px; margin-top: 6px;">`;
-            content += `<a href="https://www.google.com/maps/search/?api=1&query=${location.lat},${location.lon}" target="_blank" style="text-decoration: none; padding: 6px 12px; background-color: #1976d2; color: white; border-radius: 4px; font-size: 12px;">🌍 Google Maps</a>`;
-            content += `<a href="https://www.openstreetmap.org/?mlat=${location.lat}&mlon=${location.lon}#map=19/${location.lat}/${location.lon}" target="_blank" style="text-decoration: none; padding: 6px 12px; background-color: #4caf50; color: white; border-radius: 4px; font-size: 12px;">🗺️ OpenStreetMap</a>`;
+            content += `<a href="https://www.google.com/maps/search/?api=1&query=${location.lat},${location.lon}" target="_blank" style="text-decoration: none; padding: 6px 12px; background-color: #1976d2; color: white; border-radius: 4px; font-size: 12px;">🌍 Google</a>`;
+            content += `<a href="https://www.openstreetmap.org/?mlat=${location.lat}&mlon=${location.lon}#map=19/${location.lat}/${location.lon}" target="_blank" style="text-decoration: none; padding: 6px 12px; background-color: #4caf50; color: white; border-radius: 4px; font-size: 12px;">🗺️ OSM</a>`;
             content += `</div>`;
             content += `</div>`;
 
@@ -477,7 +526,7 @@ const MapViewComponent = ({
                     height: "48px",
                 },
                 popupTemplate: {
-                    title: `📍 Recommended Location #${index + 1}`,
+                    title: `📍 Location #${index + 1}`,
                     content: content,
                 },
             });
@@ -485,7 +534,7 @@ const MapViewComponent = ({
             placesLayerRef.current.add(marker);
         });
 
-        // Add reference point marker
+        // Reference point marker (same as before)
         if (referencePoint) {
             const refPoint = new Point({
                 latitude: referencePoint.lat,
@@ -513,13 +562,11 @@ const MapViewComponent = ({
             placesLayerRef.current.add(refMarker);
         }
 
-        // Zoom to show all markers
         if (locations.length > 0 && view) {
             const targetPoints = locations.map(
                 (loc) => new Point({ latitude: loc.lat, longitude: loc.lon })
             );
             
-            // Add reference point to the view extent if it exists
             if (referencePoint) {
                 targetPoints.push(new Point({ 
                     latitude: referencePoint.lat, 

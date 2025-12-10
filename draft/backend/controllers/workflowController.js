@@ -233,23 +233,42 @@ async function runWorkflow(opts = {}) {
         const d = sZoning == null ? 0 : sZoning;
         const e = sAccess == null ? 0 : sAccess;
 
-        // include each controller's score in the output item
-        // const demandScoreNum = sDemand == null ? null : Number(sDemand);
-        // const poiScoreNum = sPoi == null ? null : Number(sPoi);
-        // const riskScoreNum = sRisk == null ? null : Number(sRisk);
-        // const zoningScoreNum = sZoning == null ? null : Number(sZoning);
-        // const accessibilityScoreNum = sAccess == null ? null : Number(sAccess);
-
         const finalScore = a + b + c + d + e;
+
+        // Extract detailed risk data
+        const riskDetails = riskScoresArr?.[i] || {};
+        const riskRaw = {
+            floodAreaHa: riskDetails.floodAreaHa || 0,
+            landslideCount: riskDetails.landslideCount || 0,
+            hasLandslide: riskDetails.hasLandslide || false,
+            totalScore: c // Total risk score
+        };
+
+        // Extract other raw data
+        const demandRaw = demandRes.value?.pops?.[i] || 0;
+        const poiRaw = poiRes.value?.counts?.[i] || 0;
+        const accessibilityRaw = {
+            distanceMeters: accessibilityScoresArr?.[i]?.distanceMeters || 0
+        };
+        const zoningRaw = {
+            landuse: zoningScoresArr?.[i]?.landuse || null,
+            rawResponse: zoningScoresArr?.[i]?.rawResponse || null
+        };
 
         out.push({
             hexagon: hex,
             centroid,
-            demandScore: demandRes.value,
-            poiScore: poiRes.value,
-            riskScore: riskRes.value,
-            zoningScore: zoningRes.value,
-            accessibilityScore: accessibilityRes.value,
+            demandScore: a,
+            poiScore: b,
+            riskScore: c,
+            zoningScore: d,
+            accessibilityScore: e,
+            // Store raw data for detailed analysis
+            demandRaw: demandRaw,
+            poiRaw: poiRaw,
+            riskRaw: riskRaw,
+            zoningRaw: zoningRaw,
+            accessibilityRaw: accessibilityRaw,
             finalScore: Number(finalScore.toFixed(2)),
         });
     }
@@ -264,30 +283,51 @@ async function runWorkflow(opts = {}) {
             for (const location of topLocations) {
                 const centroid = location.centroid || { lat: center_y, lon: center_x };
 
-                // Helper to safely extract score
-                const getScore = (scoreObj) => {
-                    if (!scoreObj || !scoreObj.scores || !Array.isArray(scoreObj.scores)) return 0;
-                    const found = scoreObj.scores.find(s => s.centroid?.lat === centroid.lat);
-                    return found?.score || 0;
+                // Build detailed breakdown object with both scores and raw data
+                const breakdown = {
+                    demand: {
+                        score: location.demandScore,
+                        population: location.demandRaw
+                    },
+                    poi: {
+                        score: location.poiScore,
+                        count: location.poiRaw
+                    },
+                    risk: {
+                        score: location.riskScore,
+                        floodAreaHa: location.riskRaw.floodAreaHa,
+                        landslideCount: location.riskRaw.landslideCount,
+                        hasLandslide: location.riskRaw.hasLandslide,
+                        riskRatio: settings.riskRatio // Include riskRatio for reference
+                    },
+                    accessibility: {
+                        score: location.accessibilityScore,
+                        distanceMeters: location.accessibilityRaw.distanceMeters
+                    },
+                    zoning: {
+                        score: location.zoningScore,
+                        landuse: location.zoningRaw.landuse,
+                        rawResponse: location.zoningRaw.rawResponse
+                    }
                 };
 
-                // Build breakdown object with individual scores
-                const breakdown = {
-                    demand: getScore(location.demandScore),
-                    poi: getScore(location.poiScore),
-                    risk: getScore(location.riskScore),
-                    accessibility: getScore(location.accessibilityScore),
-                    zoning: getScore(location.zoningScore)
-                };
+                console.log("Saving location with detailed breakdown:", {
+                    analysisId: newAnalysisId,
+                    lat: centroid.lat,
+                    lon: centroid.lon,
+                    score: location.finalScore,
+                    breakdown: breakdown
+                });
 
                 await recommendedLocationService.saveRecommendedLocation(
                     newAnalysisId,
                     centroid.lat,
                     centroid.lon,
                     location.finalScore,
-                    JSON.stringify(breakdown) // Save breakdown as JSON string
+                    JSON.stringify(breakdown)
                 );
             }
+            console.log("Successfully saved top 3 recommended locations");
         } catch (error) {
             console.error(
                 "Error saving recommended location to database:",
@@ -295,9 +335,6 @@ async function runWorkflow(opts = {}) {
             );
         }
     }
-
-    // Update conversation with analysisId
-    // await conversationService.updateAnalysisId(chatId, newAnalysisId);
 
     return out;
 }

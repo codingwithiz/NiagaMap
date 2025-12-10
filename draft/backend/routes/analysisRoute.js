@@ -110,7 +110,7 @@ router.delete("/analysis/:analysisId", async (req, res) => {
     }
 });
 
-// New: Get top 3 recommended locations for an analysisId
+// Get top 3 recommended locations with AI-generated reasoning
 router.get("/analysis/:analysisId/recommendations", async (req, res) => {
     try {
         const { analysisId } = req.params;
@@ -178,8 +178,9 @@ router.get("/analysis/:analysisId/recommendations", async (req, res) => {
             }
         }
         
-        // Parse breakdown JSON strings
+        // Parse breakdown JSON strings (stored in 'reason' column)
         const formattedLocations = locations.map(loc => ({
+            location_id: loc.location_id, // Add this to track which record to update
             lat: loc.lat,
             lon: loc.lon,
             score: loc.score,
@@ -189,6 +190,7 @@ router.get("/analysis/:analysisId/recommendations", async (req, res) => {
         }));
 
         // Generate AI reasoning for locations
+        console.log("Generating AI reasoning...");
         const locationsWithReasoning = await generateLocationReasoning({
             locations: formattedLocations,
             category,
@@ -199,6 +201,28 @@ router.get("/analysis/:analysisId/recommendations", async (req, res) => {
                 name: referencePoint.name
             }
         });
+
+        console.log("AI reasoning generated:", locationsWithReasoning);
+
+        // Save the AI reasoning back to database
+        for (let i = 0; i < locationsWithReasoning.length; i++) {
+            const locationWithReason = locationsWithReasoning[i];
+            const originalLocation = formattedLocations[i];
+
+            // Update the record with AI reasoning in the 'ai_reason' column
+            const { error: updateError } = await supabase
+                .from("recommended_location")
+                .update({
+                    ai_reason: locationWithReason.reason
+                })
+                .eq("location_id", originalLocation.location_id);
+
+            if (updateError) {
+                console.error("Error updating AI reasoning:", updateError);
+            } else {
+                console.log(`Updated location ${originalLocation.location_id} with AI reasoning`);
+            }
+        }
         
         res.json({
             locations: locationsWithReasoning,

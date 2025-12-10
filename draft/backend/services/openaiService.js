@@ -111,7 +111,6 @@ Always return a clean, parsable JSON object.
 }
 
 async function generateLocationReasoning({ locations, category, weights, referencePoint }) {
-  // Helper to get top weighted indicators
   const sortedWeights = Object.entries(weights || {})
     .sort(([, a], [, b]) => b - a)
     .slice(0, 2);
@@ -121,66 +120,103 @@ async function generateLocationReasoning({ locations, category, weights, referen
     : "balanced indicators";
 
   const REASONING_SYSTEM_PROMPT = `
-You are a professional GIS business location analyst in Malaysia. Your role is to explain why each recommended location is suitable for the user's ${category} business.
+You are a professional GIS business location analyst in Malaysia. Explain why each location is suitable for the ${category} business.
 
-You are given:
+**Given Data:**
 - Business category: "${category}"
-- User's priority indicators: ${topIndicators}
-- Reference point: ${referencePoint?.name || "User's selected location"}
-- Top 3 recommended locations with:
-  * Total suitability score (0-100, higher is better)
-  * Breakdown scores for 5 key indicators:
-    - Demand: Population density and customer potential
-    - POI: Nearby points of interest and complementary businesses
-    - Risk: Safety from floods, landslides, and other hazards (higher = safer)
-    - Accessibility: Road network connectivity and transportation access
-    - Zoning: Land use compatibility and regulatory compliance
+- User's priorities: ${topIndicators}
+- Reference point: ${referencePoint?.name || "User's location"}
+
+**5 Key Indicators:**
+
+**1. Demand (0-20 points)**
+- score: Final weighted score
+- population: Actual resident count in area
+→ Higher population = More customers
+
+**2. POI - Points of Interest (0-20 points)**
+- score: Final weighted score  
+- count: Number of complementary businesses nearby
+→ More POIs = Better foot traffic and ecosystem
+
+**3. Risk (0-20 points) - IMPORTANT**
+- score: Final safety score (higher = safer)
+- floodAreaHa: Flood-prone area in hectares
+- landslideCount: Number of landslide zones
+- hasLandslide: Boolean
+- riskRatio: Score penalty ratio (default 0.8)
+
+**Risk Scoring Logic:**
+- Base score: 20 points (perfect safety)
+- If floodAreaHa > 0: Deduct based on flood severity
+- If landslideCount > 0: Deduct based on landslide presence
+- Formula: score = 20 - (floodPenalty + landslidePenalty) × riskRatio
+
+**How to Interpret:**
+- score 20: Perfect - no floods, no landslides
+- score 16: Good - minor risk (1 hazard present)
+- score 10-15: Moderate - some risk concerns
+- score < 10: High risk - multiple hazards
+
+**4. Accessibility (0-20 points)**
+- score: Final weighted score
+- distanceMeters: Distance to nearest major road
+→ Lower distance = Better access
+
+**5. Zoning (0-20 points)**
+- score: Final weighted score
+- landuse: Land use type (e.g., "commercial", "residential")
+→ Appropriate zoning = Legal compliance
 
 **Your Task:**
-For each location, provide a concise 2-3 sentence explanation that:
+For each location, write 3-4 sentences explaining:
 
-1. **Interprets the total score** using these guidelines:
-   - 80-100: "Excellent location" / "Outstanding choice"
-   - 60-79: "Strong candidate" / "Highly suitable"
-   - 40-59: "Moderate potential" / "Viable option"
-   - 0-39: "Limited suitability" / "Consider alternatives"
+1. **Overall Assessment** (based on total score):
+   - 80-100: "Exceptional location"
+   - 60-79: "Strong candidate"  
+   - 40-59: "Moderate potential"
+   - 20-39: "Limited suitability"
 
-2. **Highlights the strongest indicators** (scores ≥15) that make this location attractive:
-   - Demand: "high customer demand", "strong population density", "excellent market potential"
-   - POI: "well-developed commercial area", "abundant nearby amenities", "strong business ecosystem"
-   - Risk: "very safe location", "minimal hazard risk", "excellent safety profile"
-   - Accessibility: "highly accessible", "excellent road connectivity", "strong transportation links"
-   - Zoning: "ideal zoning compliance", "perfect land use match", "suitable regulatory environment"
+2. **Highlight Strengths** with specific numbers:
+   - Demand: "serves {X} residents"
+   - POI: "{X} nearby businesses"
+   - Risk: "excellent safety (no hazards)" OR "safe with minor {floodAreaHa}ha flood zone"
+   - Accessibility: "just {X}m from main road"
+   - Zoning: "zoned as {landuse}"
 
-3. **Addresses any concerns** if key indicators score low (<10):
-   - Demand: "limited customer base nearby"
-   - POI: "developing commercial area"
-   - Risk: "moderate safety considerations"
-   - Accessibility: "limited road access"
-   - Zoning: "zoning restrictions to consider"
+3. **Address Concerns** honestly:
+   - Low demand: "limited to {X} residents"
+   - Low POI: "developing area ({X} businesses)"
+   - Risk issues: "{floodAreaHa}ha flood zone" OR "{landslideCount} landslide areas" 
+   - Poor access: "{X}m from road may limit traffic"
+   - Zoning: "verify permits for {landuse} zone"
 
-4. **Relates to business category**: Connect the scores to specific ${category} business needs
+4. **Relate to business**: Connect data to ${category} needs
 
-**Style Guidelines:**
-- Be professional but conversational
-- Use positive framing even for moderate scores
-- Prioritize the user's weighted preferences
-- Avoid technical jargon
-- Be specific about WHY each indicator matters for ${category}
+**Style:**
+- Use concrete numbers from data
+- Be professional and conversational
+- Positive but honest about risks
+- Make it actionable
 
-**Example Output Format:**
-[
-  {
-    "lat": 3.123,
-    "lon": 101.678,
-    "score": 85.5,
-    "breakdown": { "demand": 18, "poi": 22, "risk": 16, "accessibility": 20, "zoning": 9.5 },
-    "reason": "This excellent location scores 85.5 due to outstanding POI density (22) and strong accessibility (20), making it ideal for a ${category} business with high foot traffic and easy customer access. The strong demand score (18) indicates robust market potential, though you may want to verify zoning compliance as it scores moderately at 9.5."
-  },
-  ...
-]
+**Example:**
+Input:
+{
+  "score": 52.5,
+  "breakdown": {
+    "demand": { "score": 2.5, "population": 140 },
+    "poi": { "score": 20, "count": 12 },
+    "risk": { "score": 16, "floodAreaHa": 0.5, "landslideCount": 0, "hasLandslide": false, "riskRatio": 0.8 },
+    "accessibility": { "score": 4, "distanceMeters": 650 },
+    "zoning": { "score": 10, "landuse": "commercial" }
+  }
+}
 
-Return ONLY a valid JSON array with lat, lon, score, breakdown, and reason for each location. No markdown formatting.
+Output:
+"This moderate-potential location (52.5) excels with 12 complementary businesses creating a vibrant commercial area, perfect for ${category}. The site serves 140 residents with good safety (risk score 16) despite a minor 0.5-hectare flood zone that's well-managed. However, it's 650 meters from the main road which may affect visibility, so invest in signage and digital marketing to attract customers."
+
+Return ONLY a valid JSON array: [{ lat, lon, score, breakdown, reason }]
+No markdown formatting.
 `;
 
   const response = await openai.chat.completions.create({
@@ -200,7 +236,6 @@ Return ONLY a valid JSON array with lat, lon, score, breakdown, and reason for e
     temperature: 0.4,
   });
 
-  // Strip markdown block if any
   let content = response.choices[0].message.content;
   const match = content.match(/```json\s*([\s\S]*?)\s*```/i);
   if (match) content = match[1];
