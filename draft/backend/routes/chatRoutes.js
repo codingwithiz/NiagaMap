@@ -2,6 +2,7 @@
 const express = require("express");
 const router = express.Router();
 const chatService = require("../services/chatService");
+const supabase = require("../supabase/supabase_client"); // Add this import
 
 
 // Create a new chat
@@ -28,6 +29,7 @@ router.post("/", async (req, res) => {
     res.json(chat);
 });
 
+// Add message to existing chat
 router.put("/:chat_id/messages", async (req, res) => {
     const { chat_id } = req.params;
     const { user_prompt, bot_answer } = req.body;
@@ -52,13 +54,21 @@ router.get("/:chat_id", async (req, res) => {
     res.json(chat);
 });
 
-// Get all conversations for a chat
+// Get all conversations for a chat - FIXED TO INCLUDE ANALYSIS_ID
 router.get('/:chat_id/conversations', async (req, res) => {
     const { chat_id } = req.params;
     try {
-        const conversations = await chatService.getConversationsByChatId(chat_id);
-        res.json(conversations);
+        const { data, error } = await supabase
+            .from("conversation")
+            .select("conversation_id, user_prompt, bot_answer, analysis_id, created_at")
+            .eq("chat_id", chat_id)
+            .order("created_at", { ascending: true });
+
+        if (error) throw error;
+
+        res.json(data);
     } catch (err) {
+        console.error("Error fetching conversations:", err);
         res.status(500).json({ error: err.message });
     }
 });

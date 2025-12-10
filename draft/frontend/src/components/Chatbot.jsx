@@ -67,9 +67,22 @@ function Chatbot({ onExtracted, onClose, onShowRecommendations, darkMode = false
   };
 
   const fetchConversation = async (chatId) => {
-    const res = await axios.get(`${API}/chats/${chatId}/conversations`);
-    setConversation(res.data);
-    setSelectedChat(chatId);
+    try {
+        const res = await axios.get(`${API}/chats/${chatId}/conversations`);
+        console.log("Fetched conversation:", res.data);
+        
+        // Map the conversation to normalize analysisId field
+        const normalizedConversation = res.data.map(msg => ({
+            ...msg,
+            analysisId: msg.analysis_id || msg.analysisId // Support both naming conventions
+        }));
+        
+        setConversation(normalizedConversation);
+        setSelectedChat(chatId);
+    } catch (error) {
+        console.error("Error fetching conversation:", error);
+        setConversation([]);
+    }
   };
 
   const handleCreateChat = async () => {
