@@ -2,6 +2,7 @@
 const express = require("express");
 const router = express.Router();
 const chatService = require("../services/chatService");
+const userService = require("../services/userService");  // ✅ Add this
 const supabase = require("../supabase/supabase_client"); // Add this import
 
 
@@ -24,9 +25,38 @@ const supabase = require("../supabase/supabase_client"); // Add this import
 }
   */
 router.post("/", async (req, res) => {
-    
-    const chat = await chatService.createChat(req.body);
-    res.json(chat);
+    try {
+        const { userId } = req.body;
+        
+        if (!userId) {
+            return res.status(400).json({ error: "userId is required" });
+        }
+
+        // ✅ Ensure user exists before creating chat
+        let existingUser = await userService.getUserById(userId);
+        
+        if (!existingUser) {
+            console.log("User not found when creating chat, creating user first...");
+            try {
+                existingUser = await userService.createUser({
+                    userId: userId,
+                    name: "User",
+                    default_prompt: null,
+                    theme: "light",
+                });
+                console.log("User created as fallback:", existingUser?.user_id);
+            } catch (createErr) {
+                console.error("Failed to create user:", createErr.message);
+                return res.status(500).json({ error: "Failed to create user account" });
+            }
+        }
+
+        const chat = await chatService.createChat(req.body);
+        res.json(chat);
+    } catch (err) {
+        console.error("Error creating chat:", err);
+        res.status(500).json({ error: err.message });
+    }
 });
 
 // Add message to existing chat

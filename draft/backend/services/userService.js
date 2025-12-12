@@ -1,14 +1,30 @@
 const supabase = require("../supabase/supabase_client");
-const { v4: uuidv4 } = require("uuid");
 
 module.exports = {
     // CREATE user + preference
     createUser: async (user) => {
         try {
-            // Optional: check if user already exists by name or email (if needed)
-            // const { data: existing, error: checkError } = await supabase.from("users").select("*").eq("name", user.name).single();
-            // if (checkError && checkError.code !== "PGRST116") throw checkError;
-            // if (existing) throw new Error("User already exists");
+            console.log("createUser called with:", { userId: user.userId, name: user.name });
+
+            // Check if user already exists using maybeSingle (returns null instead of error)
+            const { data: existingUser, error: checkError } = await supabase
+                .from("users")
+                .select("*")
+                .eq("user_id", user.userId)
+                .maybeSingle();
+
+            // If user exists, return existing user
+            if (existingUser) {
+                console.log("User already exists, returning:", existingUser.user_id);
+                return existingUser;
+            }
+
+            // Log if there was an error checking (but not "no rows" error)
+            if (checkError) {
+                console.log("Check error (non-fatal):", checkError.message);
+            }
+
+            console.log("Creating new preference...");
 
             // Insert preference first
             const { data: prefData, error: prefError } = await supabase
@@ -16,13 +32,22 @@ module.exports = {
                 .insert([
                     {
                         default_prompt: user.default_prompt || null,
-                        theme: user.theme || null,
+                        theme: user.theme || "light",
                     },
                 ])
                 .select();
 
-            if (prefError || !prefData)
-                throw prefError || new Error("Failed to create preference");
+            if (prefError) {
+                console.error("Preference creation error:", prefError);
+                throw prefError;
+            }
+
+            if (!prefData || prefData.length === 0) {
+                throw new Error("Failed to create preference - no data returned");
+            }
+
+            console.log("Preference created with ID:", prefData[0].preference_id);
+            console.log("Creating new user...");
 
             // Insert user with reference to preference
             const { data: newUserData, error: newUserError } = await supabase
@@ -30,20 +55,33 @@ module.exports = {
                 .insert([
                     {
                         user_id: user.userId,
-                        name: user.name,
+                        name: user.name || "User",
                         preference_id: prefData[0].preference_id,
                     },
-                ]).select(`
-      *,
-      preferences:preferences(*)  
-    `);
+                ])
+                .select(`
+                    *,
+                    preferences:preferences(*)  
+                `);
 
-            if (newUserError || !newUserData)
-                throw newUserError || new Error("Failed to create user");
+            if (newUserError) {
+                console.error("User creation error:", newUserError);
+                // Clean up preference if user creation fails
+                await supabase
+                    .from("preferences")
+                    .delete()
+                    .eq("preference_id", prefData[0].preference_id);
+                throw newUserError;
+            }
 
+            if (!newUserData || newUserData.length === 0) {
+                throw new Error("Failed to create user - no data returned");
+            }
+
+            console.log("✅ User created successfully:", newUserData[0].user_id);
             return newUserData[0];
         } catch (err) {
-            // Abort operation: nothing is partially inserted
+            console.error("createUser error:", err);
             throw err;
         }
     },
@@ -51,10 +89,10 @@ module.exports = {
     // READ all users (with preference)
     getUsers: async () => {
         const { data, error } = await supabase.from("users").select(`
-      *,
-      preferences:preferences(*),
-      favourites:favourites(*)
-    `);
+            *,
+            preferences:preferences(*),
+            favourites:favourites(*)
+        `);
 
         if (error) throw error;
         return data;
@@ -64,48 +102,48 @@ module.exports = {
     getUserById: async (user_id) => {
         const { data, error } = await supabase
             .from("users")
-            .select(
-                `
-      *,
-      preferences:preferences(*),
-      favourites:favourites(*)  
-    `
-            )
+            .select(`
+                *,
+                preferences:preferences(*),
+                favourites:favourites(*)  
+            `)
             .eq("user_id", user_id)
-            .single();
+            .maybeSingle();  // ✅ Use maybeSingle to return null instead of throwing error
 
-        if (error) throw error;
-        return data;
+        if (error) {
+            console.error("getUserById error:", error);
+            throw error;
+        }
+
+        return data;  // Returns null if not found
     },
 
     // UPDATE user + preference
     updateUser: async (user_id, data) => {
         try {
-            //find user
+            // Find user
             const { data: existingUser, error: fetchError } = await supabase
                 .from("users")
-                .select(
-                    `
-            *,
-            preferences:preferences(*),
-            favourites:favourites(*)  
-          `
-                )
+                .select(`
+                    *,
+                    preferences:preferences(*),
+                    favourites:favourites(*)  
+                `)
                 .eq("user_id", user_id)
                 .single();
 
             if (fetchError) throw fetchError;
             if (!existingUser) throw new Error("User not found");
-            // Update preference first
+
+            // Update preference if provided
             if (data.preference) {
-                const { data: updatedPref, error: prefError } = await supabase
+                const { error: prefError } = await supabase
                     .from("preferences")
                     .update({
                         default_prompt: data.preference.default_prompt,
                         theme: data.preference.theme,
                     })
-                    .eq("preference_id", existingUser.preferences.preference_id)
-                    .select("*");
+                    .eq("preference_id", existingUser.preferences.preference_id);
 
                 if (prefError) throw prefError;
             }
@@ -116,17 +154,17 @@ module.exports = {
                 .update({
                     name: data.name,
                 })
-                .eq("user_id", user_id).select(`
-            *,
-            preferences:preferences(*),
-            favourites:favourites(*)
-          `);
+                .eq("user_id", user_id)
+                .select(`
+                    *,
+                    preferences:preferences(*),
+                    favourites:favourites(*)
+                `);
 
             if (userError) throw userError;
 
             return updatedUser[0];
         } catch (err) {
-            // Abort operation
             throw err;
         }
     },
@@ -145,7 +183,13 @@ module.exports = {
 
             const preference_id = userData.preference_id;
 
-            // Delete user first
+            // Delete favourites first (due to foreign key)
+            await supabase
+                .from("favourites")
+                .delete()
+                .eq("user_id", user_id);
+
+            // Delete user
             const { error: userError } = await supabase
                 .from("users")
                 .delete()
@@ -154,33 +198,13 @@ module.exports = {
             if (userError) throw userError;
 
             // Delete preference
-            const { data: prefData, error: prefError } = await supabase
+            await supabase
                 .from("preferences")
                 .delete()
-                .eq("preference_id", preference_id)
-                .select("*");
+                .eq("preference_id", preference_id);
 
-            if (prefError) throw prefError;
-
-            // Delete favourites
-            const { data: favData, error: favError } = await supabase
-                .from("favourites")
-                .delete()
-                .eq("user_id", user_id)
-                .select("*");
-
-            if (favError) throw favError;
-
-            // Return deleted user + preference info + favourites
-            return {
-                deletedUser: {
-                    ...userData,
-                    preference: prefData?.[0] || null,
-                    favourites: favData || [],
-                },
-            };
+            return { deletedUser: userData };
         } catch (err) {
-            // Abort operation if any step fails
             throw err;
         }
     },

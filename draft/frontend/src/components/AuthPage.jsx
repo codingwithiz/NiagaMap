@@ -5,13 +5,16 @@ import {
     createUserWithEmailAndPassword,
     signInWithPopup,
     sendPasswordResetEmail,
+    updateProfile,
 } from "firebase/auth";
 import { useNavigate } from "react-router-dom";
+import api from "../api/api";
 
 const AuthPage = ({ darkMode = false }) => {
     const [isLogin, setIsLogin] = useState(true);
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
+    const [name, setName] = useState("");  // ✅ Add name field for signup
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
     const [showForgot, setShowForgot] = useState(false);
@@ -19,16 +22,44 @@ const AuthPage = ({ darkMode = false }) => {
     const [resetMsg, setResetMsg] = useState("");
     const navigate = useNavigate();
 
+    // ✅ Helper function to verify with backend
+    const verifyWithBackend = async (user) => {
+        try {
+            const token = await user.getIdToken();
+            const response = await api.post("/auth/verify", { token });
+            console.log("User verified with backend:", response.data);
+            return response.data;
+        } catch (err) {
+            console.error("Backend verification error:", err);
+            throw err;
+        }
+    };
+
     const handleAuth = async (e) => {
         e.preventDefault();
         setError("");
         setSuccess("");
         try {
+            let userCredential;
+            
             if (isLogin) {
-                await signInWithEmailAndPassword(auth, email, password);
+                userCredential = await signInWithEmailAndPassword(auth, email, password);
             } else {
-                await createUserWithEmailAndPassword(auth, email, password);
+                userCredential = await createUserWithEmailAndPassword(auth, email, password);
+                
+                // ✅ Update Firebase profile with name for email/password signup
+                if (name.trim()) {
+                    await updateProfile(userCredential.user, {
+                        displayName: name.trim(),
+                    });
+                    // Reload user to get updated profile
+                    await userCredential.user.reload();
+                }
             }
+
+            // ✅ Verify with backend (creates user in Supabase)
+            await verifyWithBackend(userCredential.user);
+
             setSuccess(isLogin ? "Login successful!" : "Signup successful!");
             navigate("/map");
         } catch (err) {
@@ -41,7 +72,13 @@ const AuthPage = ({ darkMode = false }) => {
         setError("");
         setSuccess("");
         try {
-            await signInWithPopup(auth, googleProvider);
+            const result = await signInWithPopup(auth, googleProvider);
+            
+            // ✅ Verify with backend (creates user in Supabase with Google name)
+            await verifyWithBackend(result.user);
+            
+            console.log("Google user displayName:", result.user.displayName);
+            
             setSuccess("Google login successful!");
             navigate("/map");
         } catch (err) {
@@ -115,6 +152,24 @@ const AuthPage = ({ darkMode = false }) => {
                         gap: 18,
                     }}
                 >
+                    {/* ✅ Name field for signup only */}
+                    {!isLogin && (
+                        <input
+                            type="text"
+                            placeholder="Full Name"
+                            value={name}
+                            onChange={(e) => setName(e.target.value)}
+                            style={inputStyle}
+                            onFocus={(e) =>
+                                (e.target.style.border = "1.5px solid #1976d2")
+                            }
+                            onBlur={(e) =>
+                                (e.target.style.border = `1px solid ${
+                                    darkMode ? "#555" : "#cfd8dc"
+                                }`)
+                            }
+                        />
+                    )}
                     <input
                         type="email"
                         placeholder="Email"
