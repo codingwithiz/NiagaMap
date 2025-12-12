@@ -333,14 +333,14 @@ const MapViewComponent = ({
 
         const { Graphic } = esriModules;
 
-        // Enhanced glow effect for recommended hexagons
+        // Enhanced glow effect for recommended hexagons - Blue
         const outerGlow = new Graphic({
             geometry: graphic.geometry.clone(),
             symbol: {
                 type: "simple-fill",
-                color: [255, 215, 0, 0.1],
+                color: [30, 144, 255, 0.1],
                 outline: {
-                    color: [255, 215, 0, 0.8],
+                    color: [30, 144, 255, 0.8],
                     width: 6,
                 },
             },
@@ -350,9 +350,9 @@ const MapViewComponent = ({
             geometry: graphic.geometry.clone(),
             symbol: {
                 type: "simple-fill",
-                color: [255, 215, 0, 0.2],
+                color: [30, 144, 255, 0.2],
                 outline: {
-                    color: [255, 215, 0, 1],
+                    color: [30, 144, 255, 1],
                     width: 4,
                 },
             },
@@ -362,7 +362,7 @@ const MapViewComponent = ({
             geometry: graphic.geometry.clone(),
             symbol: {
                 type: "simple-fill",
-                color: [255, 215, 0, 0.4],
+                color: [30, 144, 255, 0.4],
                 outline: {
                     color: [255, 255, 255, 1],
                     width: 2,
@@ -371,8 +371,6 @@ const MapViewComponent = ({
         });
 
         highlightLayerRef.current.addMany([outerGlow, middleGlow, innerHighlight]);
-        
-        // Don't show popup for recommended hexagons - the marker handles that
     };
 
     // NEW: Clear hexagon highlight
@@ -490,45 +488,42 @@ const MapViewComponent = ({
                     spatialReference: { wkid: 4326 },
                 });
 
-                // Don't build popup content for recommended hexagons
-                // const content = buildHexagonPopupContent(result, rank);
-
-                // Outer glow layer
+                // Outer glow layer - Blue
                 const outerGlow = new Graphic({
                     geometry: polygon,
                     symbol: {
                         type: "simple-fill",
-                        color: [255, 215, 0, 0.15],
+                        color: [30, 144, 255, 0.15],  // Dodger blue
                         outline: {
-                            color: [255, 215, 0, 0.4],
+                            color: [30, 144, 255, 0.4],
                             width: 8,
                         },
                     },
                 });
                 hexagonLayerRef.current.add(outerGlow);
 
-                // Middle glow layer
+                // Middle glow layer - Blue
                 const middleGlow = new Graphic({
                     geometry: polygon,
                     symbol: {
                         type: "simple-fill",
-                        color: [255, 215, 0, 0.25],
+                        color: [30, 144, 255, 0.25],
                         outline: {
-                            color: [255, 215, 0, 0.7],
+                            color: [30, 144, 255, 0.7],
                             width: 5,
                         },
                     },
                 });
                 hexagonLayerRef.current.add(middleGlow);
 
-                // Main hexagon - NO popupTemplate
+                // Main hexagon - Blue
                 const hexGraphic = new Graphic({
                     geometry: polygon,
                     symbol: {
                         type: "simple-fill",
-                        color: [255, 215, 0, 0.5],
+                        color: [30, 144, 255, 0.5],  // Dodger blue with transparency
                         outline: {
-                            color: [255, 180, 0, 1],
+                            color: [0, 100, 200, 1],  // Darker blue outline
                             width: 3,
                         },
                     },
@@ -541,7 +536,6 @@ const MapViewComponent = ({
                         score: result.finalScore,
                         title: `🏆 Rank #${rank} Location`,
                     },
-                    // No popupTemplate for recommended hexagons
                 });
                 hexagonLayerRef.current.add(hexGraphic);
 
@@ -553,12 +547,12 @@ const MapViewComponent = ({
                         spatialReference: { wkid: 4326 },
                     });
 
-                    // Background circle for label
+                    // Background circle for label - Blue
                     const labelBg = new Graphic({
                         geometry: labelPoint,
                         symbol: {
                             type: "simple-marker",
-                            color: [255, 180, 0, 1],
+                            color: [30, 144, 255, 1],  // Dodger blue
                             size: 28,
                             outline: {
                                 color: [255, 255, 255, 1],
@@ -616,7 +610,7 @@ const MapViewComponent = ({
     // NEW: Get color based on score (gradient from red to green)
     const getScoreColor = (normalizedScore, isRecommended) => {
         if (isRecommended) {
-            return [255, 215, 0, 0.5]; // Gold for recommended
+            return [30, 144, 255, 0.5]; // Dodger blue for recommended
         }
 
         // Gradient from red (low score) to yellow (medium) to green (high score)
