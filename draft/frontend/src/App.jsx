@@ -189,319 +189,360 @@ function App() {
   const isActive = (path) => location.pathname === path;
 
   return (
-    <>
-      <div className={darkMode ? "dark" : ""}>
-        <nav className="bg-white dark:bg-neutral-900 text-black dark:text-white shadow-md px-8 py-4 flex justify-between items-center">
-          {/* Left Side: Logo + Links */}
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "2rem",
-            }}
-          >
-            <span
-              style={{
-                fontWeight: 700,
-                fontSize: 22,
-                color: "#1976d2",
-                letterSpacing: 1,
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-              }}
-            >
-              <svg
-                width="28"
-                height="28"
-                fill="#1976d2"
-                viewBox="0 0 24 24"
-              >
-                <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5S10.62 6.5 12 6.5s2.5 1.12 2.5 2.5S13.38 11.5 12 11.5z" />
-              </svg>
-              NiagaMap
-            </span>
-
-            {user && (
-              <>
-                <Link
-                  to="/map"
-                  style={{
-                    color: isActive("/map") ? "#fff" : "#1976d2", // ✅ White when active
-                    background: isActive("/map") ? "#1976d2" : "transparent", // ✅ Blue bg when active
-                    fontWeight: 600,
-                    textDecoration: "none",
-                    padding: "10px 18px",
-                    borderRadius: 8,
-                    transition: "all 0.2s",
-                    boxShadow: isActive("/map") ? "0 2px 8px rgba(25, 118, 210, 0.3)" : "none",
-                  }}
-                  onMouseOver={(e) => {
-                    if (!isActive("/map")) {
-                      e.currentTarget.style.background = "#f0f7ff";
-                    }
-                  }}
-                  onMouseOut={(e) => {
-                    if (!isActive("/map")) {
-                      e.currentTarget.style.background = "transparent";
-                    }
-                  }}
-                >
-                  Places Services
-                </Link>
-
-                <Link
-                  to="/basemap"
-                  style={{
-                    color: isActive("/basemap") ? "#fff" : "#1976d2",
-                    background: isActive("/basemap") ? "#1976d2" : "transparent",
-                    fontWeight: 600,
-                    textDecoration: "none",
-                    padding: "10px 18px",
-                    borderRadius: 8,
-                    transition: "all 0.2s",
-                    boxShadow: isActive("/basemap") ? "0 2px 8px rgba(25, 118, 210, 0.3)" : "none",
-                  }}
-                  onMouseOver={(e) => {
-                    if (!isActive("/basemap")) {
-                      e.currentTarget.style.background = "#f0f7ff";
-                    }
-                  }}
-                  onMouseOut={(e) => {
-                    if (!isActive("/basemap")) {
-                      e.currentTarget.style.background = "transparent";
-                    }
-                  }}
-                >
-                  Basemap
-                </Link>
-
-                <Link
-                  to="/analysis"
-                  style={{
-                    color: isActive("/analysis") ? "#fff" : "#1976d2",
-                    background: isActive("/analysis") ? "#1976d2" : "transparent",
-                    fontWeight: 600,
-                    textDecoration: "none",
-                    padding: "10px 18px",
-                    borderRadius: 8,
-                    transition: "all 0.2s",
-                    boxShadow: isActive("/analysis") ? "0 2px 8px rgba(25, 118, 210, 0.3)" : "none",
-                  }}
-                  onMouseOver={(e) => {
-                    if (!isActive("/analysis")) {
-                      e.currentTarget.style.background = "#f0f7ff";
-                    }
-                  }}
-                  onMouseOut={(e) => {
-                    if (!isActive("/analysis")) {
-                      e.currentTarget.style.background = "transparent";
-                    }
-                  }}
-                >
-                  Analysis
-                </Link>
-
-                <Link
-                  to="/profile"
-                  style={{
-                    color: isActive("/profile") ? "#fff" : "#1976d2",
-                    background: isActive("/profile") ? "#1976d2" : "transparent",
-                    fontWeight: 600,
-                    textDecoration: "none",
-                    padding: "10px 18px",
-                    borderRadius: 8,
-                    transition: "all 0.2s",
-                    boxShadow: isActive("/profile") ? "0 2px 8px rgba(25, 118, 210, 0.3)" : "none",
-                  }}
-                  onMouseOver={(e) => {
-                    if (!isActive("/profile")) {
-                      e.currentTarget.style.background = "#f0f7ff";
-                    }
-                  }}
-                  onMouseOut={(e) => {
-                    if (!isActive("/profile")) {
-                      e.currentTarget.style.background = "transparent";
-                    }
-                  }}
-                >
-                  Profile
-                </Link>
-              </>
-            )}
-          </div>
-
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "2rem",
-            }}
-          >
-            {/* Right Side: Dark Mode Toggle */}
-            <div style={{ display: "flex", alignItems: "center" }}>
-              <span style={{ marginRight: 8, fontSize: 18 }}>
-                ☀️
-              </span>
-              <div
-                onClick={() => setDarkMode(!darkMode)}
-                style={{
-                  width: 60,
-                  height: 30,
-                  background: darkMode ? "#444" : "#ccc",
-                  borderRadius: 9999,
-                  position: "relative",
-                  cursor: "pointer",
-                  transition: "background 0.3s",
-                }}
-              >
-                <div
-                  style={{
-                    width: 26,
-                    height: 26,
-                    background: darkMode ? "#fff" : "#000",
-                    borderRadius: "50%",
-                    position: "absolute",
-                    top: 2,
-                    left: darkMode ? 32 : 2,
-                    transition: "left 0.25s",
-                  }}
-                />
-              </div>
-              <span style={{ marginLeft: 8, fontSize: 18 }}>
-                🌙
-              </span>
-            </div>
-            {user && (
-              <button
-                onClick={handleLogout}
-                className="ml-4 px-4 py-2 rounded bg-gray-200 dark:bg-gray-700 dark:text-white"
-                onMouseOver={(e) =>
-                  (e.currentTarget.style.background = "#d32f2f")
-                }
-                onMouseOut={(e) =>
-                  (e.currentTarget.style.background = "#f44336")
-                }
-              >
-                Logout
-              </button>
-            )}
-          </div>
-        </nav>
-
-        <Routes>
-          {/* Default route redirects to auth page */}
-          <Route path="/" element={<Navigate to="/auth" replace />} />
-
-          {/* Auth login/signup */}
-          <Route
-            path="/auth"
-            element={<AuthPage darkMode={darkMode} />}
-          />
-
-          {/* Protected routes */}
-          <Route
-            path="/map"
-            element={
-              <ProtectedRoute>
-                <div
-                  className="app-container"
-                  style={{
-                    height: "100vh",
-                    width: "100vw",
-                    position: "relative",
-                  }}
-                >
+      <>
+          <div className={darkMode ? "dark" : ""}>
+              <nav className="bg-white dark:bg-neutral-900 text-black dark:text-white shadow-md px-8 py-4 flex justify-between items-center">
+                  {/* Left Side: Logo + Links */}
                   <div
-                    className="map-container"
-                    style={{ flex: 1, height: "100vh" }}
+                      style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "2rem",
+                      }}
                   >
-                    <MapViewComponent
-                      activeCategory={activeCategory}
-                      onPlacesFound={handlePlacesFound}
-                      recommendedPlace={recommendedPlace}
-                      workflowResults={workflowResults}
-                      onPlaceSelect={handlePlaceSelect}
-                      onClearResults={handleClearResults}  // NEW: Add this prop
-                      apiKey={apiKey}
-                      darkMode={darkMode}
-                    />
+                      <span
+                          style={{
+                              fontWeight: 700,
+                              fontSize: 22,
+                              color: "#1976d2",
+                              letterSpacing: 1,
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 8,
+                          }}
+                      >
+                          <svg
+                              width="28"
+                              height="28"
+                              fill="#1976d2"
+                              viewBox="0 0 24 24"
+                          >
+                              <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5S10.62 6.5 12 6.5s2.5 1.12 2.5 2.5S13.38 11.5 12 11.5z" />
+                          </svg>
+                          NiagaMap
+                      </span>
+
+                      {user && (
+                          <>
+                              <Link
+                                  to="/map"
+                                  style={{
+                                      color: isActive("/map")
+                                          ? "#fff"
+                                          : "#1976d2", // ✅ White when active
+                                      background: isActive("/map")
+                                          ? "#1976d2"
+                                          : "transparent", // ✅ Blue bg when active
+                                      fontWeight: 600,
+                                      textDecoration: "none",
+                                      padding: "10px 18px",
+                                      borderRadius: 8,
+                                      transition: "all 0.2s",
+                                      boxShadow: isActive("/map")
+                                          ? "0 2px 8px rgba(25, 118, 210, 0.3)"
+                                          : "none",
+                                  }}
+                                  onMouseOver={(e) => {
+                                      if (!isActive("/map")) {
+                                          e.currentTarget.style.background =
+                                              "#f0f7ff";
+                                      }
+                                  }}
+                                  onMouseOut={(e) => {
+                                      if (!isActive("/map")) {
+                                          e.currentTarget.style.background =
+                                              "transparent";
+                                      }
+                                  }}
+                              >
+                                  Places Services
+                              </Link>
+
+                              <Link
+                                  to="/basemap"
+                                  style={{
+                                      color: isActive("/basemap")
+                                          ? "#fff"
+                                          : "#1976d2",
+                                      background: isActive("/basemap")
+                                          ? "#1976d2"
+                                          : "transparent",
+                                      fontWeight: 600,
+                                      textDecoration: "none",
+                                      padding: "10px 18px",
+                                      borderRadius: 8,
+                                      transition: "all 0.2s",
+                                      boxShadow: isActive("/basemap")
+                                          ? "0 2px 8px rgba(25, 118, 210, 0.3)"
+                                          : "none",
+                                  }}
+                                  onMouseOver={(e) => {
+                                      if (!isActive("/basemap")) {
+                                          e.currentTarget.style.background =
+                                              "#f0f7ff";
+                                      }
+                                  }}
+                                  onMouseOut={(e) => {
+                                      if (!isActive("/basemap")) {
+                                          e.currentTarget.style.background =
+                                              "transparent";
+                                      }
+                                  }}
+                              >
+                                  Basemap
+                              </Link>
+
+                              <Link
+                                  to="/analysis"
+                                  style={{
+                                      color: isActive("/analysis")
+                                          ? "#fff"
+                                          : "#1976d2",
+                                      background: isActive("/analysis")
+                                          ? "#1976d2"
+                                          : "transparent",
+                                      fontWeight: 600,
+                                      textDecoration: "none",
+                                      padding: "10px 18px",
+                                      borderRadius: 8,
+                                      transition: "all 0.2s",
+                                      boxShadow: isActive("/analysis")
+                                          ? "0 2px 8px rgba(25, 118, 210, 0.3)"
+                                          : "none",
+                                  }}
+                                  onMouseOver={(e) => {
+                                      if (!isActive("/analysis")) {
+                                          e.currentTarget.style.background =
+                                              "#f0f7ff";
+                                      }
+                                  }}
+                                  onMouseOut={(e) => {
+                                      if (!isActive("/analysis")) {
+                                          e.currentTarget.style.background =
+                                              "transparent";
+                                      }
+                                  }}
+                              >
+                                  Analysis
+                              </Link>
+
+                              <Link
+                                  to="/profile"
+                                  style={{
+                                      color: isActive("/profile")
+                                          ? "#fff"
+                                          : "#1976d2",
+                                      background: isActive("/profile")
+                                          ? "#1976d2"
+                                          : "transparent",
+                                      fontWeight: 600,
+                                      textDecoration: "none",
+                                      padding: "10px 18px",
+                                      borderRadius: 8,
+                                      transition: "all 0.2s",
+                                      boxShadow: isActive("/profile")
+                                          ? "0 2px 8px rgba(25, 118, 210, 0.3)"
+                                          : "none",
+                                  }}
+                                  onMouseOver={(e) => {
+                                      if (!isActive("/profile")) {
+                                          e.currentTarget.style.background =
+                                              "#f0f7ff";
+                                      }
+                                  }}
+                                  onMouseOut={(e) => {
+                                      if (!isActive("/profile")) {
+                                          e.currentTarget.style.background =
+                                              "transparent";
+                                      }
+                                  }}
+                              >
+                                  Profile
+                              </Link>
+                          </>
+                      )}
                   </div>
 
-                  {/* Floating Chatbot Button */}
-                  {!chatbotOpen && (
-                    <button
-                      onClick={() => setChatbotOpen(true)}
+                  <div
                       style={{
-                        position: "fixed",
-                        bottom: 32,
-                        right: 32,
-                        zIndex: 1001,
-                        borderRadius: "50%",
-                        width: 64,
-                        height: 64,
-                        background: "#1976d2",
-                        color: "#fff",
-                        fontSize: 32,
-                        border: "none",
-                        boxShadow: "0 4px 16px rgba(0,0,0,0.2)",
-                        cursor: "pointer",
-                        transition: "transform 0.2s",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "2rem",
                       }}
-                      onMouseEnter={(e) => (e.target.style.transform = "scale(1.1)")}
-                      onMouseLeave={(e) => (e.target.style.transform = "scale(1)")}
-                      aria-label="Open Chatbot"
-                    >
-                      💬
-                    </button>
-                  )}
+                  >
+                      {/* Right Side: Dark Mode Toggle */}
+                      <div style={{ display: "flex", alignItems: "center" }}>
+                          <span style={{ marginRight: 8, fontSize: 18 }}>
+                              ☀️
+                          </span>
+                          <div
+                              onClick={() => setDarkMode(!darkMode)}
+                              style={{
+                                  width: 60,
+                                  height: 30,
+                                  background: darkMode ? "#444" : "#ccc",
+                                  borderRadius: 9999,
+                                  position: "relative",
+                                  cursor: "pointer",
+                                  transition: "background 0.3s",
+                              }}
+                          >
+                              <div
+                                  style={{
+                                      width: 26,
+                                      height: 26,
+                                      background: darkMode ? "#fff" : "#000",
+                                      borderRadius: "50%",
+                                      position: "absolute",
+                                      top: 2,
+                                      left: darkMode ? 32 : 2,
+                                      transition: "left 0.25s",
+                                  }}
+                              />
+                          </div>
+                          <span style={{ marginLeft: 8, fontSize: 18 }}>
+                              🌙
+                          </span>
+                      </div>
+                      {user && (
+                          <button
+                              onClick={handleLogout}
+                              className="ml-4 px-4 py-2 rounded bg-gray-200 dark:bg-gray-700 dark:text-white"
+                              onMouseOver={(e) =>
+                                  (e.currentTarget.style.background = "#d32f2f")
+                              }
+                              onMouseOut={(e) =>
+                                  (e.currentTarget.style.background = "#f44336")
+                              }
+                          >
+                              Logout
+                          </button>
+                      )}
+                  </div>
+              </nav>
 
-                  {/* ✅ Chatbot renders its own full-screen overlay */}
-                  {chatbotOpen && (
-                    <Chatbot
-                      onExtracted={handleChatbotResult}
-                      onClose={() => setChatbotOpen(false)}
-                      onShowRecommendations={handleShowRecommendations}
-                      darkMode={darkMode}
-                    />
-                  )}
-                </div>
-              </ProtectedRoute>
-            }
-          />
+              <Routes>
+                  {/* Default route redirects to auth page */}
+                  <Route path="/" element={<Navigate to="/auth" replace />} />
 
-          <Route
-            path="/basemap"
-            element={
-              <ProtectedRoute>
-                <Basemap />
-              </ProtectedRoute>
-            }
-          />
+                  {/* Auth login/signup */}
+                  <Route
+                      path="/auth"
+                      element={<AuthPage darkMode={darkMode} />}
+                  />
 
-          <Route
-            path="/analysis"
-            element={
-              <ProtectedRoute>
-                <AnalysesPage darkMode={darkMode} />
-              </ProtectedRoute>
-            }
-          />
+                  {/* Protected routes */}
+                  <Route
+                      path="/map"
+                      element={
+                          <ProtectedRoute>
+                              <div
+                                  className="app-container"
+                                  style={{
+                                      height: "100vh",
+                                      width: "100vw",
+                                      position: "relative",
+                                  }}
+                              >
+                                  <div
+                                      className="map-container"
+                                      style={{ flex: 1, height: "100vh" }}
+                                  >
+                                      <MapViewComponent
+                                          activeCategory={activeCategory}
+                                          onPlacesFound={handlePlacesFound}
+                                          recommendedPlace={recommendedPlace}
+                                          workflowResults={workflowResults}
+                                          onPlaceSelect={handlePlaceSelect}
+                                          onClearResults={handleClearResults} // NEW: Add this prop
+                                          apiKey={apiKey}
+                                          darkMode={darkMode}
+                                      />
+                                  </div>
 
-          <Route
-            path="/profile"
-            element={
-              <ProtectedRoute>
-                <Profile />
-              </ProtectedRoute>
-            }
-          />
+                                  {/* Floating Chatbot Button */}
+                                  {!chatbotOpen && (
+                                      <button
+                                          onClick={() => setChatbotOpen(true)}
+                                          style={{
+                                              position: "fixed",
+                                              bottom: 32,
+                                              right: 32,
+                                              zIndex: 1001,
+                                              borderRadius: "50%",
+                                              width: 64,
+                                              height: 64,
+                                              background: "#1976d2",
+                                              color: "#fff",
+                                              fontSize: 32,
+                                              border: "none",
+                                              boxShadow:
+                                                  "0 4px 16px rgba(0,0,0,0.2)",
+                                              cursor: "pointer",
+                                              transition: "transform 0.2s",
+                                          }}
+                                          onMouseEnter={(e) =>
+                                              (e.target.style.transform =
+                                                  "scale(1.1)")
+                                          }
+                                          onMouseLeave={(e) =>
+                                              (e.target.style.transform =
+                                                  "scale(1)")
+                                          }
+                                          aria-label="Open Chatbot"
+                                      >
+                                          💬
+                                      </button>
+                                  )}
 
-          {/* Any other path redirects to auth */}
-          <Route path="*" element={<Navigate to="/auth" replace />} />
-        </Routes>
-      </div>
-    </>
+                                  {/* ✅ Chatbot renders its own full-screen overlay */}
+                                  {chatbotOpen && (
+                                      <Chatbot
+                                          onExtracted={handleChatbotResult}
+                                          onClose={() => setChatbotOpen(false)}
+                                          onShowRecommendations={
+                                              handleShowRecommendations
+                                          }
+                                          darkMode={darkMode}
+                                      />
+                                  )}
+                              </div>
+                          </ProtectedRoute>
+                      }
+                  />
+
+                  <Route
+                      path="/basemap"
+                      element={
+                          <ProtectedRoute>
+                              <Basemap />
+                          </ProtectedRoute>
+                      }
+                  />
+
+                  <Route
+                      path="/analysis"
+                      element={
+                          <ProtectedRoute>
+                              <AnalysesPage darkMode={darkMode} />
+                          </ProtectedRoute>
+                      }
+                  />
+
+                  <Route
+                      path="/profile"
+                      element={
+                          <ProtectedRoute>
+                              <Profile darkMode={darkMode} />
+                          </ProtectedRoute>
+                      }
+                  />
+
+                  {/* Any other path redirects to auth */}
+                  <Route path="*" element={<Navigate to="/auth" replace />} />
+              </Routes>
+          </div>
+      </>
   );
 }
 

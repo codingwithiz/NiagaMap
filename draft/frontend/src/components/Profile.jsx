@@ -4,13 +4,36 @@ import { auth } from "../firebase";
 import { updateProfile, updatePassword } from "firebase/auth";
 import api from "../api/api";
 
-const Profile = () => {
+const Profile = ({darkMode = false}) => {
     const { user } = useAuth();
     const [name, setName] = useState(user?.displayName || "");
     const [email] = useState(user?.email || "");
     const [password, setPassword] = useState("");
     const [message, setMessage] = useState("");
     const [error, setError] = useState("");
+
+    // Outer container for full viewport height
+    return (
+        <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: darkMode ? "#1f2937" : "#f9fafe" }}>
+            <ProfileCard
+                user={user}
+                name={name}
+                setName={setName}
+                email={email}
+                password={password}
+                setPassword={setPassword}
+                message={message}
+                setMessage={setMessage}
+                error={error}
+                setError={setError}
+                darkMode={darkMode}
+            />
+        </div>
+    );
+};
+
+// The original profile card UI moved to a new component
+const ProfileCard = ({ user, name, setName, email, password, setPassword, message, setMessage, error, setError, darkMode }) => {
 
     // Update name in Firebase and Supabase
     const handleUpdateName = async (e) => {
@@ -44,12 +67,13 @@ const Profile = () => {
         <div
             style={{
                 maxWidth: 420,
-                margin: "48px auto",
+                width: "100%",
+                margin: "0 auto",
                 padding: "32px 32px 24px 32px",
-                background: "#f9fafe",
+                background: darkMode ? "#1f2937" : "#f9fafe",
                 borderRadius: 18,
                 boxShadow: "0 4px 24px rgba(25, 118, 210, 0.10)",
-                border: "1px solid #e3e8f0",
+                border: `1px solid ${darkMode ? "#374151" : "#e0e0e0"}`,
             }}
         >
             <h2
@@ -64,7 +88,10 @@ const Profile = () => {
                     letterSpacing: 1,
                 }}
             >
-                <span role="img" aria-label="profile">👤</span> Profile
+                <span role="img" aria-label="profile">
+                    👤
+                </span>{" "}
+                Profile
             </h2>
             <form onSubmit={handleUpdateName} style={{ marginBottom: 32 }}>
                 <label
@@ -72,7 +99,7 @@ const Profile = () => {
                         display: "block",
                         fontWeight: 600,
                         marginBottom: 6,
-                        color: "#333",
+                        color: darkMode ? "#d1d5db" : "#333",
                         fontSize: 15,
                     }}
                 >
@@ -81,7 +108,7 @@ const Profile = () => {
                 <input
                     type="text"
                     value={name}
-                    onChange={e => setName(e.target.value)}
+                    onChange={(e) => setName(e.target.value)}
                     style={{
                         width: "100%",
                         padding: "12px 14px",
@@ -89,20 +116,26 @@ const Profile = () => {
                         border: "1.5px solid #cfd8dc",
                         fontSize: 16,
                         marginBottom: 18,
-                        background: "#fff",
-                        color: "#222",
+                        background: darkMode ? "#374151" : "#fff",
+                        color: darkMode ? "#d1d5db" : "#222",
                         outline: "none",
                         transition: "border 0.2s",
                     }}
-                    onFocus={e => (e.target.style.border = "1.5px solid #1976d2")}
-                    onBlur={e => (e.target.style.border = "1.5px solid #cfd8dc")}
+                    onFocus={(e) =>
+                        (e.target.style.border = `1.5px solid ${
+                            darkMode ? "#fff" : "#1976d2"
+                        }`)
+                    }
+                    onBlur={(e) =>
+                        (e.target.style.border = "1.5px solid #cfd8dc")
+                    }
                 />
                 <label
                     style={{
                         display: "block",
                         fontWeight: 600,
                         marginBottom: 6,
-                        color: "#333",
+                        color: darkMode ? "#d1d5db" : "#333",
                         fontSize: 15,
                     }}
                 >
@@ -119,8 +152,8 @@ const Profile = () => {
                         border: "1.5px solid #e0e0e0",
                         fontSize: 16,
                         marginBottom: 18,
-                        background: "#f3f6fa",
-                        color: "#888",
+                        background: darkMode ? "#374151" : "#fff",
+                        color: darkMode ? "#d1d5db" : "#222",
                         cursor: "not-allowed",
                     }}
                 />
@@ -140,8 +173,12 @@ const Profile = () => {
                         boxShadow: "0 2px 8px rgba(25, 118, 210, 0.08)",
                         transition: "background 0.2s",
                     }}
-                    onMouseOver={e => (e.currentTarget.style.background = "#1251a3")}
-                    onMouseOut={e => (e.currentTarget.style.background = "#1976d2")}
+                    onMouseOver={(e) =>
+                        (e.currentTarget.style.background = "#1251a3")
+                    }
+                    onMouseOut={(e) =>
+                        (e.currentTarget.style.background = "#1976d2")
+                    }
                 >
                     Update Name
                 </button>
@@ -152,7 +189,7 @@ const Profile = () => {
                         display: "block",
                         fontWeight: 600,
                         marginBottom: 6,
-                        color: "#333",
+                        color: darkMode ? "#d1d5db" : "#333",
                         fontSize: 15,
                     }}
                 >
@@ -161,7 +198,7 @@ const Profile = () => {
                 <input
                     type="password"
                     value={password}
-                    onChange={e => setPassword(e.target.value)}
+                    onChange={(e) => setPassword(e.target.value)}
                     style={{
                         width: "100%",
                         padding: "12px 14px",
@@ -169,13 +206,19 @@ const Profile = () => {
                         border: "1.5px solid #cfd8dc",
                         fontSize: 16,
                         marginBottom: 18,
-                        background: "#fff",
-                        color: "#222",
+                        background: darkMode ? "#374151" : "#fff",
+                        color: darkMode ? "#d1d5db" : "#222",
                         outline: "none",
                         transition: "border 0.2s",
                     }}
-                    onFocus={e => (e.target.style.border = "1.5px solid #1976d2")}
-                    onBlur={e => (e.target.style.border = "1.5px solid #cfd8dc")}
+                    onFocus={(e) =>
+                        (e.target.style.border = `1.5px solid ${
+                            darkMode ? "#fff" : "#1976d2"
+                        }`)
+                    }
+                    onBlur={(e) =>
+                        (e.target.style.border = "1.5px solid #cfd8dc")
+                    }
                 />
                 <button
                     type="submit"
@@ -193,8 +236,12 @@ const Profile = () => {
                         boxShadow: "0 2px 8px rgba(25, 118, 210, 0.08)",
                         transition: "background 0.2s",
                     }}
-                    onMouseOver={e => (e.currentTarget.style.background = "#1251a3")}
-                    onMouseOut={e => (e.currentTarget.style.background = "#1976d2")}
+                    onMouseOver={(e) =>
+                        (e.currentTarget.style.background = "#1251a3")
+                    }
+                    onMouseOut={(e) =>
+                        (e.currentTarget.style.background = "#1976d2")
+                    }
                 >
                     Update Password
                 </button>
