@@ -48,6 +48,7 @@ async function runWorkflow(opts = {}) {
         maxCount = null,  // Keep as null by default - will generate all hexagons
         chat_id = null,
         user_id = null,
+        weights = null,
     } = opts;
 
     if (!category) {
@@ -227,13 +228,16 @@ async function runWorkflow(opts = {}) {
                 ? getNumericScore(accessibilityScoresArr[i])
                 : null;
 
-        const a = sDemand == null ? 0 : sDemand;
-        const b = sPoi == null ? 0 : sPoi;
-        const c = sRisk == null ? 0 : sRisk;
-        const d = sZoning == null ? 0 : sZoning;
-        const e = sAccess == null ? 0 : sAccess;
+        // Default weights if not provided
+        const w = weights || { demand: 20, poi: 20, risk: 20, accessibility: 20, zoning: 20 };
+        const totalWeight = (w.demand || 0) + (w.poi || 0) + (w.risk || 0) + (w.accessibility || 0) + (w.zoning || 0) || 1;
 
-        const finalScore = a + b + c + d + e;
+        const finalScore =
+            ((sDemand ?? 0) * (w.demand || 0) +
+            (sPoi ?? 0) * (w.poi || 0) +
+            (sRisk ?? 0) * (w.risk || 0) +
+            (sZoning ?? 0) * (w.zoning || 0) +
+            (sAccess ?? 0) * (w.accessibility || 0)) / totalWeight;
 
         // Extract detailed risk data
         const riskDetails = riskScoresArr?.[i] || {};
@@ -241,7 +245,7 @@ async function runWorkflow(opts = {}) {
             floodAreaHa: riskDetails.floodAreaHa || 0,
             landslideCount: riskDetails.landslideCount || 0,
             hasLandslide: riskDetails.hasLandslide || false,
-            totalScore: c // Total risk score
+            totalScore: sRisk // Total risk score
         };
 
         // Extract other raw data
@@ -258,11 +262,11 @@ async function runWorkflow(opts = {}) {
         out.push({
             hexagon: hex,
             centroid,
-            demandScore: a,
-            poiScore: b,
-            riskScore: c,
-            zoningScore: d,
-            accessibilityScore: e,
+            demandScore: sDemand,
+            poiScore: sPoi,
+            riskScore: sRisk,
+            zoningScore: sZoning,
+            accessibilityScore: sAccess,
             // Store raw data for detailed analysis
             demandRaw: demandRaw,
             poiRaw: poiRaw,
