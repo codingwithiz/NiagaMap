@@ -20,157 +20,132 @@ module.exports = { createAnalysis };
 
 
 async function getUserAnalysesWithDetails(userId) {
-    const transaction = new sql.Transaction();
+    // Supabase version: fetch analyses, reference points, and recommended locations
     try {
-        await transaction.begin();
-        const request = new sql.Request(transaction);
-        const result = await request.input("userId", sql.VarChar, userId)
-            .query(`
-            SELECT 
-                a.analysisId,
-                a.chatId,
-                a.created_at,
-                a.referencePointId,
-                rp.name AS referencePointName,
-                rp.lat AS referencePointLat,
-                rp.lon AS referencePointLon,
-                rl.locationId AS locationId,
-                rl.lat AS lat,
-                rl.lon AS lon,
-                rl.score,
-                rl.reason
-            FROM Analysis a
-            LEFT JOIN ReferencePoint rp ON a.referencePointId = rp.pointId
-            LEFT JOIN RecommendedLocation rl ON a.analysisId = rl.analysisId
-            WHERE a.userId = @userId
-            ORDER BY a.analysisId
-        `);
+        // 1. Get all analyses for the user
+        const { data: analysesData, error: analysesError } = await supabase
+            .from("analysis")
+            .select("*")
+            .eq("user_id", userId);
+        if (analysesError) throw analysesError;
 
-        const analyses = {};
-        for (const row of result.recordset) {
-            if (!analyses[row.analysisId]) {
-                analyses[row.analysisId] = {
-                    analysisId: row.analysisId,
-                    chatId: row.chatId,
-                    createdAt: row.created_at,
-                    referencePoint: {
-                        referencePointId: row.referencePointId,
-                        name: row.referencePointName,
-                        lat: row.referencePointLat,
-                        lon: row.referencePointLon,
-                    },
-                    recommendedLocations: [],
-                };
-            }
+        // 2. Get all reference points for these analyses
+        const referencePointIds = analysesData.map(a => a.reference_point_id).filter(Boolean);
+        let referencePointsMap = {};
+        if (referencePointIds.length > 0) {
+            const { data: refPoints, error: refError } = await supabase
+                .from("reference_point")
+                .select("*")
+                .in("point_id", referencePointIds);
+            if (refError) throw refError;
+            referencePointsMap = Object.fromEntries(refPoints.map(rp => [rp.point_id, rp]));
+        }
 
-            if (row.locationId) {
-                analyses[row.analysisId].recommendedLocations.push({
-                    locationId: row.locationId,
-                    lat: row.lat,
-                    lon: row.lon,
-                    score: row.score,
-                    reason: row.reason,
-                    // created_at can be added here if needed and available
+        // 3. Get all recommended locations for these analyses
+        const analysisIds = analysesData.map(a => a.analysis_id);
+        let recommendedLocationsMap = {};
+        if (analysisIds.length > 0) {
+            const { data: recLocs, error: recLocsError } = await supabase
+                .from("recommended_location")
+                .select("*")
+                .in("analysis_id", analysisIds);
+            if (recLocsError) throw recLocsError;
+            for (const loc of recLocs) {
+                if (!recommendedLocationsMap[loc.analysis_id]) recommendedLocationsMap[loc.analysis_id] = [];
+                recommendedLocationsMap[loc.analysis_id].push({
+                    locationId: loc.location_id,
+                    lat: loc.lat,
+                    lon: loc.lon,
+                    score: loc.score,
+                    reason: loc.reason,
+                    ai_reason: loc.ai_reason,
                 });
             }
         }
 
-        await transaction.commit();
-        return Object.values(analyses); // ✅ Moved inside try block
+        // 4. Assemble the result
+        const analyses = analysesData.map(a => ({
+            analysisId: a.analysis_id,
+            chatId: a.chat_id,
+            createdAt: a.created_at,
+            referencePoint: a.reference_point_id && referencePointsMap[a.reference_point_id] ? {
+                referencePointId: a.reference_point_id,
+                name: referencePointsMap[a.reference_point_id].name,
+                lat: referencePointsMap[a.reference_point_id].lat,
+                lon: referencePointsMap[a.reference_point_id].lon,
+            } : null,
+            recommendedLocations: recommendedLocationsMap[a.analysis_id] || [],
+        }));
+
+        console.log("Fetch Analysis Data: ", analyses[0])
+        return analyses;
     } catch (err) {
-        await transaction.rollback();
         throw new Error("Failed to get user analyses: " + err.message);
     }
 }
 
 async function updateAnalysisReferencePoint(analysisId, name, lat, lon ) {
-    console.log("Updating reference point for analysis:", analysisId, name, lat, lon);
-    const transaction = new sql.Transaction();
+    // Supabase version: update reference point for an analysis
     try {
-        await transaction.begin();
-        const request = new sql.Request(transaction);
+        // 1. Get the analysis to find reference_point_id
+        const { data: analysis, error: analysisError } = await supabase
+            .from("analysis")
+            .select("reference_point_id")
+            .eq("analysis_id", analysisId)
+            .single();
+        if (analysisError || !analysis) throw new Error("Analysis not found.");
+        const referencePointId = analysis.reference_point_id;
 
-        // 1. Get the referencePointId from the Analysis table
-        const result = await request.input(
-            "analysisId",
-            sql.VarChar,
-            analysisId
-        ).query(`
-                SELECT referencePointId FROM Analysis WHERE analysisId = @analysisId
-            `);
-
-        if (result.recordset.length === 0) {
-            throw new Error("Analysis not found.");
-        }
-
-        const referencePointId = result.recordset[0].referencePointId;
-
-        // 2. Update the ReferencePoint table
-        await request
-            .input("referencePointId", sql.VarChar, referencePointId)
-            .input("name", sql.VarChar, name)
-            .input("lat", sql.Float, lat)
-            .input("lon", sql.Float, lon).query(`
-                UPDATE ReferencePoint
-                SET name = @name, lat = @lat, lon = @lon
-                WHERE pointId = @referencePointId
-            `);
-
-        await transaction.commit();
+        // 2. Update the reference_point table
+        const { error: updateError } = await supabase
+            .from("reference_point")
+            .update({ name, lat, lon })
+            .eq("point_id", referencePointId);
+        if (updateError) throw updateError;
     } catch (err) {
-        await transaction.rollback();
         throw new Error("Failed to update reference point: " + err.message);
     }
 }
 
 
 async function deleteAnalysis(analysisId) {
-    const transaction = new sql.Transaction();
+    // Supabase version: delete recommended locations, analysis, and reference point
     try {
-        await transaction.begin();
+        // 1. Get the analysis to find reference_point_id
+        const { data: analysis, error: analysisError } = await supabase
+            .from("analysis")
+            .select("reference_point_id")
+            .eq("analysis_id", analysisId)
+            .single();
+        if (analysisError || !analysis) throw new Error("Analysis not found.");
+        const referencePointId = analysis.reference_point_id;
 
-        // First request: get referencePointId
-        const request1 = new sql.Request(transaction);
-        const result = await request1.input(
-            "analysisId",
-            sql.VarChar,
-            analysisId
-        ).query(`
-                SELECT referencePointId FROM Analysis WHERE analysisId = @analysisId
-            `);
+        // 2. Delete recommended locations
+        const { error: recLocsError } = await supabase
+            .from("recommended_location")
+            .delete()
+            .eq("analysis_id", analysisId);
+        if (recLocsError) throw recLocsError;
 
-        if (result.recordset.length === 0) {
-            throw new Error("Analysis not found.");
-        }
+        // 3. Delete the analysis
+        const { error: analysisDelError } = await supabase
+            .from("analysis")
+            .delete()
+            .eq("analysis_id", analysisId);
+        if (analysisDelError) throw analysisDelError;
 
-        const referencePointId = result.recordset[0].referencePointId;
+        // 4. Delete the reference point
+        const { error: refPointDelError } = await supabase
+            .from("reference_point")
+            .delete()
+            .eq("point_id", referencePointId);
+        if (refPointDelError) throw refPointDelError;
 
-        // Second request: delete recommended locations
-        const request2 = new sql.Request(transaction);
-        await request2.input("analysisId", sql.VarChar, analysisId).query(`
-                DELETE FROM RecommendedLocation WHERE analysisId = @analysisId
-            `);
-
-        // Third request: delete the analysis
-        const request3 = new sql.Request(transaction);
-        await request3.input("analysisId", sql.VarChar, analysisId).query(`
-                DELETE FROM Analysis WHERE analysisId = @analysisId
-            `);
-
-        // Fourth request: delete the reference point
-        const request4 = new sql.Request(transaction);
-        await request4.input("referencePointId", sql.VarChar, referencePointId)
-            .query(`
-                DELETE FROM ReferencePoint WHERE pointId = @referencePointId
-            `);
-
-        await transaction.commit();
         return {
             success: true,
             message: "Analysis and related data deleted successfully.",
         };
     } catch (err) {
-        await transaction.rollback();
         throw new Error("Failed to delete analysis: " + err.message);
     }
 }

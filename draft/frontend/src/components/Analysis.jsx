@@ -30,7 +30,6 @@ const Analysis = ({darkMode = false}) => {
         try {
             const response = await api.get(`/analysis/${userId}`);
             const allAnalyses = response.data.analyses;
-
             setAnalyses(allAnalyses);
 
             const uniqueChatIds = Array.from(
@@ -98,14 +97,22 @@ const Analysis = ({darkMode = false}) => {
                 a.referencePoint.name === selectedRefName;
             const dateMatch =
                 !selectedDate ||
-                new Date(a.created_at).toLocaleDateString() ===
-                    new Date(selectedDate).toLocaleDateString();
+                (() => {
+                    // Parse both as UTC to avoid timezone issues
+                    const created = new Date(a.createdAt);
+                    const selected = new Date(selectedDate + 'T00:00:00Z');
+                    return (
+                        created.getUTCFullYear() === selected.getUTCFullYear() &&
+                        created.getUTCMonth() === selected.getUTCMonth() &&
+                        created.getUTCDate() === selected.getUTCDate()
+                    );
+                })();
             return chatMatch && refMatch && dateMatch;
         });
 
         return filtered.sort((a, b) => {
-            const dateA = new Date(a.created_at);
-            const dateB = new Date(b.created_at);
+            const dateA = new Date(a.createdAt);
+            const dateB = new Date(b.createdAt);
             return sortOrder === "asc" ? dateA - dateB : dateB - dateA;
         });
     };
@@ -113,13 +120,15 @@ const Analysis = ({darkMode = false}) => {
     const filteredAnalyses = getFilteredAndSortedAnalyses();
 
     const formatDateTime = (timestamp) => {
+        // Handles ISO 8601 with timezone, always shows local time
         const date = new Date(timestamp);
         return date.toLocaleString("en-US", {
-            day: "2-digit",
-            month: "2-digit",
             year: "numeric",
+            month: "2-digit",
+            day: "2-digit",
             hour: "2-digit",
             minute: "2-digit",
+            second: "2-digit",
             hour12: true,
         });
     };
@@ -264,13 +273,13 @@ const Analysis = ({darkMode = false}) => {
                                 Chat ID: {analysis.chatId}
                             </p>
                             <p className="text-sm text-gray-500">
-                                Created: {formatDateTime(analysis.created_at)}
+                                Created: {formatDateTime(analysis.createdAt)}
                             </p>
                         </div>
                         <div className="space-x-2">
                             <button
                                 onClick={() => openUpdateModal(analysis)}
-                                className="bg-[#1976d2] hover:bg-blue-700 text-white font-semibold px-4 py-2 rounded shadow"
+                                className="bg-blue-600 hover:bg-blue-700 hover:cursor-pointer text-white font-semibold px-4 py-2 rounded shadow"
                             >
                                 Update
                             </button>
@@ -278,7 +287,7 @@ const Analysis = ({darkMode = false}) => {
                                 onClick={() =>
                                     handleDelete(analysis.analysisId)
                                 }
-                                className="bg-red-600 hover:bg-red-700 text-white font-semibold px-4 py-2 rounded shadow"
+                                className="bg-red-600 hover:bg-red-700 hover:cursor-pointer text-white font-semibold px-4 py-2 rounded shadow"
                             >
                                 Delete
                             </button>
@@ -307,7 +316,7 @@ const Analysis = ({darkMode = false}) => {
                                     ⭐ Score: {loc.score}
                                 </p>
                                 <p className={`text-sm mt-2 italic ${label}`}>
-                                    {loc.reason}
+                                    {loc.ai_reason}
                                 </p>
                                 <div className="mt-2 space-x-2 text-xs">
                                     <a
