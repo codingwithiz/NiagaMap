@@ -2,6 +2,8 @@
 const express = require("express");
 const router = express.Router();
 const chatService = require("../services/chatService");
+const userService = require("../services/userService");  // ✅ Add this
+const supabase = require("../supabase/supabase_client"); // Add this import
 
 
 // Create a new chat
@@ -23,67 +25,96 @@ const chatService = require("../services/chatService");
 }
   */
 router.post("/", async (req, res) => {
-    
-    const chat = await chatService.createChat(req.body);
-    res.json(chat);
+    try {
+        const { userId } = req.body;
+        
+        if (!userId) {
+            return res.status(400).json({ error: "userId is required" });
+        }
+
+        // ✅ Ensure user exists before creating chat
+        let existingUser = await userService.getUserById(userId);
+        
+        if (!existingUser) {
+            console.log("User not found when creating chat, creating user first...");
+            try {
+                existingUser = await userService.createUser({
+                    userId: userId,
+                    name: "User",
+                    default_prompt: null,
+                    theme: "light",
+                });
+                console.log("User created as fallback:", existingUser?.user_id);
+            } catch (createErr) {
+                console.error("Failed to create user:", createErr.message);
+                return res.status(500).json({ error: "Failed to create user account" });
+            }
+        }
+
+        const chat = await chatService.createChat(req.body);
+        res.json(chat);
+    } catch (err) {
+        console.error("Error creating chat:", err);
+        res.status(500).json({ error: err.message });
+    }
 });
 
-/*
-{
-  "chatId": "chat_1749717843666",
-  "user_prompt": "What's the capital of France?",
-  "bot_answer": "Paris"
-}
-*/
-router.put("/:chatId/messages", async (req, res) => {
-    const { chatId } = req.params;
+// Add message to existing chat
+router.put("/:chat_id/messages", async (req, res) => {
+    const { chat_id } = req.params;
     const { user_prompt, bot_answer } = req.body;
 
     try {
-        const updatedChat = await chatService.addMessage(chatId, user_prompt, bot_answer);
+        const updatedChat = await chatService.addMessage(chat_id, user_prompt, bot_answer);
         res.json(updatedChat);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
 
-
 // Get all chats for a user
-router.get("/:userId", async (req, res) => {
-    const chats = await chatService.getChatsByUserId(req.params.userId);
+router.get("/user/:user_id", async (req, res) => {
+    const chats = await chatService.getChatsByUserId(req.params.user_id);
     res.json(chats);
 });
 
 // Get a chat by ID
-router.get("/:chatId", async (req, res) => {
-    const chat = await chatService.getChatById(req.params.chatId);
+router.get("/:chat_id", async (req, res) => {
+    const chat = await chatService.getChatById(req.params.chat_id);
     res.json(chat);
 });
 
-// Get all conversations for a chat
-router.get('/:chatId/conversations', async (req, res) => {
-    const { chatId } = req.params;
+// Get all conversations for a chat - FIXED TO INCLUDE ANALYSIS_ID
+router.get('/:chat_id/conversations', async (req, res) => {
+    const { chat_id } = req.params;
     try {
-        const conversations = await chatService.getConversationsByChatId(chatId);
-        res.json(conversations);
+        const { data, error } = await supabase
+            .from("conversation")
+            .select("conversation_id, user_prompt, bot_answer, analysis_id, created_at")
+            .eq("chat_id", chat_id)
+            .order("created_at", { ascending: true });
+
+        if (error) throw error;
+
+        res.json(data);
     } catch (err) {
+        console.error("Error fetching conversations:", err);
         res.status(500).json({ error: err.message });
     }
-}
-);
+});
 
 // Update a chat's title
-router.patch("/:chatId", async (req, res) => {
+router.patch("/:chat_id", async (req, res) => {
     const updated = await chatService.updateChatTitle(
-        req.params.chatId,
+        req.params.chat_id,
         req.body.title
     );
     res.json(updated);
 });
 
 // Delete a chat and its conversations
-router.delete("/:chatId", async (req, res) => {
-    await chatService.deleteChat(req.params.chatId);
+router.delete("/:chat_id", async (req, res) => {
+    await chatService.deleteChat(req.params.chat_id);
     res.status(204).send();
 });
 

@@ -3,7 +3,9 @@ import { extractCleanMessage, extractCategory, extractWeights } from "../utils/m
 
 const ConversationArea = forwardRef(({ 
   conversation, 
-  handleShowRecommendations, 
+  handleShowRecommendations,
+  handleToggleFavourite,
+  favourites,
   darkMode,
   messagesEndRef 
 }, ref) => {
@@ -58,12 +60,12 @@ const ConversationArea = forwardRef(({
         const cleanMessage = extractCleanMessage(msg.user_prompt);
         const category = extractCategory(msg.user_prompt);
         const displayWeights = extractWeights(msg.user_prompt);
+        const isFavourited = msg.analysisId && favourites.has(msg.analysisId);
 
         return (
           <div key={idx} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
             {/* User Message */}
             <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6 }}>
-              {/* Category and Weights Badges */}
               {category && displayWeights && (
                 <div style={{
                   display: "flex",
@@ -93,7 +95,6 @@ const ConversationArea = forwardRef(({
                 </div>
               )}
 
-              {/* Clean User Message */}
               <div
                 style={{
                   background: "linear-gradient(135deg, #1976d2 0%, #1565c0 100%)",
@@ -137,36 +138,68 @@ const ConversationArea = forwardRef(({
               </div>
               
               {msg.analysisId && (
-                <button
-                  style={{
-                    background: "linear-gradient(135deg, #4caf50 0%, #45a049 100%)",
-                    color: "#fff",
-                    border: "none",
-                    borderRadius: 8,
-                    padding: "10px 18px",
-                    fontSize: 13,
-                    cursor: "pointer",
-                    alignSelf: "flex-start",
-                    fontWeight: 600,
-                    boxShadow: "0 3px 10px rgba(76, 175, 80, 0.3)",
-                    transition: "transform 0.2s",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 8,
-                  }}
-                  onMouseEnter={(e) => {
-                    e.target.style.transform = "translateY(-2px)";
-                    e.target.style.boxShadow = "0 5px 15px rgba(76, 175, 80, 0.4)";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.target.style.transform = "translateY(0)";
-                    e.target.style.boxShadow = "0 3px 10px rgba(76, 175, 80, 0.3)";
-                  }}
-                  onClick={() => handleShowRecommendations(msg.analysisId)}
-                >
-                  <span style={{ fontSize: 16 }}>📍</span>
-                  <span>View Locations on Map</span>
-                </button>
+                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  <button
+                    style={{
+                      background: "linear-gradient(135deg, #4caf50 0%, #45a049 100%)",
+                      color: "#fff",
+                      border: "none",
+                      borderRadius: 8,
+                      padding: "10px 18px",
+                      fontSize: 13,
+                      cursor: "pointer",
+                      fontWeight: 600,
+                      boxShadow: "0 3px 10px rgba(76, 175, 80, 0.3)",
+                      transition: "transform 0.2s",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 8,
+                    }}
+                    onMouseEnter={(e) => {
+                      e.target.style.transform = "translateY(-2px)";
+                      e.target.style.boxShadow = "0 5px 15px rgba(76, 175, 80, 0.4)";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.target.style.transform = "translateY(0)";
+                      e.target.style.boxShadow = "0 3px 10px rgba(76, 175, 80, 0.3)";
+                    }}
+                    onClick={() => handleShowRecommendations(msg.analysisId)}
+                  >
+                    <span style={{ fontSize: 16 }}>📍</span>
+                    <span>View Locations on Map</span>
+                  </button>
+
+                  <button
+                    style={{
+                      background: isFavourited 
+                        ? "linear-gradient(135deg, #ff9800 0%, #f57c00 100%)"
+                        : darkMode ? "#3d3d3d" : "#e0e0e0",
+                      color: isFavourited ? "#fff" : darkMode ? "#aaa" : "#666",
+                      border: "none",
+                      borderRadius: 8,
+                      padding: "10px 14px",
+                      fontSize: 18,
+                      cursor: "pointer",
+                      boxShadow: isFavourited 
+                        ? "0 3px 10px rgba(255, 152, 0, 0.3)"
+                        : "none",
+                      transition: "all 0.2s",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.target.style.transform = "scale(1.1)";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.target.style.transform = "scale(1)";
+                    }}
+                    onClick={() => handleToggleFavourite(msg.analysisId, cleanMessage)}
+                    title={isFavourited ? "Remove from favourites" : "Add to favourites"}
+                  >
+                    {isFavourited ? "⭐" : "☆"}
+                  </button>
+                </div>
               )}
             </div>
           </div>

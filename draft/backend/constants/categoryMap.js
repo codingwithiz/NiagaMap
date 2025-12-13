@@ -1,77 +1,35 @@
 // Centralized category map constants used by catchment and POI scoring
 const CATEGORY_MAP = {
-    Retail: {
-        category_name: "Retail",
-        sideLength: 200,
-        baseMaxPerKm2: 4000,
-        country: "MY",
-        dataCollections: ["KeyFacts"],
-        retry: 2,
-        delayMs: 300,
-        max_competitors: 10,
-        accessibilityThreshold: 400,
-        floodRiskThresholdHa: 1,
+    retail: {
+        sideLength: 150,  // 150 meters - creates ~260m wide hexagons
+        riskRatio: 0.7,
+        poiCategories: ["13000", "17000"], // Shopping, Food
     },
-    FnB: {
-        category_name: "Dining and Drinking",
-        sideLength: 75,
-        baseMaxPerKm2: 6000,
-        country: "MY",
-        dataCollections: ["KeyFacts"],
-        retry: 2,
-        delayMs: 300,
-        max_competitors: 8,
-        accessibilityThreshold: 400,
-        floodRiskThresholdHa: 1,
+    healthcare: {
+        sideLength: 200,  // 200 meters - creates ~350m wide hexagons
+        riskRatio: 0.9,
+        poiCategories: ["15000"], // Healthcare
     },
-    Health: {
-        category_name: "Health and Medicine",
-        sideLength: 100,
-        baseMaxPerKm2: 3000,
-        country: "MY",
-        dataCollections: ["KeyFacts"],
-        retry: 2,
-        delayMs: 300,
-        max_competitors: 6,
-        accessibilityThreshold: 400,
-        floodRiskThresholdHa: 1,
+    education: {
+        sideLength: 180,  // 180 meters
+        riskRatio: 0.85,
+        poiCategories: ["12000"], // Education
     },
-    Automotive: {
-        category_name: "Automotive Services",
-        sideLength: 150,
-        baseMaxPerKm2: 2000,
-        country: "MY",
-        dataCollections: ["KeyFacts"],
-        retry: 2,
-        delayMs: 300,
-        max_competitors: 5,
-        accessibilityThreshold: 400,
-        floodRiskThresholdHa: 1,
+    fnb: {
+        sideLength: 120,  // 120 meters - smaller hexagons for F&B
+        riskRatio: 0.6,
+        poiCategories: ["13065"], // Food & Beverage
     },
-    Sports: {
-        category_name: "Sports and Recreation",
-        sideLength: 150,
-        baseMaxPerKm2: 2500,
-        country: "MY",
-        dataCollections: ["KeyFacts"],
-        retry: 2,
-        delayMs: 300,
-        max_competitors: 6,
-        accessibilityThreshold: 400,
-        floodRiskThresholdHa: 1,
+    entertainment: {
+        sideLength: 140,
+        riskRatio: 0.5,
+        poiCategories: ["10000"], // Arts & Entertainment
     },
     default: {
-        category_name: "Other",
-        sideLength: 50,
-        baseMaxPerKm2: 4000,
-        country: "MY",
-        dataCollections: ["KeyFacts"],
-        retry: 2,
-        delayMs: 300,
-        max_competitors: 5,
-        accessibilityThreshold: 400,
-        floodRiskThresholdHa: 1,
-    },
+        sideLength: 150,
+        riskRatio: 0.7,
+        poiCategories: ["13000"],
+    }
 };
 
 module.exports = CATEGORY_MAP;

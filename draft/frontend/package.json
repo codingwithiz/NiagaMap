@@ -14,6 +14,7 @@
     "@arcgis/map-components": "^4.32.14",
     "@esri/calcite-components": "^3.2.1",
     "@tailwindcss/vite": "^4.1.8",
+    "@turf/turf": "^7.3.1",
     "axios": "^1.9.0",
     "esri-loader": "^3.7.0",
     "firebase": "^11.9.1",

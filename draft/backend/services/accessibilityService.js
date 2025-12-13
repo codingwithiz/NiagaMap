@@ -1,5 +1,5 @@
 const axios = require('axios');
-
+const supabase = require("../supabase/supabase_client"); // adjust your path
 /**
  * Compute centroid for a polygon represented as [[lon,lat],...]
  * Handles closed rings (last point same as first).
@@ -216,7 +216,7 @@ async function computeAccessibilityScores(hexagons = [], token = null, opts = {}
     const out = [];
 
     for (let i = 0; i < hexagons.length; i++) {
-        const hex = hexagons[i];
+        const hex = hexagons[i].coordinates;
         const centroid = polygonCentroid(hex) || { lon: null, lat: null };
         let distanceMeters = null;
         let rawResponse = null;
@@ -225,10 +225,9 @@ async function computeAccessibilityScores(hexagons = [], token = null, opts = {}
             const q = await queryNearestFacilityDistance(
                 hex,
                 centroid,
-                token,
-                { threshold, buffer: opts.buffer, featureServiceUrl: opts.featureServiceUrl }
-            );
-
+                token
+            );  
+            console.log(`Accessibility query for hexagon ${i + 1}/${hexagons.length}:`, q);
             distanceMeters = q && Number.isFinite(Number(q.distanceMeters)) ? Number(q.distanceMeters) : null;
             rawResponse = q && q.rawResponse ? q.rawResponse : null;
             // small pause to avoid rate limiting
@@ -246,10 +245,25 @@ async function computeAccessibilityScores(hexagons = [], token = null, opts = {}
             score = 20 * (1 - ratio);
         }
 
-        out.push({ centroid, distanceMeters, score, rawResponse });
+        out.push({ centroid, distanceMeters, score });
     }
-
+    console.log("Final accessibility scores:", out);
     return out;
 }
 
-module.exports = { computeAccessibilityScores };
+async function saveAccessibilityScoresToDatabase(accessibilityScores, hex_id_array) {
+    try {
+        await supabase.from("accessibility").upsert(
+            hex_id_array.map((hex_id, index) => ({
+                hex_id,
+                accessibility_score: accessibilityScores[index].score,
+                nearest_distance: accessibilityScores[index].distanceMeters,
+            })),
+
+        );
+    } catch (error) {
+        console.error("Error saving accessibility scores to database:", error);
+    }
+}
+
+module.exports = { computeAccessibilityScores, saveAccessibilityScoresToDatabase };

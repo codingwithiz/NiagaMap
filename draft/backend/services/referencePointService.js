@@ -1,26 +1,19 @@
-const sql = require("mssql");
+const supabase = require("../supabase/supabase_client"); // adjust your path
 
 async function createReferencePoint({ name, lat, lon }) {
-    const pointId = `point_${Date.now()}`;
-    const transaction = new sql.Transaction();
-    try {
-        await transaction.begin();
-        const request = new sql.Request(transaction);
-        const result = await request
-            .input("pointId", sql.VarChar, pointId)
-            .input("name", sql.VarChar, name)
-            .input("lat", sql.Float, lat)
-            .input("lon", sql.Float, lon)
-            .query(`
-            INSERT INTO ReferencePoint (pointid, name, lat, lon)
-            VALUES (@pointId, @name, @lat, @lon);
-        `);
-        await transaction.commit();
-        return pointId;
-    } catch (err) {
-        await transaction.rollback();
-        throw new Error("Failed to create reference point: " + err.message);
+    const record = {
+        name,
+        lat,
+        lon,
+    };
+
+    const { data: refData , error } = await supabase.from("reference_point").insert(record).select("*");
+
+    if (error) {
+        throw new Error("Failed to create reference point: " + error.message);
     }
+
+    return refData[0];
 }
 
 module.exports = { createReferencePoint };

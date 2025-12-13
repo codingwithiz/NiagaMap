@@ -1,83 +1,80 @@
-function generateHexagonsCoordinates(center_x, center_y, radius, side_length) {
-    // center_x, center_y are expected in lon, lat (EPSG:4326)
-    // radius and side_length are in meters
-    const hexVertices = [];
-    const s = Number(side_length);
-    const sqrt3 = Math.sqrt(3);
-
-    // Maximum distance to consider from center (meters)
-    const max_dist = Number(radius) + s;
-
-    // axial/q,r grid extents
-    const max_q = Math.ceil(max_dist / (1.5 * s));
-    const max_r = Math.ceil(max_dist / (sqrt3 * s));
-
-    // Helper: convert meter offsets (dx east, dy north) to degrees based on center latitude
-    function metersToDegrees(dx, dy, latDeg) {
-        // Approximate conversions
-        const latRad = (latDeg * Math.PI) / 180;
-        const metersPerDegLat = 111320; // approximate
-        const metersPerDegLon = 111320 * Math.cos(latRad);
-        const dLat = dy / metersPerDegLat;
-        const dLon = dx / (metersPerDegLon || 1e-9);
-        return [dLon, dLat];
-    }
-
-    // Iterate axial coordinates q (column), r (row)
-    for (let q = -max_q; q <= max_q; q++) {
-        for (let r = -max_r; r <= max_r; r++) {
-            // Compute hex center in meters relative to origin using "pointy-top" axial coordinates
-            // x (east) = s * 3/2 * q
-            // y (north) = s * sqrt(3) * (r + q/2)
-            const x_m = s * 1.5 * q;
-            const y_m = s * sqrt3 * (r + q / 2);
-
-            // distance from origin in meters
-            const dist = Math.sqrt(x_m * x_m + y_m * y_m);
-            if (dist > max_dist) continue;
-
-            // Generate 6 vertices around center in meters then convert to lon/lat
-            const currentHex = [];
-            const startAngle = Math.PI / 6; // 30deg for pointy-top
-            for (let k = 0; k < 6; k++) {
-                const angle = startAngle + k * (Math.PI / 3);
-                const vx_m = x_m + s * Math.cos(angle);
-                const vy_m = y_m + s * Math.sin(angle);
-
-                const [dLon, dLat] = metersToDegrees(
-                    vx_m,
-                    vy_m,
-                    Number(center_y)
-                );
-                const lon = Number(center_x) + dLon;
-                const lat = Number(center_y) + dLat;
-                currentHex.push([
-                    parseFloat(lon.toFixed(6)),
-                    parseFloat(lat.toFixed(6)),
-                ]);
+/**
+ * Generate hexagon coordinates within a given radius from center
+ * Hexagons are flat-topped and properly tessellated (no overlapping)
+ */
+function generateHexagonsCoordinates(center_x, center_y, radiusMeters, sideLengthMeters) {
+    // Convert meters to degrees (approximate for small areas)
+    const metersPerDegreeLat = 111320;
+    const metersPerDegreeLon = 111320 * Math.cos(center_y * Math.PI / 180);
+    
+    const sideLength = sideLengthMeters / metersPerDegreeLon;
+    
+    // For flat-topped hexagons:
+    const hexWidth = 2 * sideLength;
+    const hexHeight = Math.sqrt(3) * sideLength;
+    
+    // Horizontal spacing between hex centers
+    const horizSpacing = hexWidth * 0.75;
+    const vertSpacing = hexHeight;
+    
+    const radiusLon = radiusMeters / metersPerDegreeLon;
+    const radiusLat = radiusMeters / metersPerDegreeLat;
+    
+    const hexagons = [];
+    
+    const maxCols = Math.ceil(radiusLon / horizSpacing) + 1;
+    const maxRows = Math.ceil(radiusLat / vertSpacing) + 1;
+    
+    for (let col = -maxCols; col <= maxCols; col++) {
+        for (let row = -maxRows; row <= maxRows; row++) {
+            const hexCenterX = center_x + col * horizSpacing;
+            const yOffset = (col % 2 === 0) ? 0 : vertSpacing / 2;
+            const hexCenterY = center_y + row * vertSpacing + yOffset;
+            
+            const distX = (hexCenterX - center_x) * metersPerDegreeLon;
+            const distY = (hexCenterY - center_y) * metersPerDegreeLat;
+            const distance = Math.sqrt(distX * distX + distY * distY);
+            
+            if (distance <= radiusMeters) {
+                const hexCoords = createFlatTopHexagon(hexCenterX, hexCenterY, sideLength);
+                hexagons.push(hexCoords);
             }
-
-            // Close the ring by repeating the first vertex
-            if (currentHex.length) currentHex.push(currentHex[0].slice());
-
-            hexVertices.push(currentHex);
         }
     }
+    
+    return hexagons;
+}
 
-    return hexVertices;
+function createFlatTopHexagon(cx, cy, sideLength) {
+    const coords = [];
+    
+    for (let i = 0; i < 6; i++) {
+        const angleDeg = 60 * i;
+        const angleRad = (Math.PI / 180) * angleDeg;
+        
+        const x = cx + sideLength * Math.cos(angleRad);
+        const y = cy + sideLength * Math.sin(angleRad);
+        
+        coords.push([
+            Math.round(x * 1000000) / 1000000,
+            Math.round(y * 1000000) / 1000000
+        ]);
+    }
+    
+    coords.push(coords[0].slice());
+    
+    return coords;
 }
 
 /**
  * Enrich a single hexagon polygon (rings) using ArcGIS GeoEnrichment REST API
  * Returns the parsed JSON response.
- * Uses POST with application/x-www-form-urlencoded body.
  *
  * @param {Array<Array<number>>} rings - array of [lon, lat] pairs representing polygon vertices
  * @param {string} token - ArcGIS access token
  * @param {Object} [opts] - optional settings: {country: 'MY', dataCollections: ['KeyFacts']}
  */
 async function fetchGeoEnrichmentForHex(rings, token, opts = {}) {
-    const endpoint = 'https://geoenrich.arcgis.com/arcgis/rest/services/World/geoenrichmentserver/GeoEnrichment/enrich';
     const country = opts.country || 'MY';
     const dataCollections = opts.dataCollections || ['KeyFacts'];
 
@@ -87,25 +84,6 @@ async function fetchGeoEnrichmentForHex(rings, token, opts = {}) {
         : rings.concat([rings[0]]);
 
     const wkid = opts.wkid || 4326;
-    const studyAreas = [
-        {
-            geometry: {
-                rings: [closed],
-                spatialReference: { wkid }
-            },
-            attributes: { id: 'Polygon 1' }
-        }
-    ];
-
-    const studyAreasOptions = { GeometryType: 'esriGeometryPolygon', SpatialRelationship: 'esriSpatialRelIntersects' };
-
-    const params = new URLSearchParams();
-    params.append('StudyAreas', JSON.stringify(studyAreas));
-    params.append('StudyAreasOptions', JSON.stringify(studyAreasOptions));
-    params.append('useData', JSON.stringify({ sourceCountry: country }));
-    params.append('f', 'pjson');
-    if (token) params.append('token', token);
-    params.append('dataCollections', JSON.stringify(dataCollections));
 
     // Use axios via shared API helper
     const arcgisApi = require('../api/arcgisApi');
@@ -160,19 +138,30 @@ function extractTOTPOP_CY(responseJson) {
 }
 
 /**
- * Enrich all hexagons sequentially and return an array of TOTPOP_CY values (or null when missing).
+ * Enrich all hexagons sequentially and return an array of population values (or null when missing).
  * Options: { token, country, dataCollections, retry = 2, delayMs = 250 }
  */
 async function enrichHexagons(hexagonArray, options = {}) {
     const token = options.token;
     const retry = options.retry == null ? 2 : options.retry;
     const delayMs = options.delayMs == null ? 250 : options.delayMs;
-    const returnResponses = options.returnResponses || false; // if true, return full response objects
     const maxCount = options.maxCount == null ? hexagonArray.length : Math.max(0, Math.floor(options.maxCount));
     const out = [];
 
+    console.log(`Starting enrichHexagons for ${Math.min(hexagonArray.length, maxCount)} hexagons`);
+
     for (let idx = 0; idx < Math.min(hexagonArray.length, maxCount); idx++) {
-        const hex = hexagonArray[idx];
+        const hexObj = hexagonArray[idx];
+        
+        // Handle both formats: hex object with coordinates property, or raw coordinates array
+        const hex = hexObj.coordinates || hexObj;
+        
+        if (!Array.isArray(hex)) {
+            console.error(`Hexagon ${idx} has invalid format:`, hexObj);
+            out.push({ pop: null, response: null, hex_id: hexObj?.hex_id || null });
+            continue;
+        }
+
         // Ensure format: array of [lon, lat] pairs
         const rings = hex.map(p => [Number(p[0]), Number(p[1])]);
 
@@ -180,21 +169,27 @@ async function enrichHexagons(hexagonArray, options = {}) {
         let lastErr = null;
         while (attempt <= retry) {
             try {
-                const resp = await fetchGeoEnrichmentForHex(rings, token, { country: options.country, dataCollections: options.dataCollections });
+                const resp = await fetchGeoEnrichmentForHex(rings, token, { 
+                    country: options.country, 
+                    dataCollections: options.dataCollections 
+                });
                 const pop = extractTOTPOP_CY(resp);
-                if (returnResponses) {
-                    out.push({ pop, response: resp });
-                } else {
-                    out.push(pop);
-                }
+                
+                console.log(`Enriched hexagon ${idx + 1}/${hexagonArray.length}: TOTPOP_CY = ${pop}`);
+                
+                out.push({
+                    pop: pop,
+                    response: resp,
+                    hex_id: hexObj.hex_id || null,
+                });
                 break;
             } catch (err) {
                 lastErr = err;
                 attempt++;
+                console.error(`Error enriching hexagon ${idx}, attempt ${attempt}:`, err.message);
                 if (attempt > retry) {
-                    // give up for this hexagon and push null or object
-                    if (returnResponses) out.push({ pop: null, response: null, error: String(lastErr) });
-                    else out.push(null);
+                    // give up for this hexagon and push null
+                    out.push({ pop: null, response: null, hex_id: hexObj?.hex_id || null });
                 } else {
                     // wait before retry
                     await new Promise(r => setTimeout(r, delayMs));
@@ -208,10 +203,10 @@ async function enrichHexagons(hexagonArray, options = {}) {
     return out;
 }
 
-
-if (typeof module !== "undefined" && module.exports) {
-    module.exports = {
-        generateHexagonsCoordinates,
-        enrichHexagons
-    };
-}
+module.exports = {
+    generateHexagonsCoordinates,
+    createFlatTopHexagon,
+    fetchGeoEnrichmentForHex,
+    extractTOTPOP_CY,
+    enrichHexagons
+};

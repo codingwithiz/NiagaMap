@@ -1,6 +1,6 @@
 const placesApi = require('../api/placesApi');
 const catchmentService = require('../services/catchmentService');
-
+const supabase = require("../supabase/supabase_client");
 // Simple in-memory cache for categories
 let categoriesCache = null;
 
@@ -78,14 +78,15 @@ async function fetchPOICountsForHexagons(hexagonRings, token, options = {}) {
     }
 
     const counts = [];
+    const hex_id = [];
 
     for (const ring of hexagonRings) {
-        const extent = bboxFromRing(ring);
+        const extent = bboxFromRing(ring.coordinates);
         let data;
         try {
-            console.log('[poiService] fetchPOICountsForHexagons -> querying extent', extent, 'with categoryIds:', ids);
+            // console.log('[poiService] fetchPOICountsForHexagons -> querying extent', extent, 'with categoryIds:', ids);
             data = await placesApi.queryWithinExtent(extent, ids, token, { limit: limitPerQuery });
-            console.log('[poiService] fetchPOICountsForHexagons -> data for extent', extent, ':', data);
+            // console.log('[poiService] fetchPOICountsForHexagons -> data for extent', extent, ':', data);
         } catch (err) {
             console.error('[poiService] fetchPOICountsForHexagons -> error querying extent', extent, ':', err);
             // on error, push 0 and continue
@@ -106,14 +107,11 @@ async function fetchPOICountsForHexagons(hexagonRings, token, options = {}) {
                 points.push([r.attributes.x, r.attributes.y]);
             }
         }
-
+        console.log(`[poiService] fetchPOICountsForHexagons -> found ${points.length} points in extent`, extent);
+        
         // filter by inside polygon
-        let insideCount = 0;
-        for (const pt of points) {
-            if (pointInPolygon(pt, ring)) insideCount++;
-        }
-
-        counts.push(insideCount);
+        hex_id.push(ring.hex_id);
+        counts.push(points.length > 10 ? 10: points.length); //cap max count to 10
     }
 
     // Log counts for debugging / visibility
@@ -123,7 +121,7 @@ async function fetchPOICountsForHexagons(hexagonRings, token, options = {}) {
         // ignore logging errors
     }
 
-    return counts;
+    return {poi_count: counts, hex_id_array: hex_id };
 }
 
 /**
@@ -154,4 +152,24 @@ function calculateScoresFromCounts(counts, category = 'default') {
     return scores;
 }
 
-module.exports = { fetchPOICountsForHexagons, calculateScoresFromCounts };
+
+//save poi records to db
+async function savePOIScoresToDatabase(hex_id_array, scores, poi_count) {
+    // Implement database saving logic here
+    try {
+        await supabase.from("poi").upsert(
+            hex_id_array.map((hex_id, index) => ({
+                hex_id,
+                poi_score: scores[index],
+                poi_count: poi_count[index]
+            })),
+
+        );
+    } catch (error) {
+        console.error("Error saving POI scores to database:", error);
+        throw error;
+    }
+    // This is a placeholder function
+}
+
+module.exports = { fetchPOICountsForHexagons, calculateScoresFromCounts, savePOIScoresToDatabase };

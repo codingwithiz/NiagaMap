@@ -12,19 +12,24 @@ const MapViewComponent = ({
     activeCategory = "4d4b7105d754a06377d81259",
     onPlacesFound,
     recommendedPlace,
+    workflowResults,
     onPlaceSelect,
+    onClearResults,  // NEW: Add this prop
     apiKey,
     darkMode = false,
 }) => {
     const mapRef = useRef(null);
     const bufferLayerRef = useRef(null);
     const placesLayerRef = useRef(null);
+    const hexagonLayerRef = useRef(null); // NEW: Layer for hexagons
+    const highlightLayerRef = useRef(null); // NEW: Layer for highlighted hexagons
 
     const [view, setView] = useState(null);
     const [esriModules, setEsriModules] = useState(null);
     const [initialized, setInitialized] = useState(false);
     const [lastClickPoint, setLastClickPoint] = useState(null);
     const [selectedPlaceId, setSelectedPlaceId] = useState(null);
+    const [hoveredHexId, setHoveredHexId] = useState(null); // NEW: Track hovered hexagon
 
     useEffect(() => {
         defineCustomElements(window);
@@ -41,6 +46,7 @@ const MapViewComponent = ({
                 "esri/rest/support/PlacesQueryParameters",
                 "esri/geometry/Circle",
                 "esri/geometry/Point",
+                "esri/geometry/Polygon",
                 "esri/Graphic",
                 "esri/layers/GraphicsLayer",
                 "esri/widgets/BasemapGallery",
@@ -60,6 +66,7 @@ const MapViewComponent = ({
                     PlacesQueryParameters,
                     Circle,
                     Point,
+                    Polygon,
                     Graphic,
                     GraphicsLayer,
                     BasemapGallery,
@@ -77,6 +84,7 @@ const MapViewComponent = ({
                         PlacesQueryParameters,
                         Circle,
                         Point,
+                        Polygon,
                         Graphic,
                         GraphicsLayer,
                         BasemapGallery,
@@ -92,15 +100,23 @@ const MapViewComponent = ({
                     const placesLayer = new GraphicsLayer({
                         id: "placesLayer",
                     });
+                    const hexagonLayer = new GraphicsLayer({
+                        id: "hexagonLayer",
+                    });
+                    const highlightLayer = new GraphicsLayer({
+                        id: "highlightLayer",
+                    });
 
                     bufferLayerRef.current = bufferLayer;
                     placesLayerRef.current = placesLayer;
+                    hexagonLayerRef.current = hexagonLayer;
+                    highlightLayerRef.current = highlightLayer;
 
                     const map = new Map({
                         basemap: darkMode
                             ? "dark-gray-vector"
-                            : "streets-vector", // default basemap
-                        layers: [bufferLayer, placesLayer],
+                            : "streets-vector",
+                        layers: [bufferLayer, hexagonLayer, highlightLayer, placesLayer],
                     });
 
                     mapView = new MapView({
@@ -141,50 +157,72 @@ const MapViewComponent = ({
                                     layer: placesLayer,
                                     title: "Locations",
                                 },
+                                {
+                                    layer: hexagonLayer,
+                                    title: "Analysis Hexagons",
+                                },
                             ],
                         });
 
-                        // const locateWidget = new Locate({
-                        //     viewModel: {
-                        //         // autocasts as new LocateViewModel()
-                        //         view: view, // assigns the locate widget to a view
-                        //         graphic: new Graphic({
-                        //             symbol: { type: "simple-marker" }, // overwrites the default symbol used for the
-                        //             // graphic placed at the location of the user when found
-                        //         }),
-                        //     },
-                        // });
-
-                        // locateWidget.on("locate-error", (err) => {
-                        //     console.log("Locate error:", err);
-                        //     alert(
-                        //         "Could not determine your location. Try again later."
-                        //     );
-                        // });
-
                         mapView.ui.add(searchWidget, "top-left");
-                        // mapView.ui.add(locateWidget, "top-left");
                         mapView.ui.add(expandGallery, "top-right");
-                        // mapView.ui.add(legend, "bottom-left");
 
                         mapView.on("click", (event) => {
-                            setLastClickPoint(event.mapPoint);
-                            clearGraphics();
-                            showPlaces(event.mapPoint);
-                        });
-
-                        mapView.on("pointer-move", (event) => {
+                            // Check if clicking on a hexagon - if so, don't clear graphics
                             mapView.hitTest(event).then((response) => {
-                                const graphic = response.results.find(
-                                    (r) => r.graphic.layer === placesLayer
+                                const hexGraphic = response.results.find(
+                                    (r) => r.graphic.layer === hexagonLayer
                                 )?.graphic;
 
-                                if (graphic && graphic.popupTemplate) {
-                                    mapView.openPopup({
-                                        location: graphic.geometry,
-                                        title: graphic.popupTemplate.title,
-                                        content: graphic.popupTemplate.content,
-                                    });
+                                // If clicking on hexagon, do nothing (don't clear, don't show places)
+                                if (hexGraphic) {
+                                    return;
+                                }
+
+                                // Otherwise, normal behavior - clear and show places
+                                setLastClickPoint(event.mapPoint);
+                                clearGraphics();
+                                showPlaces(event.mapPoint);
+                            });
+                        });
+
+                        // Enhanced pointer-move for hexagon hover
+                        mapView.on("pointer-move", (event) => {
+                            mapView.hitTest(event).then((response) => {
+                                // Check for hexagon hover
+                                const hexGraphic = response.results.find(
+                                    (r) => r.graphic.layer === hexagonLayer
+                                )?.graphic;
+
+                                if (hexGraphic && hexGraphic.attributes?.hexId) {
+                                    // Only show popup for non-recommended hexagons
+                                    if (!hexGraphic.attributes?.isRecommended) {
+                                        handleHexagonHover(hexGraphic);
+                                    } else {
+                                        // For recommended hexagons, just highlight without popup
+                                        handleRecommendedHexagonHover(hexGraphic);
+                                    }
+                                } else {
+                                    clearHexagonHighlight();
+                                    // Close popup when not hovering on hexagon
+                                    if (hoveredHexId) {
+                                        mapView.closePopup();
+                                    }
+                                }
+
+                                // Existing places popup logic - only if not on hexagon
+                                if (!hexGraphic) {
+                                    const placeGraphic = response.results.find(
+                                        (r) => r.graphic.layer === placesLayer
+                                    )?.graphic;
+
+                                    if (placeGraphic && placeGraphic.popupTemplate) {
+                                        mapView.openPopup({
+                                            location: placeGraphic.geometry,
+                                            title: placeGraphic.popupTemplate.title,
+                                            content: placeGraphic.popupTemplate.content,
+                                        });
+                                    }
                                 }
                             });
                         });
@@ -209,11 +247,466 @@ const MapViewComponent = ({
         }
     }, [activeCategory, initialized, lastClickPoint]);
 
+    // NEW: Effect to render workflow hexagons
+    useEffect(() => {
+        console.log("Workflow effect triggered:", {
+            hasResults: workflowResults?.length > 0,
+            hasModules: !!esriModules,
+            hasView: !!view,
+            hexagonLayer: !!hexagonLayerRef.current
+        });
+        
+        if (workflowResults && workflowResults.length > 0 && esriModules && view) {
+            console.log("Rendering hexagons:", workflowResults);
+            renderWorkflowHexagons(workflowResults);
+        }
+    }, [workflowResults, esriModules, view]);
+
     const clearGraphics = () => {
         if (!bufferLayerRef.current || !placesLayerRef.current) return;
 
         bufferLayerRef.current.removeAll();
         placesLayerRef.current.removeAll();
+        
+        // Clear hexagon layers
+        clearHexagonLayers();
+        
+        // Notify parent to clear workflow results state
+        if (onClearResults) {
+            onClearResults();
+        }
+    };
+
+    // NEW: Clear hexagon layers
+    const clearHexagonLayers = () => {
+        if (hexagonLayerRef.current) {
+            hexagonLayerRef.current.removeAll();
+        }
+        if (highlightLayerRef.current) {
+            highlightLayerRef.current.removeAll();
+        }
+    };
+
+    // NEW: Handle hexagon hover (for non-recommended hexagons - show popup)
+    const handleHexagonHover = (graphic) => {
+        if (!esriModules || !highlightLayerRef.current || !view) return;
+
+        const hexId = graphic.attributes?.hexId;
+        if (hexId === hoveredHexId) return; // Already hovering this hexagon
+
+        setHoveredHexId(hexId);
+        highlightLayerRef.current.removeAll();
+
+        const { Graphic } = esriModules;
+
+        // Simple highlight for non-recommended hexagons
+        const highlight = new Graphic({
+            geometry: graphic.geometry.clone(),
+            symbol: {
+                type: "simple-fill",
+                color: [100, 149, 237, 0.3], // Cornflower blue
+                outline: {
+                    color: [100, 149, 237, 1],
+                    width: 3,
+                },
+            },
+        });
+        highlightLayerRef.current.add(highlight);
+
+        // Show popup with hexagon info
+        view.openPopup({
+            location: graphic.geometry.centroid,
+            title: graphic.attributes?.title || "Hexagon",
+            content: graphic.attributes?.content || "",
+        });
+    };
+
+    // NEW: Handle recommended hexagon hover (highlight only, no popup)
+    const handleRecommendedHexagonHover = (graphic) => {
+        if (!esriModules || !highlightLayerRef.current || !view) return;
+
+        const hexId = graphic.attributes?.hexId;
+        if (hexId === hoveredHexId) return;
+
+        setHoveredHexId(hexId);
+        highlightLayerRef.current.removeAll();
+
+        const { Graphic } = esriModules;
+
+        // Enhanced glow effect for recommended hexagons - Blue
+        const outerGlow = new Graphic({
+            geometry: graphic.geometry.clone(),
+            symbol: {
+                type: "simple-fill",
+                color: [30, 144, 255, 0.1],
+                outline: {
+                    color: [30, 144, 255, 0.8],
+                    width: 6,
+                },
+            },
+        });
+
+        const middleGlow = new Graphic({
+            geometry: graphic.geometry.clone(),
+            symbol: {
+                type: "simple-fill",
+                color: [30, 144, 255, 0.2],
+                outline: {
+                    color: [30, 144, 255, 1],
+                    width: 4,
+                },
+            },
+        });
+
+        const innerHighlight = new Graphic({
+            geometry: graphic.geometry.clone(),
+            symbol: {
+                type: "simple-fill",
+                color: [30, 144, 255, 0.4],
+                outline: {
+                    color: [255, 255, 255, 1],
+                    width: 2,
+                },
+            },
+        });
+
+        highlightLayerRef.current.addMany([outerGlow, middleGlow, innerHighlight]);
+    };
+
+    // NEW: Clear hexagon highlight
+    const clearHexagonHighlight = () => {
+        if (hoveredHexId) {
+            setHoveredHexId(null);
+            if (highlightLayerRef.current) {
+                highlightLayerRef.current.removeAll();
+            }
+        }
+    };
+
+    // NEW: Render workflow hexagons on map
+    const renderWorkflowHexagons = (results) => {
+        console.log("renderWorkflowHexagons called with:", results);
+        
+        if (!esriModules || !hexagonLayerRef.current) {
+            console.error("Missing esriModules or hexagonLayer:", {
+                esriModules: !!esriModules,
+                hexagonLayer: !!hexagonLayerRef.current
+            });
+            return;
+        }
+
+        const { Graphic, Polygon, Point } = esriModules;
+        
+        if (!Polygon) {
+            console.error("Polygon module not loaded!");
+            return;
+        }
+
+        // Clear existing hexagons
+        clearHexagonLayers();
+
+        // Sort results to identify top 3 recommended locations
+        const sortedResults = [...results].sort((a, b) => b.finalScore - a.finalScore);
+        const top3HexIds = sortedResults.slice(0, 3).map(r => r.hexagon.hex_id);
+
+        // Get score range for color scaling
+        const scores = results.map(r => r.finalScore);
+        const minScore = Math.min(...scores);
+        const maxScore = Math.max(...scores);
+        const scoreRange = maxScore - minScore || 1;
+
+        console.log("Score range:", { minScore, maxScore, scoreRange });
+        console.log("Top 3 hex IDs:", top3HexIds);
+
+        // First pass: render all non-recommended hexagons
+        results.forEach((result, index) => {
+            const hexagon = result.hexagon;
+            const isRecommended = top3HexIds.includes(hexagon.hex_id);
+            
+            // Skip recommended hexagons in first pass (render them on top later)
+            if (isRecommended) return;
+            
+            if (!hexagon.coordinates || !Array.isArray(hexagon.coordinates)) {
+                console.error(`Hexagon ${index} has invalid coordinates:`, hexagon.coordinates);
+                return;
+            }
+
+            try {
+                const polygon = new Polygon({
+                    rings: [hexagon.coordinates],
+                    spatialReference: { wkid: 4326 },
+                });
+
+                const normalizedScore = (result.finalScore - minScore) / scoreRange;
+                const color = getScoreColor(normalizedScore, false);
+                const content = buildHexagonPopupContent(result, 0);
+
+                const hexGraphic = new Graphic({
+                    geometry: polygon,
+                    symbol: {
+                        type: "simple-fill",
+                        color: color,
+                        outline: {
+                            color: [80, 80, 80, 0.6],
+                            width: 1,
+                        },
+                    },
+                    attributes: {
+                        hexId: hexagon.hex_id,
+                        hexIndex: hexagon.hex_index,
+                        analysisId: hexagon.analysis_id,
+                        isRecommended: false,
+                        rank: 0,
+                        score: result.finalScore,
+                        title: `Hexagon #${hexagon.hex_index + 1}`,
+                        content: content,
+                    },
+                    popupTemplate: {
+                        title: `Hexagon #${hexagon.hex_index + 1}`,
+                        content: content,
+                    },
+                });
+
+                hexagonLayerRef.current.add(hexGraphic);
+            } catch (err) {
+                console.error(`Error creating polygon for hexagon ${index}:`, err);
+            }
+        });
+
+        // Second pass: render recommended hexagons on top with glow effect
+        sortedResults.slice(0, 3).forEach((result, rankIndex) => {
+            const hexagon = result.hexagon;
+            const rank = rankIndex + 1;
+            
+            if (!hexagon.coordinates || !Array.isArray(hexagon.coordinates)) {
+                return;
+            }
+
+            try {
+                const polygon = new Polygon({
+                    rings: [hexagon.coordinates],
+                    spatialReference: { wkid: 4326 },
+                });
+
+                // Outer glow layer - Blue
+                const outerGlow = new Graphic({
+                    geometry: polygon,
+                    symbol: {
+                        type: "simple-fill",
+                        color: [30, 144, 255, 0.15],  // Dodger blue
+                        outline: {
+                            color: [30, 144, 255, 0.4],
+                            width: 8,
+                        },
+                    },
+                });
+                hexagonLayerRef.current.add(outerGlow);
+
+                // Middle glow layer - Blue
+                const middleGlow = new Graphic({
+                    geometry: polygon,
+                    symbol: {
+                        type: "simple-fill",
+                        color: [30, 144, 255, 0.25],
+                        outline: {
+                            color: [30, 144, 255, 0.7],
+                            width: 5,
+                        },
+                    },
+                });
+                hexagonLayerRef.current.add(middleGlow);
+
+                // Main hexagon - Blue
+                const hexGraphic = new Graphic({
+                    geometry: polygon,
+                    symbol: {
+                        type: "simple-fill",
+                        color: [30, 144, 255, 0.5],  // Dodger blue with transparency
+                        outline: {
+                            color: [0, 100, 200, 1],  // Darker blue outline
+                            width: 3,
+                        },
+                    },
+                    attributes: {
+                        hexId: hexagon.hex_id,
+                        hexIndex: hexagon.hex_index,
+                        analysisId: hexagon.analysis_id,
+                        isRecommended: true,
+                        rank: rank,
+                        score: result.finalScore,
+                        title: `🏆 Rank #${rank} Location`,
+                    },
+                });
+                hexagonLayerRef.current.add(hexGraphic);
+
+                // Add rank label
+                if (result.centroid) {
+                    const labelPoint = new Point({
+                        longitude: result.centroid.lon,
+                        latitude: result.centroid.lat,
+                        spatialReference: { wkid: 4326 },
+                    });
+
+                    // Background circle for label - Blue
+                    const labelBg = new Graphic({
+                        geometry: labelPoint,
+                        symbol: {
+                            type: "simple-marker",
+                            color: [30, 144, 255, 1],  // Dodger blue
+                            size: 28,
+                            outline: {
+                                color: [255, 255, 255, 1],
+                                width: 2,
+                            },
+                        },
+                    });
+                    hexagonLayerRef.current.add(labelBg);
+
+                    const labelGraphic = new Graphic({
+                        geometry: labelPoint,
+                        symbol: {
+                            type: "text",
+                            text: `#${rank}`,
+                            color: [255, 255, 255, 1],
+                            haloColor: [0, 0, 0, 0.8],
+                            haloSize: 1,
+                            font: {
+                                size: 12,
+                                weight: "bold",
+                                family: "Arial",
+                            },
+                        },
+                    });
+                    hexagonLayerRef.current.add(labelGraphic);
+                }
+            } catch (err) {
+                console.error(`Error creating recommended hexagon:`, err);
+            }
+        });
+
+        console.log("Total graphics in hexagon layer:", hexagonLayerRef.current.graphics.length);
+
+        // Zoom to hexagons
+        if (results.length > 0 && view) {
+            const allPoints = results
+                .filter(r => r.centroid)
+                .map(r => new Point({
+                    longitude: r.centroid.lon,
+                    latitude: r.centroid.lat,
+                    spatialReference: { wkid: 4326 },
+                }));
+
+            if (allPoints.length > 0) {
+                view.goTo(allPoints, {
+                    duration: 1000,
+                    easing: "ease-in-out",
+                }).then(() => {
+                    console.log("Zoomed to hexagons successfully");
+                }).catch(console.error);
+            }
+        }
+    };
+
+    // NEW: Get color based on score (gradient from red to green)
+    const getScoreColor = (normalizedScore, isRecommended) => {
+        if (isRecommended) {
+            return [30, 144, 255, 0.5]; // Dodger blue for recommended
+        }
+
+        // Gradient from red (low score) to yellow (medium) to green (high score)
+        let r, g, b;
+        
+        if (normalizedScore < 0.5) {
+            // Red to Yellow (0 to 0.5)
+            const t = normalizedScore * 2; // 0 to 1
+            r = 255;
+            g = Math.round(200 * t);
+            b = 50;
+        } else {
+            // Yellow to Green (0.5 to 1)
+            const t = (normalizedScore - 0.5) * 2; // 0 to 1
+            r = Math.round(255 * (1 - t));
+            g = Math.round(200 + 55 * t);
+            b = 50;
+        }
+
+        const opacity = 0.35 + normalizedScore * 0.25; // 0.35 to 0.6
+
+        return [r, g, b, opacity];
+    };
+
+    // NEW: Build popup content for hexagon
+    const buildHexagonPopupContent = (result, rank) => {
+        let content = `<div style="font-family: Arial, sans-serif; padding: 8px;">`;
+
+        if (rank > 0) {
+            content += `<div style="background: linear-gradient(135deg, #ffd700, #ffec8b); padding: 8px; border-radius: 8px; margin-bottom: 12px; text-align: center;">`;
+            content += `<span style="font-size: 24px;">🏆</span>`;
+            content += `<p style="margin: 4px 0 0 0; font-weight: bold; color: #333;">Recommended Location #${rank}</p>`;
+            content += `</div>`;
+        }
+
+        content += `<p style="margin: 8px 0;"><b>📊 Total Score:</b> <span style="font-size: 18px; color: #1976d2; font-weight: bold;">${result.finalScore.toFixed(2)}</span></p>`;
+
+        content += `<hr style="margin: 12px 0; border: none; border-top: 1px solid #ddd;">`;
+        content += `<p style="margin: 8px 0 8px 0; font-weight: bold; font-size: 14px;">📈 Score Breakdown:</p>`;
+        content += `<div style="margin-left: 8px; line-height: 1.8;">`;
+
+        // Demand
+        content += `<div style="margin-bottom: 6px;">`;
+        content += `<span style="font-weight: bold;">🛒 Demand:</span> ${result.demandScore.toFixed(2)}`;
+        content += `<span style="color: #666; font-size: 11px;"> (Pop: ${result.demandRaw || 0})</span>`;
+        content += `</div>`;
+
+        // POI
+        content += `<div style="margin-bottom: 6px;">`;
+        content += `<span style="font-weight: bold;">📍 POI:</span> ${result.poiScore.toFixed(2)}`;
+        content += `<span style="color: #666; font-size: 11px;"> (${result.poiRaw || 0} nearby)</span>`;
+        content += `</div>`;
+
+        // Risk
+        const riskRaw = result.riskRaw || {};
+        content += `<div style="margin-bottom: 6px;">`;
+        content += `<span style="font-weight: bold;">⚠️ Risk:</span> ${result.riskScore.toFixed(2)}`;
+        if (riskRaw.floodAreaHa === 0 && riskRaw.landslideCount === 0) {
+            content += `<span style="color: #4caf50; font-size: 11px;"> ✅ Safe</span>`;
+        } else {
+            content += `<span style="color: #ff9800; font-size: 11px;">`;
+            if (riskRaw.floodAreaHa > 0) content += ` Flood: ${riskRaw.floodAreaHa.toFixed(2)}ha`;
+            if (riskRaw.landslideCount > 0) content += ` Landslide: ${riskRaw.landslideCount}`;
+            content += `</span>`;
+        }
+        content += `</div>`;
+
+        // Accessibility
+        const accessRaw = result.accessibilityRaw || {};
+        content += `<div style="margin-bottom: 6px;">`;
+        content += `<span style="font-weight: bold;">🚗 Accessibility:</span> ${result.accessibilityScore.toFixed(2)}`;
+        content += `<span style="color: #666; font-size: 11px;"> (${(accessRaw.distanceMeters || 0).toFixed(0)}m to road)</span>`;
+        content += `</div>`;
+
+        // Zoning
+        const zoningRaw = result.zoningRaw || {};
+        content += `<div style="margin-bottom: 6px;">`;
+        content += `<span style="font-weight: bold;">🏗️ Zoning:</span> ${result.zoningScore.toFixed(2)}`;
+        if (zoningRaw.landuse) {
+            content += `<span style="color: #666; font-size: 11px;"> (${zoningRaw.landuse})</span>`;
+        }
+        content += `</div>`;
+
+        content += `</div>`;
+
+        // Map links
+        if (result.centroid) {
+            content += `<hr style="margin: 12px 0; border: none; border-top: 1px solid #ddd;">`;
+            content += `<div style="display: flex; gap: 10px; margin-top: 6px;">`;
+            content += `<a href="https://www.google.com/maps/search/?api=1&query=${result.centroid.lat},${result.centroid.lon}" target="_blank" style="text-decoration: none; padding: 6px 12px; background-color: #1976d2; color: white; border-radius: 4px; font-size: 12px;">🌍 Google</a>`;
+            content += `<a href="https://www.openstreetmap.org/?mlat=${result.centroid.lat}&mlon=${result.centroid.lon}#map=19/${result.centroid.lat}/${result.centroid.lon}" target="_blank" style="text-decoration: none; padding: 6px 12px; background-color: #4caf50; color: white; border-radius: 4px; font-size: 12px;">🗺️ OSM</a>`;
+            content += `</div>`;
+        }
+
+        content += `</div>`;
+        return content;
     };
 
     const normalizeLongitude = (point) => {
@@ -336,7 +829,6 @@ const MapViewComponent = ({
         placeGraphic.placeId = place.placeId;
         placesLayerRef.current.add(placeGraphic);
 
-        // Add click event listener on placesLayer only once
         if (view && !placesLayerRef.current._clickListenerAdded) {
             placesLayerRef.current._clickListenerAdded = true;
             view.on("click", placesLayerRef.current, (event) => {
@@ -388,7 +880,7 @@ const MapViewComponent = ({
             const response = await axios.post(
                 "http://localhost:3001/api/suitability",
                 {
-                    location: "Universiti Malaya", // or lastClickPoint if geocoded
+                    location: "Universiti Malaya",
                     category: "hospitals",
                     radius: 1000,
                 }
@@ -402,123 +894,174 @@ const MapViewComponent = ({
         }
     };
 
-    const addSuitabilityMarkers = (locations) => {
+    const addSuitabilityMarkers = (data) => {
         if (!esriModules || !placesLayerRef.current) return;
 
         const { Graphic, Point } = esriModules;
-        placesLayerRef.current.removeAll(); // Optional: Clear previous
+        placesLayerRef.current.removeAll();
 
-        locations.recommended_locations.forEach(
-            ({ lat, lon, score, reason }) => {
-                const point = new Point({ latitude: lat, longitude: lon });
+        const locations = Array.isArray(data)
+            ? data
+            : (data.locations || data.recommended_locations || []);
 
-                const marker = new Graphic({
-                    geometry: point,
-                    symbol: {
-                        // type: "simple-marker",
-                        // style: "circle",
-                        // color: [0, 255, 100, 0.8],
-                        // size: 12,
-                        // outline: {
-                        //     color: [0, 100, 50],
-                        //     width: 1,
-                        // },
-                        type: "picture-marker",
-                        url: "/recommended-location.svg", // Place your SVG or image in public/images
-                        width: "48px",
-                        height: "48px",
-                    },
-                    attributes: {
-                        score: score,
-                    },
-                    popupTemplate: {
-                        title: "Recommended Location",
-                        content: `
-        <b>Score:</b> ${score}<br>
-        <b>Reason:</b> ${reason}<br>
-        <div style="display: flex; gap: 10px; margin-top: 6px;">
-            <a href="https://www.google.com/maps/search/?api=1&query=${lat},${lon}" 
-               target="_blank" rel="noopener noreferrer" style="text-decoration: underline; color: #1976d2;">
-               🌍 Google Maps
-            </a>
-            <a href="https://www.openstreetmap.org/?mlat=${lat}&mlon=${lon}#map=19/${lat}/${lon}" 
-               target="_blank" rel="noopener noreferrer" style="text-decoration: underline; color: #1976d2;">
-               🗺️ OSM
-            </a>
-        </div>
-    `,
-                    },
-                });
+        const referencePoint = data.referencePoint || data.reference_point;
 
-                placesLayerRef.current.add(marker);
-            }
-        );
+        console.log("Adding suitability markers:", { locations, referencePoint });
 
-        if (locations.reference_point) {
-            console.log("Adding reference point: ", locations.reference_point);
-            const refPoint = new Point({
-                latitude: locations.reference_point.lat,
-                longitude: locations.reference_point.lon,
+        locations.forEach((location, index) => {
+            const point = new Point({
+                latitude: location.lat,
+                longitude: location.lon,
             });
 
-            const isNearbyMe = locations.reference_point === undefined; // adjust this key based on your API
-            console.log(
-                "reference point location name: ",
+            let breakdown = location.breakdown;
+            if (typeof breakdown === 'string') {
+                try {
+                    breakdown = JSON.parse(breakdown);
+                } catch (e) {
+                    console.error("Failed to parse breakdown:", e);
+                    breakdown = null;
+                }
+            }
 
-                locations.reference_point.name
-            );
+            console.log(`Location ${index + 1} breakdown:`, breakdown);
+            console.log(`Location ${index + 1} reasoning:`, location.reason);
+
+            let content = `<div style="font-family: Arial, sans-serif; padding: 8px;">`;
+            content += `<p style="margin: 8px 0;"><b>📊 Total Score:</b> <span style="font-size: 18px; color: #1976d2; font-weight: bold;">${location.score.toFixed(2)}</span></p>`;
+
+            if (location.reason) {
+                content += `<div style="background-color: #e3f2fd; padding: 12px; border-radius: 8px; margin: 12px 0; border-left: 4px solid #1976d2;">`;
+                content += `<p style="margin: 0; color: #333; line-height: 1.6; font-size: 13px; font-style: italic;">${location.reason}</p>`;
+                content += `</div>`;
+            }
+
+            if (breakdown) {
+                content += `<hr style="margin: 12px 0; border: none; border-top: 1px solid #ddd;">`;
+                content += `<p style="margin: 8px 0 8px 0; font-weight: bold; font-size: 14px;">📈 Detailed Score Breakdown:</p>`;
+                content += `<div style="margin-left: 8px; line-height: 2;">`;
+                
+                const demandScore = breakdown.demand?.score || 0;
+                const population = breakdown.demand?.population || 0;
+                content += `<div style="margin-bottom: 8px;">`;
+                content += `<div style="font-weight: bold;">🛒 Demand: <span style="color: ${demandScore >= 15 ? '#4caf50' : '#ff9800'};">${demandScore.toFixed(2)}</span></div>`;
+                content += `<div style="font-size: 11px; color: #666; margin-left: 20px;">Population: ${population} residents</div>`;
+                content += `</div>`;
+                
+                const poiScore = breakdown.poi?.score || 0;
+                const poiCount = breakdown.poi?.count || 0;
+                content += `<div style="margin-bottom: 8px;">`;
+                content += `<div style="font-weight: bold;">📍 POI: <span style="color: ${poiScore >= 15 ? '#2196f3' : '#ff9800'};">${poiScore.toFixed(2)}</span></div>`;
+                content += `<div style="font-size: 11px; color: #666; margin-left: 20px;">${poiCount} nearby businesses</div>`;
+                content += `</div>`;
+                
+                const riskScore = breakdown.risk?.score || 0;
+                const floodAreaHa = breakdown.risk?.floodAreaHa || 0;
+                const landslideCount = breakdown.risk?.landslideCount || 0;
+                
+                content += `<div style="margin-bottom: 8px;">`;
+                content += `<div style="font-weight: bold;">⚠️ Risk: <span style="color: ${riskScore >= 15 ? '#4caf50' : '#ff9800'};">${riskScore.toFixed(2)}</span></div>`;
+                content += `<div style="font-size: 11px; color: #666; margin-left: 20px;">`;
+                
+                if (floodAreaHa === 0 && landslideCount === 0) {
+                    content += `✅ Excellent safety - No hazards detected`;
+                } else {
+                    if (floodAreaHa > 0) {
+                        content += `• Flood zone: ${floodAreaHa.toFixed(2)} hectares<br>`;
+                    }
+                    if (landslideCount > 0) {
+                        content += `• Landslide areas: ${landslideCount}`;
+                    }
+                }
+                
+                content += `</div>`;
+                content += `</div>`;
+                
+                const accessScore = breakdown.accessibility?.score || 0;
+                const distance = breakdown.accessibility?.distanceMeters || 0;
+                content += `<div style="margin-bottom: 8px;">`;
+                content += `<div style="font-weight: bold;">🚗 Accessibility: <span style="color: ${accessScore >= 15 ? '#9c27b0' : '#ff9800'};">${accessScore.toFixed(2)}</span></div>`;
+                content += `<div style="font-size: 11px; color: #666; margin-left: 20px;">${distance.toFixed(0)}m from main road</div>`;
+                content += `</div>`;
+                
+                const zoningScore = breakdown.zoning?.score || 0;
+                const landuse = breakdown.zoning?.landuse || 'N/A';
+                content += `<div style="margin-bottom: 8px;">`;
+                content += `<div style="font-weight: bold;">🏗️ Zoning: <span style="color: ${zoningScore >= 15 ? '#795548' : '#ff9800'};">${zoningScore.toFixed(2)}</span></div>`;
+                content += `<div style="font-size: 11px; color: #666; margin-left: 20px;">Land use: ${landuse}</div>`;
+                content += `</div>`;
+                
+                content += `</div>`;
+            }
+
+            content += `<hr style="margin: 12px 0; border: none; border-top: 1px solid #ddd;">`;
+            content += `<p style="margin: 8px 0 4px 0; font-weight: bold;">🗺️ View on Map:</p>`;
+            content += `<div style="display: flex; gap: 10px; margin-top: 6px;">`;
+            content += `<a href="https://www.google.com/maps/search/?api=1&query=${location.lat},${location.lon}" target="_blank" style="text-decoration: none; padding: 6px 12px; background-color: #1976d2; color: white; border-radius: 4px; font-size: 12px;">🌍 Google</a>`;
+            content += `<a href="https://www.openstreetmap.org/?mlat=${location.lat}&mlon=${location.lon}#map=19/${location.lat}/${location.lon}" target="_blank" style="text-decoration: none; padding: 6px 12px; background-color: #4caf50; color: white; border-radius: 4px; font-size: 12px;">🗺️ OSM</a>`;
+            content += `</div>`;
+            content += `</div>`;
+
+            const marker = new Graphic({
+                geometry: point,
+                symbol: {
+                    type: "picture-marker",
+                    url: "/recommended-location.svg",
+                    width: "48px",
+                    height: "48px",
+                },
+                popupTemplate: {
+                    title: `📍 Location #${index + 1}`,
+                    content: content,
+                },
+            });
+
+            placesLayerRef.current.add(marker);
+        });
+
+        if (referencePoint) {
+            const refPoint = new Point({
+                latitude: referencePoint.lat,
+                longitude: referencePoint.lon,
+            });
 
             const refMarker = new Graphic({
                 geometry: refPoint,
-                symbol: isNearbyMe
-                    ? {
-                          type: "picture-marker",
-                          url: "/recommended-location.svg", // your SVG icon
-                          width: "64px",
-                          height: "64px",
-                      }
-                    : {
-                          type: "simple-marker",
-                          style: "cross",
-                          color: [0, 120, 255],
-                          size: 14,
-                          outline: {
-                              color: [0, 80, 200],
-                              width: 4,
-                          },
-                      },
-                attributes: {
-                    name: "Reference Point",
+                symbol: {
+                    type: "simple-marker",
+                    style: "cross",
+                    color: [0, 120, 255],
+                    size: 16,
+                    outline: { color: [0, 80, 200], width: 4 },
                 },
                 popupTemplate: {
-                    title: "Reference Point",
-                    content: isNearbyMe
-                        ? `Address: Your current location`
-                        : `Address: ${locations.reference_point.name}`,
+                    title: "📌 Reference Point",
+                    content: `<div style="font-family: Arial, sans-serif;">
+                        <p style="margin: 8px 0;"><b>Location:</b> ${referencePoint.name || "Reference Location"}</p>
+                        <p style="margin: 8px 0;"><b>Coordinates:</b> ${referencePoint.lat.toFixed(6)}, ${referencePoint.lon.toFixed(6)}</p>
+                    </div>`,
                 },
             });
 
             placesLayerRef.current.add(refMarker);
         }
 
-        if (
-            locations.recommended_locations.length > 0 &&
-            view &&
-            esriModules?.Point
-        ) {
-            const { Point } = esriModules;
-
-            const targetPoints = locations.recommended_locations.map(
-                ({ lat, lon }) =>
-                    new Point({
-                        latitude: lat,
-                        longitude: lon,
-                    })
+        if (locations.length > 0 && view) {
+            const targetPoints = locations.map(
+                (loc) => new Point({ latitude: loc.lat, longitude: loc.lon })
             );
-
-            view.goTo(targetPoints, { zoom: 15 }).catch((error) => {
-                console.error("view.goTo failed:", error);
-            });
+            
+            if (referencePoint) {
+                targetPoints.push(new Point({ 
+                    latitude: referencePoint.lat, 
+                    longitude: referencePoint.lon 
+                }));
+            }
+            
+            view.goTo(targetPoints, { 
+                duration: 1000,
+                easing: "ease-in-out"
+            }).catch(console.error);
         }
     };
 

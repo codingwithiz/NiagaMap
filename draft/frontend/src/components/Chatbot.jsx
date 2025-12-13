@@ -46,12 +46,22 @@ function Chatbot({ onExtracted, onClose, onShowRecommendations, darkMode = false
   const [isValidatingLocation, setIsValidatingLocation] = useState(false);
   const [locationError, setLocationError] = useState("");
 
+  // Favourites state
+  const [favourites, setFavourites] = useState([]);
+  const [favouriteIds, setFavouriteIds] = useState(new Set());
+
   const messagesEndRef = useRef(null);
   const debounceTimeout = useRef(null);
   const conversationRef = useRef(null);
 
+  // Add a ref to store workflow results by analysis ID
+  const workflowCache = useRef({});
+
   useEffect(() => {
-    if (userId) fetchChats();
+    if (userId) {
+      fetchChats();
+      fetchFavourites();
+    }
   }, [userId]);
 
   useEffect(() => {
@@ -62,14 +72,38 @@ function Chatbot({ onExtracted, onClose, onShowRecommendations, darkMode = false
 
   const fetchChats = async () => {
     if (!userId) return;
-    const res = await axios.get(`${API}/chats/${userId}`);
+    const res = await axios.get(`${API}/chats/user/${userId}`);
     setChats(res.data);
   };
 
   const fetchConversation = async (chatId) => {
-    const res = await axios.get(`${API}/chats/${chatId}/conversations`);
-    setConversation(res.data);
-    setSelectedChat(chatId);
+    try {
+        const res = await axios.get(`${API}/chats/${chatId}/conversations`);
+        console.log("Fetched conversation:", res.data);
+        
+        // Map the conversation to normalize analysisId field
+        const normalizedConversation = res.data.map(msg => ({
+            ...msg,
+            analysisId: msg.analysis_id || msg.analysisId // Support both naming conventions
+        }));
+        
+        setConversation(normalizedConversation);
+        setSelectedChat(chatId);
+    } catch (error) {
+        console.error("Error fetching conversation:", error);
+        setConversation([]);
+    }
+  };
+
+  const fetchFavourites = async () => {
+    if (!userId) return;
+    try {
+      const res = await api.get(`/favourites/${userId}`);
+      setFavourites(res.data);
+      setFavouriteIds(new Set(res.data.map(f => f.analysis_id)));
+    } catch (err) {
+      console.error("Error fetching favourites:", err);
+    }
   };
 
   const handleCreateChat = async () => {
@@ -144,61 +178,219 @@ function Chatbot({ onExtracted, onClose, onShowRecommendations, darkMode = false
         input
       );
 
-      let botResult;
-      if (selectedFile) {
-        const formData = new FormData();
-        formData.append("file", selectedFile);
-        formData.append("message", enrichedMessage);
-        const res = await axios.post(`${API}/api/chatbot/upload`, formData, {
-          headers: { "Content-Type": "multipart/form-data" },
-        });
-        botResult = res.data;
-      } else {
-        const res = await axios.post(`${API}/api/chatbot`, { message: enrichedMessage });
-        botResult = res.data;
-      }
+      // Step 1: Get parsed parameters from OpenAI
+      const res = await axios.post(`${API}/api/chatbot`, { message: enrichedMessage });
+      const botResult = res.data;
 
+      console.log("Bot parsed result:", botResult);
+
+      // Step 2: Save initial conversation with parsed data
       const saveRes = await axios.put(`${API}/chats/${selectedChat}/messages`, {
         user_prompt: enrichedMessage,
         bot_answer: JSON.stringify(botResult),
       });
-      const conversationId = saveRes.data.conversationId;
 
-      if (onExtracted && (botResult.location || botResult.nearbyMe) && botResult.category) {
-        onExtracted({
-          location: botResult.location,
-          category: selectedCategory,
-          radius: botResult.radius || 1000,
-          nearbyMe: botResult.nearbyMe || false,
-          weights: normalizedWeights,
-          chatId: selectedChat,
-          userId: userId,
-          conversationId,
-        });
+      console.log("Save conversation response:", saveRes.data);
+
+      const conversationId = saveRes.data.conversation_id || saveRes.data.conversationId;
+
+      if (!conversationId) {
+        console.error("No conversation_id in response:", saveRes.data);
+        throw new Error("Failed to get conversation_id from server");
       }
 
-      fetchConversation(selectedChat);
+      console.log("Got conversation_id:", conversationId);
+
+      let analysisId = null;
+
+      // Step 3: Call analysis workflow
+      if ((botResult.location || botResult.nearbyMe) && botResult.category) {
+        let currentLocation = null;
+        let locationName = null;
+
+        if (botResult.nearbyMe) {
+          console.log("Requesting user's current location...");
+          
+          try {
+            const position = await new Promise((resolve, reject) => {
+              if (!navigator.geolocation) {
+                reject(new Error("Geolocation is not supported by your browser"));
+              }
+              
+              navigator.geolocation.getCurrentPosition(
+                (pos) => resolve(pos),
+                (err) => reject(err),
+                { 
+                  enableHighAccuracy: true,
+                  timeout: 10000,
+                  maximumAge: 0
+                }
+              );
+            });
+
+            currentLocation = {
+              lat: position.coords.latitude,
+              lon: position.coords.longitude
+            };
+
+            console.log("Got current location:", currentLocation);
+          } catch (geoError) {
+            console.error("Geolocation error:", geoError);
+            throw new Error(`Unable to get your location: ${geoError.message}. Please enable location services or specify a location name.`);
+          }
+        } else {
+          locationName = botResult.location;
+          console.log("Using location name:", locationName);
+        }
+
+        const workflowPayload = {
+          radius: botResult.radius || 1000,
+          locationName: locationName,
+          currentLocation: currentLocation,
+          nearbyMe: botResult.nearbyMe || false,
+          category: CATEGORY_PRESETS[selectedCategory].label,
+          userId: userId,
+          chatId: selectedChat,
+          weights: normalizedWeights
+        };
+
+        console.log("Calling workflow with:", workflowPayload);
+
+        const workflowRes = await axios.post(`${API}/analysis/workflow`, workflowPayload);
+        const analysisResults = workflowRes.data.results;
+
+        console.log("Workflow results:", analysisResults);
+
+        // Step 4: Update conversation with analysis_id and fetch recommendations
+        if (analysisResults && analysisResults.length > 0) {
+          analysisId = analysisResults[0].hexagon.analysis_id;
+          
+          // Cache the workflow results for later use
+          workflowCache.current[analysisId] = analysisResults;
+          
+          console.log("Updating conversation", conversationId, "with analysis_id", analysisId);
+
+          await axios.patch(`${API}/conversations/${conversationId}`, {
+            analysis_id: analysisId
+          });
+
+          console.log("Successfully linked conversation to analysis");
+
+          // Fetch recommendations with AI-generated reasoning from API
+          try {
+            const recsResponse = await axios.get(`${API}/analysis/${analysisId}/recommendations`);
+            const { locations, referencePoint } = recsResponse.data;
+
+            console.log("Fetched recommendations with reasoning:", { locations, referencePoint });
+
+            // Trigger map update with AI-generated recommendations AND workflow results (hexagons)
+            if (onShowRecommendations) {
+              onShowRecommendations(locations, referencePoint, analysisResults);
+            }
+          } catch (recError) {
+            console.error("Error fetching recommendations:", recError);
+            if (onShowRecommendations) {
+              onShowRecommendations(null, null, analysisResults);
+            }
+            alert("Analysis completed but failed to load recommendations. Please click 'View Locations on Map' button.");
+          }
+        }
+      }
+
+      // Refresh conversation to show the button
+      setConversation(prev => [...prev, {
+        user_prompt: enrichedMessage,
+        bot_answer: JSON.stringify(botResult),
+        analysisId: analysisId
+      }]);
+
       setSelectedFile(null);
       setInput("");
     } catch (err) {
-      console.error(err);
-      alert("Something went wrong.");
+      console.error("Chatbot error:", err);
+      console.error("Error details:", err.response?.data);
+      alert(`Error: ${err.response?.data?.error || err.message}`);
     } finally {
       setLoading(false);
     }
   };
 
   const handleShowRecommendations = async (analysisId) => {
-    if (!analysisId) return;
     try {
-      const res = await api.get(`/analysis/${analysisId}/recommendations`);
-      const locations = res.data.locations || [];
-      const referencePoint = res.data.referencePoint || null;
-      if (onShowRecommendations) {
-        onShowRecommendations(locations, referencePoint);
+      // First, check if we have cached workflow results
+      let workflowData = workflowCache.current[analysisId];
+      
+      // If not cached, fetch from the recommended_location table
+      if (!workflowData) {
+        console.log("No cached workflow data, fetching from recommendations...");
+        
+        // Fetch recommendations (which we know exists)
+        const recsResponse = await axios.get(`${API}/analysis/${analysisId}/recommendations`);
+        const { locations, referencePoint } = recsResponse.data;
+        
+        console.log("Fetched recommendations:", { locations, referencePoint });
+        
+        // Pass only recommendations (no hexagons) if workflow data isn't cached
+        if (onShowRecommendations) {
+          onShowRecommendations(locations, referencePoint, null);
+        }
+        return;
       }
+      
+      console.log("Using cached workflow results:", workflowData);
+      
+      // Fetch recommendations with reasoning
+      const recsResponse = await axios.get(`${API}/analysis/${analysisId}/recommendations`);
+      const { locations, referencePoint } = recsResponse.data;
+      
+      // Pass all three: locations, referencePoint, and full workflowData
+      if (onShowRecommendations) {
+        onShowRecommendations(locations, referencePoint, workflowData);
+      }
+    } catch (error) {
+      console.error("Error fetching recommendations:", error);
+      alert("Failed to load recommendations. Please try again.");
+    }
+  };
+
+  const handleToggleFavourite = async (analysisId, userPrompt = null) => {
+    if (!analysisId || !userId) return;
+
+    try {
+      if (favouriteIds.has(analysisId)) {
+        // Remove from favourites
+        await api.delete(`/favourites`, {
+          data: { user_id: userId, analysis_id: analysisId }
+        });
+      } else {
+        // Add to favourites with user's question
+        await api.post(`/favourites`, {
+          user_id: userId,
+          analysis_id: analysisId,
+          name: userPrompt || `Analysis ${new Date().toLocaleDateString()}`
+        });
+      }
+      fetchFavourites();
     } catch (err) {
-      alert("Failed to fetch recommendations.");
+      console.error("Error toggling favourite:", err);
+      alert(err.response?.data?.error || "Failed to update favourites");
+    }
+  };
+
+  const handleViewFavourite = async (analysisId) => {
+    await handleShowRecommendations(analysisId);
+  };
+
+  const handleRemoveFavourite = async (analysisId) => {
+    if (!analysisId || !userId) return;
+    try {
+      await api.delete(`/favourites`, {
+        data: { user_id: userId, analysis_id: analysisId }
+      });
+      fetchFavourites();
+    } catch (err) {
+      console.error("Error removing favourite:", err);
+      alert("Failed to remove favourite");
     }
   };
 
@@ -246,6 +438,9 @@ function Chatbot({ onExtracted, onClose, onShowRecommendations, darkMode = false
           newChatTitle={newChatTitle}
           setNewChatTitle={setNewChatTitle}
           handleCreateChat={handleCreateChat}
+          favourites={favourites}
+          handleViewFavourite={handleViewFavourite}
+          handleRemoveFavourite={handleRemoveFavourite}
           darkMode={darkMode}
         />
 
@@ -254,6 +449,8 @@ function Chatbot({ onExtracted, onClose, onShowRecommendations, darkMode = false
             ref={conversationRef}
             conversation={conversation}
             handleShowRecommendations={handleShowRecommendations}
+            handleToggleFavourite={handleToggleFavourite}
+            favourites={favouriteIds}
             darkMode={darkMode}
             messagesEndRef={messagesEndRef}
           />

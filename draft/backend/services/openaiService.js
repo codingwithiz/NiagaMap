@@ -106,15 +106,11 @@ Always return a clean, parsable JSON object.
     ],
     temperature: 0.2,
   });
-  console.log("Chatbot response:", response.choices[0].message.content);
+  
   return response.choices[0].message.content;
 }
 
-async function generateReasoning({ userIntent, center, recommendations, category, weights }) {
-  const { OpenAI } = require("openai");
-  const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-
-  // Helper to get top weighted indicators
+async function generateLocationReasoning({ locations, category, weights, referencePoint }) {
   const sortedWeights = Object.entries(weights || {})
     .sort(([, a], [, b]) => b - a)
     .slice(0, 2);
@@ -124,40 +120,103 @@ async function generateReasoning({ userIntent, center, recommendations, category
     : "balanced indicators";
 
   const REASONING_SYSTEM_PROMPT = `
-You are a GIS assistant in Malaysia helping businesses choose ideal locations.
+You are a professional GIS business location analyst in Malaysia. Explain why each location is suitable for the ${category} business.
 
-You are given:
-- User's business intent and selected category: "${category}"
-- Priority indicators: ${topIndicators}
-- A central coordinate
-- 3 recommended coordinates with suitability scores
+**Given Data:**
+- Business category: "${category}"
+- User's priorities: ${topIndicators}
+- Reference point: ${referencePoint?.name || "User's location"}
 
-Your task is to explain WHY each location is recommended, considering:
-1. Its proximity to the central point (closer is better)
-2. Its suitability score (0-100, higher is better)
-3. Alignment with the selected business category: "${category}"
-4. The user's priority indicators: ${topIndicators}
+**5 Key Indicators:**
 
-Each explanation must be 1–2 sentences and must reference:
-- Distance from center ("very close", "moderately far", "farthest but viable")
-- Score interpretation ("excellent score", "strong score", "moderate score")
-- Why it suits the ${category} category
+**1. Demand (0-20 points)**
+- score: Final weighted score
+- population: Actual resident count in area
+→ Higher population = More customers
 
-**Example reasoning formats:**
-- "This location is very close to your search center and has an excellent suitability score of 89.1, making it ideal for ${category} with strong ${topIndicators}."
-- "While moderately far from the center, this spot achieves a strong score of 82.5 due to high accessibility and good demand indicators, perfect for ${category}."
-- "This location balances distance and opportunity with a score of 76.3, offering good zoning compliance and low competition for your ${category} business."
+**2. POI - Points of Interest (0-20 points)**
+- score: Final weighted score  
+- count: Number of complementary businesses nearby
+→ More POIs = Better foot traffic and ecosystem
 
-Respond ONLY with a valid JSON array (no markdown backticks):
+**3. Risk (0-20 points) - IMPORTANT**
+- score: Final safety score (higher = safer)
+- floodAreaHa: Flood-prone area in hectares
+- landslideCount: Number of landslide zones
+- hasLandslide: Boolean
+- riskRatio: Score penalty ratio (default 0.8)
 
-[
-  {
-    "lat": 3.123,
-    "lon": 101.678,
-    "reason": "Your generated reasoning here..."
-  },
-  ...
-]
+**Risk Scoring Logic:**
+- Base score: 20 points (perfect safety)
+- If floodAreaHa > 0: Deduct based on flood severity
+- If landslideCount > 0: Deduct based on landslide presence
+- Formula: score = 20 - (floodPenalty + landslidePenalty) × riskRatio
+
+**How to Interpret:**
+- score 20: Perfect - no floods, no landslides
+- score 16: Good - minor risk (1 hazard present)
+- score 10-15: Moderate - some risk concerns
+- score < 10: High risk - multiple hazards
+
+**4. Accessibility (0-20 points)**
+- score: Final weighted score
+- distanceMeters: Distance to nearest major road
+→ Lower distance = Better access
+
+**5. Zoning (0-20 points)**
+- score: Final weighted score
+- landuse: Land use type (e.g., "commercial", "residential")
+→ Appropriate zoning = Legal compliance
+
+**Your Task:**
+For each location, write 3-4 sentences explaining:
+
+1. **Overall Assessment** (based on total score):
+   - 80-100: "Exceptional location"
+   - 60-79: "Strong candidate"  
+   - 40-59: "Moderate potential"
+   - 20-39: "Limited suitability"
+
+2. **Highlight Strengths** with specific numbers:
+   - Demand: "serves {X} residents"
+   - POI: "{X} nearby businesses"
+   - Risk: "excellent safety (no hazards)" OR "safe with minor {floodAreaHa}ha flood zone"
+   - Accessibility: "just {X}m from main road"
+   - Zoning: "zoned as {landuse}"
+
+3. **Address Concerns** honestly:
+   - Low demand: "limited to {X} residents"
+   - Low POI: "developing area ({X} businesses)"
+   - Risk issues: "{floodAreaHa}ha flood zone" OR "{landslideCount} landslide areas" 
+   - Poor access: "{X}m from road may limit traffic"
+   - Zoning: "verify permits for {landuse} zone"
+
+4. **Relate to business**: Connect data to ${category} needs
+
+**Style:**
+- Use concrete numbers from data
+- Be professional and conversational
+- Positive but honest about risks
+- Make it actionable
+
+**Example:**
+Input:
+{
+  "score": 52.5,
+  "breakdown": {
+    "demand": { "score": 2.5, "population": 140 },
+    "poi": { "score": 20, "count": 12 },
+    "risk": { "score": 16, "floodAreaHa": 0.5, "landslideCount": 0, "hasLandslide": false, "riskRatio": 0.8 },
+    "accessibility": { "score": 4, "distanceMeters": 650 },
+    "zoning": { "score": 10, "landuse": "commercial" }
+  }
+}
+
+Output:
+"This moderate-potential location (52.5) excels with 12 complementary businesses creating a vibrant commercial area, perfect for ${category}. The site serves 140 residents with good safety (risk score 16) despite a minor 0.5-hectare flood zone that's well-managed. However, it's 650 meters from the main road which may affect visibility, so invest in signage and digital marketing to attract customers."
+
+Return ONLY a valid JSON array: [{ lat, lon, score, breakdown, reason }]
+No markdown formatting.
 `;
 
   const response = await openai.chat.completions.create({
@@ -167,23 +226,21 @@ Respond ONLY with a valid JSON array (no markdown backticks):
       {
         role: "user",
         content: JSON.stringify({
-          userIntent,
-          center,
-          recommendations,
+          locations,
           category,
           weights,
+          referencePoint,
         }),
       },
     ],
-    temperature: 0.3,
+    temperature: 0.4,
   });
 
-  // Strip markdown block if any
   let content = response.choices[0].message.content;
   const match = content.match(/```json\s*([\s\S]*?)\s*```/i);
   if (match) content = match[1];
 
-  return content.trim();
+  return JSON.parse(content.trim());
 }
 
-module.exports = { askChatbot, generateReasoning };
+module.exports = { askChatbot, generateLocationReasoning };
