@@ -1,11 +1,22 @@
 import React, { useEffect, useRef, useState } from "react";
 import "@esri/calcite-components/dist/calcite/calcite.css";
 import { defineCustomElements } from "@esri/calcite-components/dist/loader";
+import esriConfig from "@arcgis/core/config";
 import Locate from "@arcgis/core/widgets/Locate";
 import MapView from "@arcgis/core/views/MapView";
 import Map from "@arcgis/core/Map";
 import GraphicsLayer from "@arcgis/core/layers/GraphicsLayer";
-import { loadModules } from "esri-loader";
+import Graphic from "@arcgis/core/Graphic";
+import Point from "@arcgis/core/geometry/Point";
+import Polygon from "@arcgis/core/geometry/Polygon";
+import Circle from "@arcgis/core/geometry/Circle";
+import * as places from "@arcgis/core/rest/places";
+import PlacesQueryParameters from "@arcgis/core/rest/support/PlacesQueryParameters";
+import FetchPlaceParameters from "@arcgis/core/rest/support/FetchPlaceParameters";
+import BasemapGallery from "@arcgis/core/widgets/BasemapGallery";
+import Expand from "@arcgis/core/widgets/Expand";
+import Search from "@arcgis/core/widgets/Search";
+import Legend from "@arcgis/core/widgets/Legend";
 import axios from "axios";
 
 const MapViewComponent = ({
@@ -25,7 +36,6 @@ const MapViewComponent = ({
     const highlightLayerRef = useRef(null); // NEW: Layer for highlighted hexagons
 
     const [view, setView] = useState(null);
-    const [esriModules, setEsriModules] = useState(null);
     const [initialized, setInitialized] = useState(false);
     const [lastClickPoint, setLastClickPoint] = useState(null);
     const [selectedPlaceId, setSelectedPlaceId] = useState(null);
@@ -36,207 +46,88 @@ const MapViewComponent = ({
 
         let mapView = null;
 
-        loadModules(
-            [
-                "esri/config",
-                "esri/Map",
-                "esri/views/MapView",
-                "esri/rest/places",
-                "esri/rest/support/FetchPlaceParameters",
-                "esri/rest/support/PlacesQueryParameters",
-                "esri/geometry/Circle",
-                "esri/geometry/Point",
-                "esri/geometry/Polygon",
-                "esri/Graphic",
-                "esri/layers/GraphicsLayer",
-                "esri/widgets/BasemapGallery",
-                "esri/widgets/Expand",
-                "esri/widgets/Search",
-                "esri/widgets/Legend",
-            ],
-            { version: "4.32", css: true }
-        )
-            .then(
-                ([
-                    esriConfig,
-                    Map,
-                    MapView,
-                    places,
-                    FetchPlaceParameters,
-                    PlacesQueryParameters,
-                    Circle,
-                    Point,
-                    Polygon,
-                    Graphic,
-                    GraphicsLayer,
-                    BasemapGallery,
-                    Expand,
-                    Search,
-                    Legend,
-                ]) => {
-                    esriConfig.apiKey = apiKey;
+        esriConfig.apiKey = apiKey;
 
-                    setEsriModules({
-                        Map,
-                        MapView,
-                        places,
-                        FetchPlaceParameters,
-                        PlacesQueryParameters,
-                        Circle,
-                        Point,
-                        Polygon,
-                        Graphic,
-                        GraphicsLayer,
-                        BasemapGallery,
-                        Expand,
-                        Search,
-                        esriConfig,
-                        Legend,
-                    });
+        const bufferLayer = new GraphicsLayer({ id: "bufferLayer" });
+        const placesLayer = new GraphicsLayer({ id: "placesLayer" });
+        const hexagonLayer = new GraphicsLayer({ id: "hexagonLayer" });
+        const highlightLayer = new GraphicsLayer({ id: "highlightLayer" });
 
-                    const bufferLayer = new GraphicsLayer({
-                        id: "bufferLayer",
-                    });
-                    const placesLayer = new GraphicsLayer({
-                        id: "placesLayer",
-                    });
-                    const hexagonLayer = new GraphicsLayer({
-                        id: "hexagonLayer",
-                    });
-                    const highlightLayer = new GraphicsLayer({
-                        id: "highlightLayer",
-                    });
+        bufferLayerRef.current = bufferLayer;
+        placesLayerRef.current = placesLayer;
+        hexagonLayerRef.current = hexagonLayer;
+        highlightLayerRef.current = highlightLayer;
 
-                    bufferLayerRef.current = bufferLayer;
-                    placesLayerRef.current = placesLayer;
-                    hexagonLayerRef.current = hexagonLayer;
-                    highlightLayerRef.current = highlightLayer;
+        const map = new Map({
+            basemap: darkMode ? "dark-gray-vector" : "streets-vector",
+            layers: [bufferLayer, hexagonLayer, highlightLayer, placesLayer],
+        });
 
-                    const map = new Map({
-                        basemap: darkMode
-                            ? "dark-gray-vector"
-                            : "streets-vector",
-                        layers: [bufferLayer, hexagonLayer, highlightLayer, placesLayer],
-                    });
+        mapView = new MapView({
+            container: mapRef.current,
+            map: map,
+            center: [-118.46651, 33.98621],
+            zoom: 13,
+        });
 
-                    mapView = new MapView({
-                        container: mapRef.current,
-                        map: map,
-                        center: [-118.46651, 33.98621],
-                        zoom: 13,
-                    });
+        mapView.when(() => {
+            setView(mapView);
+            setInitialized(true);
 
-                    mapView.when(() => {
-                        setView(mapView);
+            const searchWidget = new Search({ view: mapView, resultGraphicEnabled: true, popupEnabled: true });
 
-                        const searchWidget = new Search({
-                            view: mapView,
-                            resultGraphicEnabled: true,
-                            popupEnabled: true,
-                        });
+            const basemapGallery = new BasemapGallery({ view: mapView, source: { portal: { url: "https://www.arcgis.com", useVectorBasemaps: true } } });
 
-                        const basemapGallery = new BasemapGallery({
-                            view: mapView,
-                            source: {
-                                portal: {
-                                    url: "https://www.arcgis.com",
-                                    useVectorBasemaps: true,
-                                },
-                            },
-                        });
+            const expandGallery = new Expand({ view: mapView, content: basemapGallery });
 
-                        const expandGallery = new Expand({
-                            view: mapView,
-                            content: basemapGallery,
-                        });
+            const legend = new Legend({ view: mapView, layerInfos: [ { layer: placesLayer, title: "Locations" }, { layer: hexagonLayer, title: "Analysis Hexagons" } ] });
 
-                        const legend = new Legend({
-                            view: mapView,
-                            layerInfos: [
-                                {
-                                    layer: placesLayer,
-                                    title: "Locations",
-                                },
-                                {
-                                    layer: hexagonLayer,
-                                    title: "Analysis Hexagons",
-                                },
-                            ],
-                        });
+            mapView.ui.add(searchWidget, "top-left");
+            mapView.ui.add(expandGallery, "top-right");
+            mapView.ui.add(legend, "bottom-left");
 
-                        mapView.ui.add(searchWidget, "top-left");
-                        mapView.ui.add(expandGallery, "top-right");
+            mapView.on("click", (event) => {
+                // Check if clicking on a hexagon - if so, don't clear graphics
+                mapView.hitTest(event).then((response) => {
+                    const hexGraphic = response.results.find((r) => r.graphic.layer === hexagonLayerRef.current)?.graphic;
+                    if (hexGraphic) return;
 
-                        mapView.on("click", (event) => {
-                            // Check if clicking on a hexagon - if so, don't clear graphics
-                            mapView.hitTest(event).then((response) => {
-                                const hexGraphic = response.results.find(
-                                    (r) => r.graphic.layer === hexagonLayer
-                                )?.graphic;
-
-                                // If clicking on hexagon, do nothing (don't clear, don't show places)
-                                if (hexGraphic) {
-                                    return;
-                                }
-
-                                // Otherwise, normal behavior - clear and show places
-                                setLastClickPoint(event.mapPoint);
-                                clearGraphics();
-                                showPlaces(event.mapPoint);
-                            });
-                        });
-
-                        // Enhanced pointer-move for hexagon hover
-                        mapView.on("pointer-move", (event) => {
-                            mapView.hitTest(event).then((response) => {
-                                // Check for hexagon hover
-                                const hexGraphic = response.results.find(
-                                    (r) => r.graphic.layer === hexagonLayer
-                                )?.graphic;
-
-                                if (hexGraphic && hexGraphic.attributes?.hexId) {
-                                    // Only show popup for non-recommended hexagons
-                                    if (!hexGraphic.attributes?.isRecommended) {
-                                        handleHexagonHover(hexGraphic);
-                                    } else {
-                                        // For recommended hexagons, just highlight without popup
-                                        handleRecommendedHexagonHover(hexGraphic);
-                                    }
-                                } else {
-                                    clearHexagonHighlight();
-                                    // Close popup when not hovering on hexagon
-                                    if (hoveredHexId) {
-                                        mapView.closePopup();
-                                    }
-                                }
-
-                                // Existing places popup logic - only if not on hexagon
-                                if (!hexGraphic) {
-                                    const placeGraphic = response.results.find(
-                                        (r) => r.graphic.layer === placesLayer
-                                    )?.graphic;
-
-                                    if (placeGraphic && placeGraphic.popupTemplate) {
-                                        mapView.openPopup({
-                                            location: placeGraphic.geometry,
-                                            title: placeGraphic.popupTemplate.title,
-                                            content: placeGraphic.popupTemplate.content,
-                                        });
-                                    }
-                                }
-                            });
-                        });
-                    });
-                }
-            )
-            .catch((err) => {
-                console.error("Error loading ArcGIS modules:", err);
+                    setLastClickPoint(event.mapPoint);
+                    clearGraphics();
+                    showPlaces(event.mapPoint);
+                });
             });
 
+            // Enhanced pointer-move for hexagon hover
+            mapView.on("pointer-move", (event) => {
+                mapView.hitTest(event).then((response) => {
+                    const hexGraphic = response.results.find((r) => r.graphic.layer === hexagonLayerRef.current)?.graphic;
+
+                    if (hexGraphic && hexGraphic.attributes?.hexId) {
+                        if (!hexGraphic.attributes?.isRecommended) {
+                            handleHexagonHover(hexGraphic);
+                        } else {
+                            handleRecommendedHexagonHover(hexGraphic);
+                        }
+                    } else {
+                        clearHexagonHighlight();
+                        if (hoveredHexId) {
+                            mapView.closePopup();
+                        }
+                    }
+
+                    if (!hexGraphic) {
+                        const placeGraphic = response.results.find((r) => r.graphic.layer === placesLayerRef.current)?.graphic;
+                        if (placeGraphic && placeGraphic.popupTemplate) {
+                            mapView.openPopup({ location: placeGraphic.geometry, title: placeGraphic.popupTemplate.title, content: placeGraphic.popupTemplate.content });
+                        }
+                    }
+                });
+            });
+        });
+
         return () => {
-            if (mapView) {
-                mapView.destroy();
-            }
+            if (mapView) mapView.destroy();
         };
     }, [apiKey, darkMode]);
 
@@ -251,16 +142,15 @@ const MapViewComponent = ({
     useEffect(() => {
         console.log("Workflow effect triggered:", {
             hasResults: workflowResults?.length > 0,
-            hasModules: !!esriModules,
             hasView: !!view,
-            hexagonLayer: !!hexagonLayerRef.current
+            hexagonLayer: !!hexagonLayerRef.current,
         });
-        
-        if (workflowResults && workflowResults.length > 0 && esriModules && view) {
+
+        if (workflowResults && workflowResults.length > 0 && view) {
             console.log("Rendering hexagons:", workflowResults);
             renderWorkflowHexagons(workflowResults);
         }
-    }, [workflowResults, esriModules, view]);
+    }, [workflowResults, view]);
 
     const clearGraphics = () => {
         if (!bufferLayerRef.current || !placesLayerRef.current) return;
@@ -277,6 +167,26 @@ const MapViewComponent = ({
         }
     };
 
+    // Helper: safe wrapper around view.goTo to ignore interrupted navigation errors
+    const safeGoTo = async (target, options) => {
+        if (!view) return;
+        try {
+            await view.goTo(target, options);
+        } catch (err) {
+            // ArcGIS may throw an interruption error when another navigation occurs
+            if (
+                err &&
+                (err.name === "view:goto-interrupted" ||
+                    (err.message && err.message.includes("Goto was interrupted")))
+            ) {
+                // Ignore expected interruption
+                console.debug("view.goTo interrupted and ignored");
+                return;
+            }
+            console.error("view.goTo error:", err);
+        }
+    };
+
     // NEW: Clear hexagon layers
     const clearHexagonLayers = () => {
         if (hexagonLayerRef.current) {
@@ -289,15 +199,13 @@ const MapViewComponent = ({
 
     // NEW: Handle hexagon hover (for non-recommended hexagons - show popup)
     const handleHexagonHover = (graphic) => {
-        if (!esriModules || !highlightLayerRef.current || !view) return;
+        if (!highlightLayerRef.current || !view) return;
 
         const hexId = graphic.attributes?.hexId;
         if (hexId === hoveredHexId) return; // Already hovering this hexagon
 
         setHoveredHexId(hexId);
         highlightLayerRef.current.removeAll();
-
-        const { Graphic } = esriModules;
 
         // Simple highlight for non-recommended hexagons
         const highlight = new Graphic({
@@ -323,7 +231,7 @@ const MapViewComponent = ({
 
     // NEW: Handle recommended hexagon hover (highlight only, no popup)
     const handleRecommendedHexagonHover = (graphic) => {
-        if (!esriModules || !highlightLayerRef.current || !view) return;
+        if (!highlightLayerRef.current || !view) return;
 
         const hexId = graphic.attributes?.hexId;
         if (hexId === hoveredHexId) return;
@@ -331,18 +239,13 @@ const MapViewComponent = ({
         setHoveredHexId(hexId);
         highlightLayerRef.current.removeAll();
 
-        const { Graphic } = esriModules;
-
         // Enhanced glow effect for recommended hexagons - Blue
         const outerGlow = new Graphic({
             geometry: graphic.geometry.clone(),
             symbol: {
                 type: "simple-fill",
                 color: [30, 144, 255, 0.1],
-                outline: {
-                    color: [30, 144, 255, 0.8],
-                    width: 6,
-                },
+                outline: { color: [30, 144, 255, 0.8], width: 6 },
             },
         });
 
@@ -351,10 +254,7 @@ const MapViewComponent = ({
             symbol: {
                 type: "simple-fill",
                 color: [30, 144, 255, 0.2],
-                outline: {
-                    color: [30, 144, 255, 1],
-                    width: 4,
-                },
+                outline: { color: [30, 144, 255, 1], width: 4 },
             },
         });
 
@@ -363,10 +263,7 @@ const MapViewComponent = ({
             symbol: {
                 type: "simple-fill",
                 color: [30, 144, 255, 0.4],
-                outline: {
-                    color: [255, 255, 255, 1],
-                    width: 2,
-                },
+                outline: { color: [255, 255, 255, 1], width: 2 },
             },
         });
 
@@ -387,18 +284,8 @@ const MapViewComponent = ({
     const renderWorkflowHexagons = (results) => {
         console.log("renderWorkflowHexagons called with:", results);
         
-        if (!esriModules || !hexagonLayerRef.current) {
-            console.error("Missing esriModules or hexagonLayer:", {
-                esriModules: !!esriModules,
-                hexagonLayer: !!hexagonLayerRef.current
-            });
-            return;
-        }
-
-        const { Graphic, Polygon, Point } = esriModules;
-        
-        if (!Polygon) {
-            console.error("Polygon module not loaded!");
+        if (!hexagonLayerRef.current) {
+            console.error("Missing hexagonLayer:", { hexagonLayer: !!hexagonLayerRef.current });
             return;
         }
 
@@ -541,11 +428,7 @@ const MapViewComponent = ({
 
                 // Add rank label
                 if (result.centroid) {
-                    const labelPoint = new Point({
-                        longitude: result.centroid.lon,
-                        latitude: result.centroid.lat,
-                        spatialReference: { wkid: 4326 },
-                    });
+                            const labelPoint = new Point({ longitude: result.centroid.lon, latitude: result.centroid.lat, spatialReference: { wkid: 4326 } });
 
                     // Background circle for label - Blue
                     const labelBg = new Graphic({
@@ -597,12 +480,12 @@ const MapViewComponent = ({
                 }));
 
             if (allPoints.length > 0) {
-                view.goTo(allPoints, {
+                safeGoTo(allPoints, {
                     duration: 1000,
                     easing: "ease-in-out",
                 }).then(() => {
                     console.log("Zoomed to hexagons successfully");
-                }).catch(console.error);
+                });
             }
         }
     };
@@ -710,37 +593,17 @@ const MapViewComponent = ({
     };
 
     const normalizeLongitude = (point) => {
-        if (!esriModules || !esriModules.Point) {
-            console.warn("esriModules.Point is not loaded yet");
-            return point;
-        }
-
-        const normalizedX =
-            ((((point.longitude + 180) % 360) + 360) % 360) - 180;
-
-        return new esriModules.Point({
-            latitude: point.latitude,
-            longitude: normalizedX,
-            spatialReference: point.spatialReference,
-        });
+        const normalizedX = ((((point.longitude + 180) % 360) + 360) % 360) - 180;
+        return new Point({ latitude: point.latitude, longitude: normalizedX, spatialReference: point.spatialReference });
     };
 
     const showPlaces = async (placePoint) => {
         const normalizedPoint = normalizeLongitude(placePoint);
         console.log("normalizedPoint: ", normalizedPoint);
-        if (!esriModules || !bufferLayerRef.current || !placesLayerRef.current)
-            return;
-
-        const { Circle, Graphic, places, PlacesQueryParameters } = esriModules;
+        if (!bufferLayerRef.current || !placesLayerRef.current) return;
 
         try {
-            const circleGeometry = new Circle({
-                center: normalizedPoint,
-                geodesic: true,
-                numberOfPoints: 100,
-                radius: 500,
-                radiusUnit: "meters",
-            });
+            const circleGeometry = new Circle({ center: normalizedPoint, geodesic: true, numberOfPoints: 100, radius: 500, radiusUnit: "meters" });
 
             const circleGraphic = new Graphic({
                 geometry: circleGeometry,
@@ -764,13 +627,7 @@ const MapViewComponent = ({
             });
             bufferLayerRef.current.add(pointGraphic);
 
-            const queryParams = new PlacesQueryParameters({
-                categoryIds: [activeCategory],
-                radius: 500,
-                point: normalizedPoint,
-                icon: "png",
-            });
-
+            const queryParams = new PlacesQueryParameters({ categoryIds: [activeCategory], radius: 500, point: normalizedPoint, icon: "png" });
             const results = await places.queryPlacesNearPoint(queryParams);
 
             if (results.results && results.results.length > 0) {
@@ -786,9 +643,7 @@ const MapViewComponent = ({
     };
 
     const addResult = (place) => {
-        if (!esriModules || !placesLayerRef.current) return;
-
-        const { Graphic } = esriModules;
+        if (!placesLayerRef.current) return;
 
         const symbol =
             place.icon && place.icon.url
@@ -840,9 +695,7 @@ const MapViewComponent = ({
     };
 
     const selectPlace = async (placeId) => {
-        if (!esriModules || !view) return;
-
-        const { FetchPlaceParameters, places } = esriModules;
+        if (!view) return;
 
         try {
             const placeGraphic = placesLayerRef.current.graphics.find(
@@ -856,7 +709,7 @@ const MapViewComponent = ({
                     content: placeGraphic.attributes.address,
                 });
 
-                view.goTo(placeGraphic);
+                safeGoTo(placeGraphic);
                 setSelectedPlaceId(placeId);
 
                 const fetchParams = new FetchPlaceParameters({
@@ -895,9 +748,8 @@ const MapViewComponent = ({
     };
 
     const addSuitabilityMarkers = (data) => {
-        if (!esriModules || !placesLayerRef.current) return;
+        if (!placesLayerRef.current) return;
 
-        const { Graphic, Point } = esriModules;
         placesLayerRef.current.removeAll();
 
         const locations = Array.isArray(data)
@@ -1058,10 +910,10 @@ const MapViewComponent = ({
                 }));
             }
             
-            view.goTo(targetPoints, { 
+            safeGoTo(targetPoints, { 
                 duration: 1000,
                 easing: "ease-in-out"
-            }).catch(console.error);
+            });
         }
     };
 
@@ -1083,7 +935,7 @@ const MapViewComponent = ({
                     content: placeGraphic.attributes.address,
                 });
 
-                view.goTo(placeGraphic);
+                safeGoTo(placeGraphic);
             }
         }
     }, [selectedPlaceId, view, recommendedPlace]);
