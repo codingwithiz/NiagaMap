@@ -23,15 +23,20 @@ async function runRiskAnalysis(opts = {}) {
     // determine riskRatio: prefer incoming opts.riskRatio, then category settings, then default in riskService
     // const ratioVal = Number.isFinite(Number(riskRatio)) ? Number(riskRatio) : (settings && Number.isFinite(Number(settings.riskRatio)) ? Number(settings.riskRatio) : null);
 
-    const scores = await riskService.computeFloodRiskScores(hexagons, category, tokenToUse, {
-        sideLengthMeters: settings.sideLength,
-        thresholdHa: settings.floodRiskThresholdHa,
-        featureServiceUrl: process.env.BANJIR_FEATURE_URL,
-        landslideFeatureUrl: process.env.LANDSLIDE_FEATURE_URL,
-        landslideThreshold: settings.landslideRiskThreshold,
-        delayMs: settings.delayMs,
-        riskRatio: settings.riskRatio
-    });
+    const scores = await riskService.computeFloodRiskScores(
+        hexagons,
+        category,
+        tokenToUse,
+        {
+            sideLengthMeters: settings.sideLength,
+            thresholdHa: settings.floodRiskThresholdHa,
+            featureServiceUrl: process.env.BANJIR_FEATURE_URL,
+            landslideFeatureUrl: process.env.LANDSLIDE_FEATURE_URL,
+            landslideThreshold: settings.landslideRiskThreshold,
+            delayMs: settings.delayMs,
+            riskRatio: settings.risk_threshold,
+        }
+    );
 
     // const rawResponses = scores.map(s => s.rawResponse || null);
     

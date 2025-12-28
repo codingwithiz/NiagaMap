@@ -141,6 +141,33 @@ async function deleteAnalysis(analysisId) {
             .eq("point_id", referencePointId);
         if (refPointDelError) throw refPointDelError;
 
+        // 5. delete hexaagons associated with analysis
+        const { error: hexDelError } = await supabase
+            .from("hexagon")
+            .delete()
+            .eq("analysis_id", analysisId);
+        
+        // 6. delete indicator scoring
+        const { error: demandDelError } = await supabase
+            .from("demand")
+            .delete()
+            .eq("analysis_id", analysisId);
+
+        const { error: competitionDelError } = await supabase
+            .from("competition")
+            .delete()
+            .eq("analysis_id", analysisId);
+        
+        const { error: accessibility } = await supabase
+            .from("accessibility")
+            .delete()
+            .eq("analysis_id", analysisId);
+        
+        const { error: riskDelError } = await supabase
+            .from("risk")
+            .delete()
+            .eq("analysis_id", analysisId);
+        
         return {
             success: true,
             message: "Analysis and related data deleted successfully.",

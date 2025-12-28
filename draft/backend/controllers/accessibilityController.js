@@ -15,7 +15,7 @@ async function runAccessibility(opts = {}) {
     const settings = catchmentService.getSettingsForCategory(category);
 
     const scores = await accessibilityService.computeAccessibilityScores(hexagons, token, {
-        threshold: settings.accessibilityThreshold,
+        threshold: settings.accessibility_threshold,
         delayMs: settings.delayMs
     });
 

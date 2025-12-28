@@ -1,35 +1,47 @@
 // Centralized category map constants used by catchment and POI scoring
 const CATEGORY_MAP = {
     retail: {
-        sideLength: 150,  // 150 meters - creates ~260m wide hexagons
-        riskRatio: 0.7,
-        poiCategories: ["13000", "17000"], // Shopping, Food
+        demand_threshold: 4000,
+        competition_threshold: 6,
+        accessibility_threshlold: 400,
+        risk_threshold: 1,
+        sideLength: 150, // 150 meters - creates ~260m wide hexagons
     },
     healthcare: {
-        sideLength: 200,  // 200 meters - creates ~350m wide hexagons
-        riskRatio: 0.9,
-        poiCategories: ["15000"], // Healthcare
-    },
-    education: {
-        sideLength: 180,  // 180 meters
-        riskRatio: 0.85,
-        poiCategories: ["12000"], // Education
+        demand_threshold: 3000,
+        competition_threshold: 4,
+        accessibility_threshlold: 300,
+        risk_threshold: 1,
+        sideLength: 150,
     },
     fnb: {
-        sideLength: 120,  // 120 meters - smaller hexagons for F&B
-        riskRatio: 0.6,
-        poiCategories: ["13065"], // Food & Beverage
+        demand_threshold: 2000,
+        competition_threshold: 5,
+        accessibility_threshlold: 300,
+        risk_threshold: 1,
+        sideLength: 150, // 120 meters - smaller hexagons for F&B
     },
-    entertainment: {
-        sideLength: 140,
-        riskRatio: 0.5,
-        poiCategories: ["10000"], // Arts & Entertainment
+    automotive: {
+        demand_threshold: 1500,
+        competition_threshold: 5,
+        accessibility_threshlold: 500,
+        risk_threshold: 1,
+        sideLength: 150, // 120 meters - smaller hexagons for F&B
+    },
+    sports: {
+        demand_threshold: 2000,
+        competition_threshold: 4,
+        accessibility_threshlold: 400,
+        risk_threshold: 1,
+        sideLength: 150, // 120 meters - smaller hexagons for F&B
     },
     default: {
+        demand_threshold: 4000,
+        competition_threshold: 6,
+        accessibility_threshlold: 400,
+        risk_threshold: 1,
         sideLength: 150,
-        riskRatio: 0.7,
-        poiCategories: ["13000"],
-    }
+    },
 };
 
 module.exports = CATEGORY_MAP;

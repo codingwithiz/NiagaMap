@@ -30,7 +30,11 @@ async function runDemand(opts = {}) {
     const { pops_array, rawResponses } = await demandService.fetchPopulationsForHexagons(hexagons, token, { country: settings.country, dataCollections: settings.dataCollections, retry: settings.retry, delayMs: settings.delayMs });
    
     // Calculate demand scores
-    const demandScores = demandService.calculateDemandScore(pops_array, radius, settings.baseMaxPerKm2);
+    const demandScores = demandService.calculateDemandScore(
+        pops_array,
+        radius,
+        settings.demand_threshold
+    );
 
     // const centroids = limitedHexagons.map(h => polygonCentroid(h));
 

@@ -269,7 +269,11 @@ router.post('/analysis/catchment', async (req, res) => {
     const { radius, center_x, center_y, category, maxCount, returnResponses } = req.body;
 
     if (radius == null || center_x == null || center_y == null) {
-        return res.status(400).json({ error: 'radius, center_x and center_y are required in the request body' });
+        return res
+            .status(401)
+            .json({
+                error: "radius, center_x and center_y are required in the request body",
+            });
     }
 
     // Token can be provided via Authorization header (Bearer ...) or from environment variables.
@@ -277,7 +281,7 @@ router.post('/analysis/catchment', async (req, res) => {
     const token = extractToken(req);
 
     if (!token) {
-        return res.status(400).json({ error: 'ArcGIS token is required. Set ARC_API_KEY in the backend environment or provide a Bearer token in Authorization header.' });
+        return res.status(401).json({ error: 'ArcGIS token is required. Set ARC_API_KEY in the backend environment or provide a Bearer token in Authorization header.' });
     }
 
     try {
@@ -299,14 +303,14 @@ router.post('/analysis/demand', async (req, res) => {
 
     // require either hexagons or center/radius
     if ((!Array.isArray(hexagons) || hexagons.length === 0) && (radius == null || center_x == null || center_y == null)) {
-        return res.status(400).json({ error: 'Provide `hexagons` or radius, center_x and center_y in the request body' });
+        return res.status(422).json({ error: 'Provide `hexagons` or radius, center_x and center_y in the request body' });
     }
 
     // Token can be provided via Authorization header (Bearer ...) or from environment variables.
     const token = extractToken(req);
 
     if (!token) {
-        return res.status(400).json({ error: 'ArcGIS token is required. Set ARC_API_KEY in the backend environment or provide a Bearer token in Authorization header.' });
+        return res.status(401).json({ error: 'ArcGIS token is required. Set ARC_API_KEY in the backend environment or provide a Bearer token in Authorization header.' });
     }
     const settings = catchmentService.getSettingsForCategory(category);
 
@@ -328,23 +332,23 @@ router.post('/analysis/workflow', async (req, res) => {
     
     // Validate userId is provided
     if (!userId) {
-        return res.status(400).json({ error: "userId is required in the request body" });
+        return res
+            .status(422)
+            .json({ error: "userId is required in the request body" });
     }
     
     // Token can be provided via Authorization header (Bearer ...) or from environment variables.
     const token = extractToken(req);
 
     if (!token) {
-        return res
-            .status(400)
-            .json({
-                error: "ArcGIS token is required. Set ARC_API_KEY in the backend environment or provide a Bearer token in Authorization header.",
-            });
+        return res.status(401).json({
+            error: "ArcGIS token is required. Set ARC_API_KEY in the backend environment or provide a Bearer token in Authorization header.",
+        });
     }
 
     // Validate radius
     if (radius == null) {
-        return res.status(400).json({
+        return res.status(422).json({
             error: "radius is required in the request body",
         });
     }
@@ -356,13 +360,13 @@ router.post('/analysis/workflow', async (req, res) => {
     if (nearbyMe && currentLocation) {
         if (currentLocation.lat == null || currentLocation.lon == null || 
             isNaN(Number(currentLocation.lat)) || isNaN(Number(currentLocation.lon))) {
-            return res.status(400).json({
+            return res.status(422).json({
                 error: "currentLocation must include valid lat and lon fields",
             });
         }
         if (currentLocation.lat < -90 || currentLocation.lat > 90 || 
             currentLocation.lon < -180 || currentLocation.lon > 180) {
-            return res.status(400).json({
+            return res.status(422).json({
                 error: "currentLocation lat must be between -90 and 90 and lon must be between -180 and 180",
             });
         }
@@ -379,7 +383,7 @@ router.post('/analysis/workflow', async (req, res) => {
     // Case 2: nearbyMe is false - use locationName
     else if (!nearbyMe && locationName) {
         if (!locationName.trim().length) {
-            return res.status(400).json({
+            return res.status(422).json({
                 error: "locationName cannot be empty",
             });
         }
@@ -389,7 +393,7 @@ router.post('/analysis/workflow', async (req, res) => {
     }
     // Case 3: Invalid combination
     else {
-        return res.status(400).json({
+        return res.status(422).json({
             error: "Either provide nearbyMe=true with currentLocation, or nearbyMe=false with locationName",
         });
     }
@@ -446,7 +450,7 @@ router.post('/analysis/accessibility', async (req, res) => {
     const token = extractToken(req);
 
     if (!token) {
-        return res.status(400).json({ error: 'ArcGIS token is required. Set ARC_API_KEY in env or provide an Authenticator/Authorization header.' });
+        return res.status(401).json({ error: 'ArcGIS token is required. Set ARC_API_KEY in env or provide an Authenticator/Authorization header.' });
     }
 
     try {
