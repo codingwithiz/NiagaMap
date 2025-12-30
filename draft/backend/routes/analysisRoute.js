@@ -328,7 +328,18 @@ router.post('/analysis/demand', async (req, res) => {
 // POST /analysis/workflow
 // body: { radius, center_x?, center_y?, locationName?, currentLocation?, nearbyMe?, category, maxCount?, token? }
 router.post('/analysis/workflow', async (req, res) => {
-    const { radius, locationName, currentLocation, nearbyMe, category, maxCount, analysisId, chatId, userId } = req.body || {};
+    const {
+        radius,
+        locationName,
+        currentLocation,
+        nearbyMe,
+        category,
+        maxCount,
+        analysisId,
+        chatId,
+        userId,
+        weights,
+    } = req.body || {};
     
     // Validate userId is provided
     if (!userId) {
@@ -410,6 +421,7 @@ router.post('/analysis/workflow', async (req, res) => {
             analysis_id: analysisId,
             chat_id: chatId,
             user_id: userId,
+            weightage: weights,
         });
         res.status(200).json({ results });
     } catch (err) {

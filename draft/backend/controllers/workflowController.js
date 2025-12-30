@@ -48,6 +48,7 @@ async function runWorkflow(opts = {}) {
         maxCount = null,  // Keep as null by default - will generate all hexagons
         chat_id = null,
         user_id = null,
+        weightage = {}
     } = opts;
 
     if (!category) {
@@ -111,7 +112,7 @@ async function runWorkflow(opts = {}) {
     const settings = hexCatchmentRes.settings;
     const hexagons = hexCatchmentRes.hexagons;
     // centroids for output
-    console.log("settings", settings);
+
 
     const centroids = hexagons.map((h) => polygonCentroid(h.coordinates));
     // Run all controllers in parallel where possible
@@ -200,39 +201,85 @@ async function runWorkflow(opts = {}) {
         "scores"
     );
 
-    // Build output list: for each hexagon, extract numeric scores (or treat missing as 0), sum and divide by 5
+    // Build output list: compute normalized component scores and apply weight fractions
+    // Approach:
+    // 1) Extract numeric raw scores for each metric across all hexagons
+    // 2) Normalize each metric by its observed max (so values in [0,1])
+    // 3) Compute weight fractions from `weightage` (normalize if they don't sum to 100)
+    // 4) finalScore = sum(normalized_metric * weightFraction) * 100 (percentage-like)
     const out = [];
+
+    // helper to build numeric arrays
+    const numericArray = (arr) => {
+        if (!arr) return hexagons.map(() => null);
+        return hexagons.map((_, i) => {
+            const v = arr[i];
+            const num = getNumericScore(v);
+            return num == null || Number.isNaN(num) ? null : num;
+        });
+    };
+
+    const numericDemand = numericArray(demandScoresArr);
+    const numericPoi = numericArray(poiScoresArr);
+    const numericRisk = numericArray(riskScoresArr);
+    const numericZoning = numericArray(zoningScoresArr);
+    const numericAccess = numericArray(accessibilityScoresArr);
+
+    const maxOrZero = (arr) => {
+        const vals = arr.filter((v) => v != null && !Number.isNaN(v));
+        if (vals.length === 0) return 0;
+        return Math.max(...vals);
+    };
+
+    const maxDemand = maxOrZero(numericDemand) || 0;
+    const maxPoi = maxOrZero(numericPoi) || 0;
+    const maxRisk = maxOrZero(numericRisk) || 0;
+    const maxZoning = maxOrZero(numericZoning) || 0;
+    const maxAccess = maxOrZero(numericAccess) || 0;
+
+    // Compute weight fractions. If provided weights sum to > 0, normalize them; otherwise use equal weights.
+    const w = {
+        demand: Number(weightage.demand) || 0,
+        competition: Number(weightage.competition) || 0,
+        risk: Number(weightage.risk) || 0,
+        zoning: Number(weightage.zoning) || 0,
+        accessibility: Number(weightage.accessibility) || 0,
+    };
+    const sumW = w.demand + w.competition + w.risk + w.zoning + w.accessibility;
+    const weightFrac = sumW > 0
+        ? {
+              demand: w.demand / sumW,
+              competition: w.competition / sumW,
+              risk: w.risk / sumW,
+              zoning: w.zoning / sumW,
+              accessibility: w.accessibility / sumW,
+          }
+        : { demand: 0.2, competition: 0.2, risk: 0.2, zoning: 0.2, accessibility: 0.2 };
+    console.log("Weight fractions:", weightFrac);
+    // Now build per-hexagon output using normalized values and weight fractions
     for (let i = 0; i < hexagons.length; i++) {
         const hex = hexagons[i];
         const centroid = centroids[i] || null;
 
-        const sDemand =
-            demandScoresArr && demandScoresArr[i] != null
-                ? getNumericScore(demandScoresArr[i])
-                : null;
-        const sPoi =
-            poiScoresArr && poiScoresArr[i] != null
-                ? getNumericScore(poiScoresArr[i])
-                : null;
-        const sRisk =
-            riskScoresArr && riskScoresArr[i] != null
-                ? getNumericScore(riskScoresArr[i])
-                : null;
-        const sZoning =
-            zoningScoresArr && zoningScoresArr[i] != null
-                ? getNumericScore(zoningScoresArr[i])
-                : null;
-        const sAccess =
-            accessibilityScoresArr && accessibilityScoresArr[i] != null
-                ? getNumericScore(accessibilityScoresArr[i])
-                : null;
+        const rawDemand = numericDemand[i];
+        const rawPoi = numericPoi[i];
+        const rawRisk = numericRisk[i];
+        const rawZoning = numericZoning[i];
+        const rawAccess = numericAccess[i];
 
-        const a = sDemand == null ? 0 : sDemand;
-        const b = sPoi == null ? 0 : sPoi;
-        const c = sRisk == null ? 0 : sRisk;
-        const d = sZoning == null ? 0 : sZoning;
-        const e = sAccess == null ? 0 : sAccess;
+        const normDemand = rawDemand != null && maxDemand > 0 ? rawDemand / maxDemand : 0;
+        const normPoi = rawPoi != null && maxPoi > 0 ? rawPoi / maxPoi : 0;
+        const normRisk = rawRisk != null && maxRisk > 0 ? rawRisk / maxRisk : 0;
+        const normZoning = rawZoning != null && maxZoning > 0 ? rawZoning / maxZoning : 0;
+        const normAccess = rawAccess != null && maxAccess > 0 ? rawAccess / maxAccess : 0;
 
+        // Weighted contributions (each in [0,1] * weightFrac) -> multiply by 100 for percent-like score
+        const a = normDemand * weightFrac.demand * 100;
+        const b = normPoi * weightFrac.competition * 100;
+        const c = normRisk * weightFrac.risk * 100;
+        const d = normZoning * weightFrac.zoning * 100;
+        const e = normAccess * weightFrac.accessibility * 100;
+        console.log(`Hex ${i}: normScores D:${normDemand.toFixed(3)} P:${normPoi.toFixed(3)} R:${normRisk.toFixed(3)} Z:${normZoning.toFixed(3)} A:${normAccess.toFixed(3)} -> weighted a:${a.toFixed(2)} b:${b.toFixed(2)} c:${c.toFixed(2)} d:${d.toFixed(2)} e:${e.toFixed(2)}`);
         const finalScore = a + b + c + d + e;
 
         // Extract detailed risk data
@@ -241,7 +288,7 @@ async function runWorkflow(opts = {}) {
             floodAreaHa: riskDetails.floodAreaHa || 0,
             landslideCount: riskDetails.landslideCount || 0,
             hasLandslide: riskDetails.hasLandslide || false,
-            totalScore: c // Total risk score
+            totalScore: rawRisk || 0 // raw (unweighted) risk score
         };
 
         // Extract other raw data
@@ -287,28 +334,29 @@ async function runWorkflow(opts = {}) {
                 const breakdown = {
                     demand: {
                         score: location.demandScore,
-                        population: location.demandRaw
+                        population: location.demandRaw,
                     },
                     poi: {
                         score: location.poiScore,
-                        count: location.poiRaw
+                        count: location.poiRaw,
                     },
                     risk: {
                         score: location.riskScore,
                         floodAreaHa: location.riskRaw.floodAreaHa,
                         landslideCount: location.riskRaw.landslideCount,
                         hasLandslide: location.riskRaw.hasLandslide,
-                        riskRatio: settings.riskRatio // Include riskRatio for reference
+                        riskRatio: settings.risk_threshold, // Include riskRatio for reference
                     },
                     accessibility: {
                         score: location.accessibilityScore,
-                        distanceMeters: location.accessibilityRaw.distanceMeters
+                        distanceMeters:
+                            location.accessibilityRaw.distanceMeters,
                     },
                     zoning: {
                         score: location.zoningScore,
                         landuse: location.zoningRaw.landuse,
-                        rawResponse: location.zoningRaw.rawResponse
-                    }
+                        rawResponse: location.zoningRaw.rawResponse,
+                    },
                 };
 
                 console.log("Saving location with detailed breakdown:", {
