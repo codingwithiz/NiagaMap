@@ -326,39 +326,7 @@ function App() {
                                   Analysis
                               </Link>
 
-                              <Link
-                                  to="/profile"
-                                  style={{
-                                      color: isActive("/profile")
-                                          ? "#fff"
-                                          : "#1976d2",
-                                      background: isActive("/profile")
-                                          ? "#1976d2"
-                                          : "transparent",
-                                      fontWeight: 600,
-                                      textDecoration: "none",
-                                      padding: "10px 18px",
-                                      borderRadius: 8,
-                                      transition: "all 0.2s",
-                                      boxShadow: isActive("/profile")
-                                          ? "0 2px 8px rgba(25, 118, 210, 0.3)"
-                                          : "none",
-                                  }}
-                                  onMouseOver={(e) => {
-                                      if (!isActive("/profile")) {
-                                          e.currentTarget.style.background =
-                                              "#f0f7ff";
-                                      }
-                                  }}
-                                  onMouseOut={(e) => {
-                                      if (!isActive("/profile")) {
-                                          e.currentTarget.style.background =
-                                              "transparent";
-                                      }
-                                  }}
-                              >
-                                  Profile
-                              </Link>
+                              {/* Left Profile link removed in favor of profile icon on the right */}
                           </>
                       )}
                   </div>
@@ -405,18 +373,64 @@ function App() {
                           </span>
                       </div>
                       {user && (
-                          <button
-                              onClick={handleLogout}
-                              className="ml-4 px-4 py-2 rounded bg-gray-200 dark:bg-gray-700 dark:text-white"
-                              onMouseOver={(e) =>
-                                  (e.currentTarget.style.background = "#d32f2f")
-                              }
-                              onMouseOut={(e) =>
-                                  (e.currentTarget.style.background = "#f44336")
-                              }
-                          >
-                              Logout
-                          </button>
+                          <>
+                              <Link
+                                  to="/profile"
+                                  aria-label="Profile"
+                                  className="ml-4"
+                                  style={{ textDecoration: "none" }}
+                              >
+                                  {user?.photoURL ? (
+                                      <img
+                                          src={user.photoURL}
+                                          alt="Profile"
+                                          style={{
+                                              width: 36,
+                                              height: 36,
+                                              borderRadius: "50%",
+                                              objectFit: "cover",
+                                              border: "1px solid rgba(0,0,0,0.08)",
+                                          }}
+                                      />
+                                  ) : (
+                                      <div
+                                          style={{
+                                              width: 36,
+                                              height: 36,
+                                              borderRadius: "50%",
+                                              background: "#1976d2",
+                                              color: "#fff",
+                                              display: "flex",
+                                              alignItems: "center",
+                                              justifyContent: "center",
+                                              fontWeight: 700,
+                                              textTransform: "uppercase",
+                                          }}
+                                      >
+                                          {user?.displayName
+                                              ? user.displayName.charAt(0)
+                                              : user?.email
+                                              ? user.email.charAt(0)
+                                              : "U"}
+                                      </div>
+                                  )}
+                              </Link>
+
+                              <button
+                                  onClick={handleLogout}
+                                  className="ml-4 px-4 py-2 rounded bg-gray-200 dark:bg-gray-700 dark:text-white"
+                                  onMouseOver={(e) =>
+                                      (e.currentTarget.style.background =
+                                          "#d32f2f")
+                                  }
+                                  onMouseOut={(e) =>
+                                      (e.currentTarget.style.background =
+                                          "#f44336")
+                                  }
+                              >
+                                  Logout
+                              </button>
+                          </>
                       )}
                   </div>
               </nav>
