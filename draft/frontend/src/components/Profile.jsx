@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { useAuth } from "../context/AuthContext";
 import { auth } from "../firebase";
 import { updateProfile, updatePassword } from "firebase/auth";
@@ -11,29 +11,75 @@ const Profile = ({darkMode = false}) => {
     const [password, setPassword] = useState("");
     const [message, setMessage] = useState("");
     const [error, setError] = useState("");
+    const [photoURL, setPhotoURL] = useState(user?.photoURL || "");
 
     // Outer container for full viewport height
     return (
-        <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: darkMode ? "#1f2937" : "#f9fafe" }}>
-            <ProfileCard
-                user={user}
-                name={name}
-                setName={setName}
-                email={email}
-                password={password}
-                setPassword={setPassword}
-                message={message}
-                setMessage={setMessage}
-                error={error}
-                setError={setError}
-                darkMode={darkMode}
-            />
+        <div
+            style={{
+                minHeight: "100vh",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                background: darkMode ? "#111827" : "#f3f6fb",
+                padding: 0,
+            }}
+        >
+            <div
+                style={{
+                    width: "100%",
+                    maxWidth: 520,
+                    margin: "0 auto",
+                    padding: "40px 0",
+                }}
+            >
+                <ProfileCard
+                    user={user}
+                    name={name}
+                    setName={setName}
+                    email={email}
+                    password={password}
+                    setPassword={setPassword}
+                    message={message}
+                    setMessage={setMessage}
+                    error={error}
+                    setError={setError}
+                    darkMode={darkMode}
+                    photoURL={photoURL}
+                    setPhotoURL={setPhotoURL}
+                />
+            </div>
         </div>
     );
 };
 
 // The original profile card UI moved to a new component
-const ProfileCard = ({ user, name, setName, email, password, setPassword, message, setMessage, error, setError, darkMode }) => {
+const ProfileCard = ({ user, name, setName, email, password, setPassword, message, setMessage, error, setError, darkMode, photoURL, setPhotoURL }) => {
+    const fileInputRef = useRef();
+
+    // Update profile photo in Firebase and Supabase
+    const handlePhotoChange = async (e) => {
+        setMessage("");
+        setError("");
+        const file = e.target.files[0];
+        if (!file) return;
+        // For demo: use a local preview and update Firebase
+        // In production: upload to storage and get a URL
+        const reader = new FileReader();
+        reader.onloadend = async () => {
+            try {
+                // Update Firebase Auth profile
+                await updateProfile(auth.currentUser, { photoURL: reader.result });
+                setPhotoURL(reader.result);
+                // Update backend (Supabase)
+                await api.put(`/users/${user.uid}`, { photoURL: reader.result });
+                setMessage("Profile photo updated!");
+            } catch (err) {
+                setError("Failed to update photo: " + err.message);
+            }
+        };
+        reader.readAsDataURL(file);
+    };
 
     // Update name in Firebase and Supabase
     const handleUpdateName = async (e) => {
@@ -66,33 +112,78 @@ const ProfileCard = ({ user, name, setName, email, password, setPassword, messag
     return (
         <div
             style={{
-                maxWidth: 420,
+                maxWidth: 440,
                 width: "100%",
                 margin: "0 auto",
-                padding: "32px 32px 24px 32px",
-                background: darkMode ? "#1f2937" : "#f9fafe",
-                borderRadius: 18,
-                boxShadow: "0 4px 24px rgba(25, 118, 210, 0.10)",
-                border: `1px solid ${darkMode ? "#374151" : "#e0e0e0"}`,
+                padding: "36px 36px 28px 36px",
+                background: darkMode ? "#181f2a" : "#fff",
+                borderRadius: 22,
+                boxShadow: darkMode
+                    ? "0 6px 32px rgba(25, 118, 210, 0.13)"
+                    : "0 6px 32px rgba(25, 118, 210, 0.10)",
+                border: `1.5px solid ${darkMode ? "#232b3b" : "#e0e0e0"}`,
+                position: "relative",
             }}
         >
-            <h2
-                style={{
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginBottom: 18 }}>
+                <div style={{
+                    width: 96,
+                    height: 96,
+                    borderRadius: "50%",
+                    background: darkMode ? "#232b3b" : "#e3eaf6",
                     display: "flex",
                     alignItems: "center",
-                    gap: 10,
-                    fontWeight: 700,
-                    fontSize: 26,
-                    marginBottom: 24,
-                    color: "#1976d2",
-                    letterSpacing: 1,
-                }}
-            >
-                <span role="img" aria-label="profile">
-                    👤
-                </span>{" "}
-                Profile
-            </h2>
+                    justifyContent: "center",
+                    marginBottom: 6,
+                    boxShadow: "0 2px 8px rgba(25, 118, 210, 0.10)",
+                    border: `2.5px solid #1976d2`,
+                    overflow: "hidden",
+                }}>
+                    <img
+                        src={photoURL || user?.photoURL || "https://ui-avatars.com/api/?name=" + encodeURIComponent(name || "User")}
+                        alt="Profile"
+                        style={{ width: 96, height: 96, objectFit: "cover" }}
+                    />
+                </div>
+                <input
+                    type="file"
+                    accept="image/*"
+                    ref={fileInputRef}
+                    style={{ display: "none" }}
+                    onChange={handlePhotoChange}
+                />
+                <button
+                    type="button"
+                    onClick={() => fileInputRef.current && fileInputRef.current.click()}
+                    style={{
+                        background: darkMode ? "#232b3b" : "#e3eaf6",
+                        color: "#1976d2",
+                        border: "1.2px solid #1976d2",
+                        borderRadius: 6,
+                        padding: "3px 12px",
+                        fontWeight: 500,
+                        fontSize: 13,
+                        cursor: "pointer",
+                        marginBottom: 2,
+                        marginTop: 0,
+                        letterSpacing: 0.2,
+                        boxShadow: "none",
+                        transition: "background 0.2s, color 0.2s, border 0.2s",
+                    }}
+                    onMouseOver={e => {
+                        e.currentTarget.style.background = "#1976d2";
+                        e.currentTarget.style.color = "#fff";
+                        e.currentTarget.style.border = "1.2px solid #1976d2";
+                    }}
+                    onMouseOut={e => {
+                        e.currentTarget.style.background = darkMode ? "#232b3b" : "#e3eaf6";
+                        e.currentTarget.style.color = "#1976d2";
+                        e.currentTarget.style.border = "1.2px solid #1976d2";
+                    }}
+                >
+                    Change Photo
+                </button>
+            </div>
             <form onSubmit={handleUpdateName} style={{ marginBottom: 32 }}>
                 <label
                     style={{

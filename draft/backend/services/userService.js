@@ -4,7 +4,7 @@ module.exports = {
     // CREATE user + preference
     createUser: async (user) => {
         try {
-            console.log("createUser called with:", { userId: user.userId, name: user.name });
+            console.log("createUser called with:", { userId: user.userId, name: user.name, photoURL: user.photoURL });
 
             // Check if user already exists using maybeSingle (returns null instead of error)
             const { data: existingUser, error: checkError } = await supabase
@@ -56,6 +56,7 @@ module.exports = {
                     {
                         user_id: user.userId,
                         name: user.name || "User",
+                        photo_url: user.photoURL || null,
                         preference_id: prefData[0].preference_id,
                     },
                 ])
@@ -153,6 +154,7 @@ module.exports = {
                 .from("users")
                 .update({
                     name: data.name,
+                    photo_url: data.photoURL,
                 })
                 .eq("user_id", user_id)
                 .select(`

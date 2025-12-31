@@ -21,13 +21,16 @@ export const AuthProvider = ({ children }) => {
                     const response = await api.post("/auth/verify", { token });
                     
                     console.log("Auth verify response:", response.data);
+                    console.log("currentUser", currentUser)
                     
                     // ✅ Merge Firebase user with backend response (includes name)
                     setUser({
-                        ...currentUser,
+                        uid: currentUser.uid,
+                        email: currentUser.email,
                         displayName: response.data.name || currentUser.displayName,
-                        dbName: response.data.name,  // Name from Supabase
-                    });
+                        dbName: response.data.name,
+                        photoURL: currentUser.photoURL,
+                        });
                 } catch (err) {
                     console.error("Error verifying user with backend:", err);
                     // Still set the user even if backend fails

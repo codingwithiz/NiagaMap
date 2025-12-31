@@ -26,7 +26,11 @@ router.post("/verify", async (req, res) => {
             || decoded.email?.split('@')[0]    // Email prefix (e.g., "john" from "john@gmail.com")
             || "User";                         // Fallback
 
+        // Get photoURL from decoded token (Google sign-in)
+        const photoURL = decoded.picture || decoded.photoURL || null;
+
         console.log("Using name:", userName);
+        console.log("Using photoURL:", photoURL);
 
         // Check if user already exists
         let existingUser = null;
@@ -44,6 +48,7 @@ router.post("/verify", async (req, res) => {
                 const newUser = await userService.createUser({
                     userId: decoded.uid,
                     name: userName,  // ✅ Use the properly extracted name
+                    photoURL: photoURL,
                     default_prompt: null,
                     theme: "light",
                 });
@@ -53,20 +58,25 @@ router.post("/verify", async (req, res) => {
             }
         } else {
             console.log("✅ User already exists in database");
-            
-            // ✅ Optional: Update name if it was "User" and now we have a real name
+            // ✅ Optional: Update name/photo if it was "User" and now we have a real name or new photo
+            const updateData = {};
             if (existingUser.name === "User" && userName !== "User") {
-                console.log("Updating user name from 'User' to:", userName);
+                updateData.name = userName;
+            }
+            if (photoURL && existingUser.photo_url !== photoURL) {
+                updateData.photoURL = photoURL;
+            }
+            if (Object.keys(updateData).length > 0) {
                 try {
-                    await userService.updateUser(decoded.uid, { name: userName });
+                    await userService.updateUser(decoded.uid, updateData);
                 } catch (updateErr) {
-                    console.error("Failed to update user name:", updateErr.message);
+                    console.error("Failed to update user:", updateErr.message);
                 }
             }
         }
 
         console.log("=== AUTH VERIFY COMPLETE ===");
-        res.json({ uid: decoded.uid, email: decoded.email, name: userName });
+        res.json({ uid: decoded.uid, email: decoded.email, name: userName, photoURL });
     } catch (err) {
         console.error("Token verification error:", err);
         res.status(401).json({ error: "Invalid token" });
