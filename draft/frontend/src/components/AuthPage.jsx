@@ -10,11 +10,33 @@ import {
 import { useNavigate } from "react-router-dom";
 import api from "../api/api";
 
+// NiagaMap Logo Component
+const NiagaMapLogo = ({ size = 80 }) => (
+  <svg width={size} height={size * 1.2} viewBox="0 0 100 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="pinGradientAuth" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stopColor="#8B5CF6" />
+        <stop offset="100%" stopColor="#3B82F6" />
+      </linearGradient>
+      <linearGradient id="brainGradientAuth" x1="0%" y1="0%" x2="100%" y2="0%">
+        <stop offset="0%" stopColor="#60A5FA" />
+        <stop offset="100%" stopColor="#A78BFA" />
+      </linearGradient>
+    </defs>
+    <path d="M50 5C28 5 10 23 10 45C10 72 50 115 50 115S90 72 90 45C90 23 72 5 50 5Z" fill="url(#pinGradientAuth)" />
+    <circle cx="50" cy="42" r="28" fill="#0f0f1a" opacity="0.9"/>
+    <path d="M35 35C35 35 40 30 50 30C60 30 65 35 65 35M35 45C35 45 40 50 50 50C60 50 65 45 65 45M38 38L42 42M58 38L62 42M45 32V38M55 32V38M40 48L44 52M56 48L60 52" stroke="url(#brainGradientAuth)" strokeWidth="2" strokeLinecap="round"/>
+    <circle cx="50" cy="80" r="3" fill="white" opacity="0.9"/>
+    <circle cx="42" cy="85" r="1.5" fill="white" opacity="0.6"/>
+    <circle cx="58" cy="85" r="1.5" fill="white" opacity="0.6"/>
+  </svg>
+);
+
 const AuthPage = ({ darkMode = false }) => {
     const [isLogin, setIsLogin] = useState(true);
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
-    const [name, setName] = useState("");  // ✅ Add name field for signup
+    const [name, setName] = useState("");
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
     const [showForgot, setShowForgot] = useState(false);
@@ -22,7 +44,6 @@ const AuthPage = ({ darkMode = false }) => {
     const [resetMsg, setResetMsg] = useState("");
     const navigate = useNavigate();
 
-    // ✅ Helper function to verify with backend
     const verifyWithBackend = async (user) => {
         try {
             const token = await user.getIdToken();
@@ -47,17 +68,14 @@ const AuthPage = ({ darkMode = false }) => {
             } else {
                 userCredential = await createUserWithEmailAndPassword(auth, email, password);
                 
-                // ✅ Update Firebase profile with name for email/password signup
                 if (name.trim()) {
                     await updateProfile(userCredential.user, {
                         displayName: name.trim(),
                     });
-                    // Reload user to get updated profile
                     await userCredential.user.reload();
                 }
             }
 
-            // ✅ Verify with backend (creates user in Supabase)
             await verifyWithBackend(userCredential.user);
 
             setSuccess(isLogin ? "Login successful!" : "Signup successful!");
@@ -73,12 +91,8 @@ const AuthPage = ({ darkMode = false }) => {
         setSuccess("");
         try {
             const result = await signInWithPopup(auth, googleProvider);
-            
-            // ✅ Verify with backend (creates user in Supabase with Google name)
             await verifyWithBackend(result.user);
-            
             console.log("Google user displayName:", result.user.displayName);
-            
             setSuccess("Google login successful!");
             navigate("/map");
         } catch (err) {
@@ -99,14 +113,15 @@ const AuthPage = ({ darkMode = false }) => {
     };
 
     const inputStyle = {
-        padding: "12px 14px",
-        borderRadius: 8,
-        border: `1px solid ${darkMode ? "#555" : "#cfd8dc"}`,
-        fontSize: 16,
-        color: darkMode ? "#f5f5f5" : "#222",
-        background: darkMode ? "#1e1e1e" : "#fff",
+        padding: "14px 16px",
+        borderRadius: 12,
+        border: `2px solid ${darkMode ? "#2d2d5a" : "#e2e8f0"}`,
+        fontSize: 15,
+        color: darkMode ? "#f1f5f9" : "#1e293b",
+        background: darkMode ? "#1a1a2e" : "#ffffff",
         outline: "none",
-        transition: "border 0.2s",
+        transition: "all 0.25s ease",
+        width: "100%",
     };
 
     return (
@@ -114,34 +129,96 @@ const AuthPage = ({ darkMode = false }) => {
             style={{
                 minHeight: "100vh",
                 background: darkMode
-                    ? "linear-gradient(135deg, #1a1a1a 0%, #121212 100%)"
-                    : "linear-gradient(135deg, #e3f0ff 0%, #f9f9f9 100%)",
+                    ? "linear-gradient(135deg, #0f0f1a 0%, #1a1a2e 50%, #0f0f1a 100%)"
+                    : "linear-gradient(135deg, #f8fafc 0%, #e0e7ff 50%, #f8fafc 100%)",
                 display: "flex",
                 flexDirection: "column",
-                color: darkMode ? "#f0f0f0" : "#222",
+                alignItems: "center",
+                justifyContent: "center",
+                padding: "40px 20px",
+                position: "relative",
+                overflow: "hidden",
             }}
         >
+            {/* Background decorations */}
+            <div style={{
+                position: "absolute",
+                top: "10%",
+                left: "10%",
+                width: 300,
+                height: 300,
+                background: "radial-gradient(circle, rgba(139, 92, 246, 0.15) 0%, transparent 70%)",
+                borderRadius: "50%",
+                pointerEvents: "none",
+            }} />
+            <div style={{
+                position: "absolute",
+                bottom: "10%",
+                right: "10%",
+                width: 400,
+                height: 400,
+                background: "radial-gradient(circle, rgba(59, 130, 246, 0.15) 0%, transparent 70%)",
+                borderRadius: "50%",
+                pointerEvents: "none",
+            }} />
+
+            {/* Logo and Title */}
+            <div style={{ 
+                display: "flex", 
+                flexDirection: "column", 
+                alignItems: "center", 
+                marginBottom: 32,
+                zIndex: 1,
+            }}>
+                <NiagaMapLogo size={70} />
+                <h1 style={{
+                    fontSize: 32,
+                    fontWeight: 700,
+                    marginTop: 16,
+                    background: "linear-gradient(135deg, #8B5CF6 0%, #3B82F6 100%)",
+                    WebkitBackgroundClip: "text",
+                    WebkitTextFillColor: "transparent",
+                    letterSpacing: -0.5,
+                }}>
+                    NiagaMap
+                </h1>
+                <p style={{
+                    color: darkMode ? "#94a3b8" : "#64748b",
+                    fontSize: 14,
+                    marginTop: 8,
+                }}>
+                    AI-Powered Location Intelligence
+                </p>
+            </div>
+
+            {/* Auth Card */}
             <div
                 style={{
-                    width: 400,
-                    maxWidth: "90vw",
-                    margin: "100px auto",
-                    padding: 40,
-                    border: `1px solid ${darkMode ? "#333" : "#e0e6ed"}`,
-                    borderRadius: 20,
-                    background: darkMode ? "#222" : "#fff",
-                    boxShadow: "0 4px 24px rgba(25, 118, 210, 0.07)",
+                    width: 420,
+                    maxWidth: "95vw",
+                    padding: 36,
+                    borderRadius: 24,
+                    background: darkMode 
+                        ? "rgba(26, 26, 46, 0.9)" 
+                        : "rgba(255, 255, 255, 0.95)",
+                    backdropFilter: "blur(20px)",
+                    border: `1px solid ${darkMode ? "rgba(139, 92, 246, 0.2)" : "rgba(139, 92, 246, 0.1)"}`,
+                    boxShadow: darkMode 
+                        ? "0 24px 48px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(139, 92, 246, 0.1)" 
+                        : "0 24px 48px rgba(139, 92, 246, 0.1)",
+                    zIndex: 1,
                 }}
             >
                 <h2
                     style={{
                         textAlign: "center",
-                        marginBottom: 24,
-                        fontWeight: 700,
-                        letterSpacing: 1,
+                        marginBottom: 28,
+                        fontWeight: 600,
+                        fontSize: 24,
+                        color: darkMode ? "#f1f5f9" : "#1e293b",
                     }}
                 >
-                    {isLogin ? "Login" : "Sign Up"}
+                    {isLogin ? "Welcome back" : "Create account"}
                 </h2>
 
                 <form
@@ -149,10 +226,9 @@ const AuthPage = ({ darkMode = false }) => {
                     style={{
                         display: "flex",
                         flexDirection: "column",
-                        gap: 18,
+                        gap: 16,
                     }}
                 >
-                    {/* ✅ Name field for signup only */}
                     {!isLogin && (
                         <input
                             type="text"
@@ -160,31 +236,31 @@ const AuthPage = ({ darkMode = false }) => {
                             value={name}
                             onChange={(e) => setName(e.target.value)}
                             style={inputStyle}
-                            onFocus={(e) =>
-                                (e.target.style.border = "1.5px solid #1976d2")
-                            }
-                            onBlur={(e) =>
-                                (e.target.style.border = `1px solid ${
-                                    darkMode ? "#555" : "#cfd8dc"
-                                }`)
-                            }
+                            onFocus={(e) => {
+                                e.target.style.borderColor = "#8B5CF6";
+                                e.target.style.boxShadow = "0 0 0 3px rgba(139, 92, 246, 0.15)";
+                            }}
+                            onBlur={(e) => {
+                                e.target.style.borderColor = darkMode ? "#2d2d5a" : "#e2e8f0";
+                                e.target.style.boxShadow = "none";
+                            }}
                         />
                     )}
                     <input
                         type="email"
-                        placeholder="Email"
+                        placeholder="Email address"
                         value={email}
                         required
                         onChange={(e) => setEmail(e.target.value)}
                         style={inputStyle}
-                        onFocus={(e) =>
-                            (e.target.style.border = "1.5px solid #1976d2")
-                        }
-                        onBlur={(e) =>
-                            (e.target.style.border = `1px solid ${
-                                darkMode ? "#555" : "#cfd8dc"
-                            }`)
-                        }
+                        onFocus={(e) => {
+                            e.target.style.borderColor = "#8B5CF6";
+                            e.target.style.boxShadow = "0 0 0 3px rgba(139, 92, 246, 0.15)";
+                        }}
+                        onBlur={(e) => {
+                            e.target.style.borderColor = darkMode ? "#2d2d5a" : "#e2e8f0";
+                            e.target.style.boxShadow = "none";
+                        }}
                     />
                     <input
                         type="password"
@@ -193,62 +269,67 @@ const AuthPage = ({ darkMode = false }) => {
                         required
                         onChange={(e) => setPassword(e.target.value)}
                         style={inputStyle}
-                        onFocus={(e) =>
-                            (e.target.style.border = "1.5px solid #1976d2")
-                        }
-                        onBlur={(e) =>
-                            (e.target.style.border = `1px solid ${
-                                darkMode ? "#555" : "#cfd8dc"
-                            }`)
-                        }
+                        onFocus={(e) => {
+                            e.target.style.borderColor = "#8B5CF6";
+                            e.target.style.boxShadow = "0 0 0 3px rgba(139, 92, 246, 0.15)";
+                        }}
+                        onBlur={(e) => {
+                            e.target.style.borderColor = darkMode ? "#2d2d5a" : "#e2e8f0";
+                            e.target.style.boxShadow = "none";
+                        }}
                     />
                     {isLogin && (
-                        <div style={{ textAlign: "right", marginBottom: -10 }}>
+                        <div style={{ textAlign: "right", marginBottom: -8, marginTop: -4 }}>
                             <button
                                 type="button"
                                 style={{
                                     background: "none",
                                     border: "none",
-                                    color: "#90caf9",
+                                    color: "#8B5CF6",
                                     cursor: "pointer",
-                                    textDecoration: "underline",
-                                    fontSize: 14,
+                                    fontSize: 13,
                                     padding: 0,
+                                    fontWeight: 500,
                                 }}
                                 onClick={() => setShowForgot(true)}
+                                onMouseOver={(e) => e.target.style.color = "#3B82F6"}
+                                onMouseOut={(e) => e.target.style.color = "#8B5CF6"}
                             >
-                                Forgot your password?
+                                Forgot password?
                             </button>
                         </div>
                     )}
                     <button
                         type="submit"
                         style={{
-                            background: "#1976d2",
+                            background: "linear-gradient(135deg, #8B5CF6 0%, #3B82F6 100%)",
                             color: "#fff",
                             border: "none",
-                            borderRadius: 8,
-                            padding: "12px 0",
+                            borderRadius: 12,
+                            padding: "14px 0",
                             fontWeight: 600,
-                            fontSize: 17,
+                            fontSize: 15,
                             marginTop: 8,
                             cursor: "pointer",
-                            boxShadow: "0 2px 8px rgba(25, 118, 210, 0.08)",
+                            boxShadow: "0 8px 24px rgba(139, 92, 246, 0.3)",
+                            transition: "all 0.25s ease",
                         }}
-                        onMouseOver={(e) =>
-                            (e.currentTarget.style.background = "#1251a3")
-                        }
-                        onMouseOut={(e) =>
-                            (e.currentTarget.style.background = "#1976d2")
-                        }
+                        onMouseOver={(e) => {
+                            e.currentTarget.style.transform = "translateY(-2px)";
+                            e.currentTarget.style.boxShadow = "0 12px 32px rgba(139, 92, 246, 0.4)";
+                        }}
+                        onMouseOut={(e) => {
+                            e.currentTarget.style.transform = "translateY(0)";
+                            e.currentTarget.style.boxShadow = "0 8px 24px rgba(139, 92, 246, 0.3)";
+                        }}
                     >
-                        {isLogin ? "Login" : "Sign Up"}
+                        {isLogin ? "Sign In" : "Create Account"}
                     </button>
                 </form>
 
                 <div
                     style={{
-                        margin: "18px 0",
+                        margin: "24px 0",
                         display: "flex",
                         alignItems: "center",
                     }}
@@ -257,23 +338,28 @@ const AuthPage = ({ darkMode = false }) => {
                         style={{
                             flex: 1,
                             height: 1,
-                            background: darkMode ? "#444" : "#e0e0e0",
+                            background: darkMode 
+                                ? "linear-gradient(90deg, transparent, #2d2d5a, transparent)" 
+                                : "linear-gradient(90deg, transparent, #e2e8f0, transparent)",
                         }}
                     />
                     <span
                         style={{
-                            margin: "0 12px",
-                            color: darkMode ? "#bbb" : "#888",
-                            fontSize: 14,
+                            margin: "0 16px",
+                            color: darkMode ? "#64748b" : "#94a3b8",
+                            fontSize: 13,
+                            fontWeight: 500,
                         }}
                     >
-                        or
+                        or continue with
                     </span>
                     <div
                         style={{
                             flex: 1,
                             height: 1,
-                            background: darkMode ? "#444" : "#e0e0e0",
+                            background: darkMode 
+                                ? "linear-gradient(90deg, transparent, #2d2d5a, transparent)" 
+                                : "linear-gradient(90deg, transparent, #e2e8f0, transparent)",
                         }}
                     />
                 </div>
@@ -282,59 +368,56 @@ const AuthPage = ({ darkMode = false }) => {
                     onClick={handleGoogle}
                     style={{
                         width: "100%",
-                        background: darkMode ? "#1e1e1e" : "#fff",
-                        color: darkMode ? "#f0f0f0" : "#222",
-                        border: `1px solid ${darkMode ? "#555" : "#cfd8dc"}`,
-                        borderRadius: 8,
-                        padding: "12px 0",
+                        background: darkMode ? "#1a1a2e" : "#fff",
+                        color: darkMode ? "#f1f5f9" : "#1e293b",
+                        border: `2px solid ${darkMode ? "#2d2d5a" : "#e2e8f0"}`,
+                        borderRadius: 12,
+                        padding: "14px 0",
                         fontWeight: 600,
-                        fontSize: 16,
+                        fontSize: 14,
                         cursor: "pointer",
-                        boxShadow: darkMode
-                            ? "0 2px 8px rgba(255,255,255,0.03)"
-                            : "0 2px 8px rgba(25, 118, 210, 0.04)",
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
-                        gap: 10,
+                        gap: 12,
+                        transition: "all 0.25s ease",
                     }}
-                    onMouseOver={(e) =>
-                        (e.currentTarget.style.border = "1.5px solid #1976d2")
-                    }
-                    onMouseOut={(e) =>
-                        (e.currentTarget.style.border = `1px solid ${
-                            darkMode ? "#555" : "#cfd8dc"
-                        }`)
-                    }
+                    onMouseOver={(e) => {
+                        e.currentTarget.style.borderColor = "#8B5CF6";
+                        e.currentTarget.style.background = darkMode ? "#252540" : "#f8fafc";
+                    }}
+                    onMouseOut={(e) => {
+                        e.currentTarget.style.borderColor = darkMode ? "#2d2d5a" : "#e2e8f0";
+                        e.currentTarget.style.background = darkMode ? "#1a1a2e" : "#fff";
+                    }}
                 >
                     <img
                         src="https://www.svgrepo.com/show/475656/google-color.svg"
                         alt="Google"
-                        style={{ width: 22, height: 22 }}
+                        style={{ width: 20, height: 20 }}
                     />
                     Continue with Google
                 </button>
 
                 <div
-                    style={{ marginTop: 20, textAlign: "center", fontSize: 15 }}
+                    style={{ marginTop: 24, textAlign: "center", fontSize: 14 }}
                 >
-                    <span>
-                        {isLogin
-                            ? "Don't have an account?"
-                            : "Already have an account?"}{" "}
+                    <span style={{ color: darkMode ? "#94a3b8" : "#64748b" }}>
+                        {isLogin ? "Don't have an account?" : "Already have an account?"}{" "}
                         <button
                             style={{
-                                color: "#90caf9",
-                                background: "none",
+                                background: "linear-gradient(135deg, #8B5CF6 0%, #3B82F6 100%)",
+                                WebkitBackgroundClip: "text",
+                                WebkitTextFillColor: "transparent",
                                 border: "none",
                                 cursor: "pointer",
                                 padding: 0,
                                 fontWeight: 600,
-                                fontSize: 15,
+                                fontSize: 14,
                             }}
                             onClick={() => setIsLogin(!isLogin)}
                         >
-                            {isLogin ? "Sign Up" : "Login"}
+                            {isLogin ? "Sign Up" : "Sign In"}
                         </button>
                     </span>
                 </div>
@@ -342,10 +425,15 @@ const AuthPage = ({ darkMode = false }) => {
                 {error && (
                     <div
                         style={{
-                            color: "#ef5350",
-                            marginTop: 14,
+                            color: "#ef4444",
+                            marginTop: 16,
                             textAlign: "center",
                             fontWeight: 500,
+                            fontSize: 13,
+                            padding: "12px",
+                            background: "rgba(239, 68, 68, 0.1)",
+                            borderRadius: 8,
+                            border: "1px solid rgba(239, 68, 68, 0.2)",
                         }}
                     >
                         {error}
@@ -354,10 +442,15 @@ const AuthPage = ({ darkMode = false }) => {
                 {success && (
                     <div
                         style={{
-                            color: "#66bb6a",
-                            marginTop: 14,
+                            color: "#10b981",
+                            marginTop: 16,
                             textAlign: "center",
                             fontWeight: 500,
+                            fontSize: 13,
+                            padding: "12px",
+                            background: "rgba(16, 185, 129, 0.1)",
+                            borderRadius: 8,
+                            border: "1px solid rgba(16, 185, 129, 0.2)",
                         }}
                     >
                         {success}
@@ -374,7 +467,8 @@ const AuthPage = ({ darkMode = false }) => {
                         left: 0,
                         width: "100vw",
                         height: "100vh",
-                        background: "rgba(0,0,0,0.3)",
+                        background: "rgba(0, 0, 0, 0.6)",
+                        backdropFilter: "blur(8px)",
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
@@ -383,15 +477,23 @@ const AuthPage = ({ darkMode = false }) => {
                 >
                     <div
                         style={{
-                            background: darkMode ? "#222" : "#fff",
-                            padding: 24,
-                            borderRadius: 12,
-                            minWidth: 320,
-                            boxShadow: "0 2px 16px rgba(0,0,0,0.25)",
-                            color: darkMode ? "#f0f0f0" : "#222",
+                            background: darkMode ? "#1a1a2e" : "#fff",
+                            padding: 32,
+                            borderRadius: 20,
+                            minWidth: 360,
+                            maxWidth: "90vw",
+                            boxShadow: "0 24px 48px rgba(0, 0, 0, 0.3)",
+                            border: `1px solid ${darkMode ? "rgba(139, 92, 246, 0.2)" : "rgba(139, 92, 246, 0.1)"}`,
                         }}
                     >
-                        <h3>Reset Password</h3>
+                        <h3 style={{ 
+                            color: darkMode ? "#f1f5f9" : "#1e293b",
+                            marginBottom: 20,
+                            fontSize: 20,
+                            fontWeight: 600,
+                        }}>
+                            Reset Password
+                        </h3>
                         <form onSubmit={handleForgotPassword}>
                             <input
                                 type="email"
@@ -400,58 +502,57 @@ const AuthPage = ({ darkMode = false }) => {
                                 onChange={(e) => setResetEmail(e.target.value)}
                                 required
                                 style={{
-                                    width: "100%",
-                                    padding: 8,
-                                    marginBottom: 12,
-                                    borderRadius: 6,
-                                    border: `1px solid ${
-                                        darkMode ? "#555" : "#ccc"
-                                    }`,
-                                    background: darkMode ? "#1e1e1e" : "#fff",
-                                    color: darkMode ? "#f0f0f0" : "#222",
+                                    ...inputStyle,
+                                    marginBottom: 16,
                                 }}
                             />
-                            <button
-                                type="submit"
-                                style={{
-                                    background: "#1976d2",
-                                    color: "#fff",
-                                    border: "none",
-                                    borderRadius: 6,
-                                    padding: "8px 16px",
-                                    fontWeight: 600,
-                                    cursor: "pointer",
-                                }}
-                            >
-                                Send Reset Email
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    setShowForgot(false);
-                                    setResetMsg("");
-                                }}
-                                style={{
-                                    marginLeft: 12,
-                                    background: darkMode ? "#444" : "#eee",
-                                    color: darkMode ? "#eee" : "#222",
-                                    border: "none",
-                                    borderRadius: 6,
-                                    padding: "8px 16px",
-                                    fontWeight: 600,
-                                    cursor: "pointer",
-                                }}
-                            >
-                                Cancel
-                            </button>
+                            <div style={{ display: "flex", gap: 12 }}>
+                                <button
+                                    type="submit"
+                                    style={{
+                                        flex: 1,
+                                        background: "linear-gradient(135deg, #8B5CF6 0%, #3B82F6 100%)",
+                                        color: "#fff",
+                                        border: "none",
+                                        borderRadius: 10,
+                                        padding: "12px 20px",
+                                        fontWeight: 600,
+                                        cursor: "pointer",
+                                        fontSize: 14,
+                                    }}
+                                >
+                                    Send Reset Link
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setShowForgot(false);
+                                        setResetMsg("");
+                                    }}
+                                    style={{
+                                        background: darkMode ? "#252540" : "#f1f5f9",
+                                        color: darkMode ? "#f1f5f9" : "#64748b",
+                                        border: "none",
+                                        borderRadius: 10,
+                                        padding: "12px 20px",
+                                        fontWeight: 600,
+                                        cursor: "pointer",
+                                        fontSize: 14,
+                                    }}
+                                >
+                                    Cancel
+                                </button>
+                            </div>
                         </form>
                         {resetMsg && (
                             <div
                                 style={{
-                                    marginTop: 12,
+                                    marginTop: 16,
                                     color: resetMsg.startsWith("Password reset")
-                                        ? "lightgreen"
-                                        : "red",
+                                        ? "#10b981"
+                                        : "#ef4444",
+                                    fontSize: 13,
+                                    textAlign: "center",
                                 }}
                             >
                                 {resetMsg}

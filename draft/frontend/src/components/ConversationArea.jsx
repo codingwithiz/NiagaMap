@@ -26,16 +26,33 @@ const ConversationArea = forwardRef(({
       >
         <div style={{ 
           textAlign: "center", 
-          color: darkMode ? "#888" : "#999",
+          color: darkMode ? "#94a3b8" : "#64748b",
           marginTop: 40,
           fontSize: 15,
         }}>
-          <p style={{ fontSize: 42, marginBottom: 14 }}>👋</p>
-          <p style={{ fontSize: 17, fontWeight: 500, marginBottom: 10 }}>
-            Welcome! Start a new chat to analyze business locations.
+          <div style={{ 
+            fontSize: 48, 
+            marginBottom: 16,
+            background: "linear-gradient(135deg, #8B5CF6 0%, #3B82F6 100%)",
+            WebkitBackgroundClip: "text",
+            WebkitTextFillColor: "transparent",
+            backgroundClip: "text",
+          }}>
+            🗺️
+          </div>
+          <p style={{ 
+            fontSize: 18, 
+            fontWeight: 600, 
+            marginBottom: 10,
+            background: "linear-gradient(135deg, #8B5CF6 0%, #3B82F6 100%)",
+            WebkitBackgroundClip: "text",
+            WebkitTextFillColor: "transparent",
+            backgroundClip: "text",
+          }}>
+            Welcome to NiagaMap AI
           </p>
-          <p style={{ fontSize: 13, marginTop: 10, lineHeight: 1.6 }}>
-            Select a category, adjust weights, and ask about locations.
+          <p style={{ fontSize: 14, marginTop: 10, lineHeight: 1.6 }}>
+            Start a new chat to analyze business locations with AI-powered insights.
           </p>
         </div>
       </div>
@@ -75,7 +92,7 @@ const ConversationArea = forwardRef(({
                   justifyContent: "flex-end",
                 }}>
                   <span style={{
-                    background: "linear-gradient(135deg, #1976d2 0%, #1565c0 100%)",
+                    background: "linear-gradient(135deg, #8B5CF6 0%, #3B82F6 100%)",
                     color: "#fff",
                     padding: "4px 10px",
                     borderRadius: 12,
@@ -84,8 +101,8 @@ const ConversationArea = forwardRef(({
                     {category}
                   </span>
                   <span style={{
-                    background: darkMode ? "#2a2a2a" : "#f5f5f5",
-                    color: darkMode ? "#aaa" : "#666",
+                    background: darkMode ? "rgba(139, 92, 246, 0.15)" : "rgba(139, 92, 246, 0.1)",
+                    color: darkMode ? "#c4b5fd" : "#7c3aed",
                     padding: "4px 10px",
                     borderRadius: 12,
                     fontWeight: 500,
@@ -97,7 +114,7 @@ const ConversationArea = forwardRef(({
 
               <div
                 style={{
-                  background: "linear-gradient(135deg, #1976d2 0%, #1565c0 100%)",
+                  background: "linear-gradient(135deg, #8B5CF6 0%, #3B82F6 100%)",
                   color: "#fff",
                   borderRadius: "18px 18px 4px 18px",
                   padding: "12px 18px",
@@ -105,7 +122,7 @@ const ConversationArea = forwardRef(({
                   wordBreak: "break-word",
                   fontSize: 14,
                   lineHeight: 1.5,
-                  boxShadow: "0 3px 10px rgba(25, 118, 210, 0.3)",
+                  boxShadow: "0 4px 16px rgba(139, 92, 246, 0.3)",
                 }}
               >
                 {cleanMessage}
@@ -116,15 +133,15 @@ const ConversationArea = forwardRef(({
             <div style={{ display: "flex", justifyContent: "flex-start", flexDirection: "column", gap: 10 }}>
               <div
                 style={{
-                  background: darkMode ? "#2a2a2a" : "#f1f3f4",
-                  color: darkMode ? "#e0e0e0" : "#222",
+                  background: darkMode ? "rgba(37, 37, 64, 0.8)" : "#f8fafc",
+                  color: darkMode ? "#e2e8f0" : "#1f2937",
                   borderRadius: "18px 18px 18px 4px",
                   padding: "12px 18px",
                   maxWidth: "70%",
                   wordBreak: "break-word",
                   fontSize: 14,
                   lineHeight: 1.5,
-                  border: `1px solid ${darkMode ? "#3d3d3d" : "#e0e0e0"}`,
+                  border: `1px solid ${darkMode ? "rgba(139, 92, 246, 0.2)" : "rgba(139, 92, 246, 0.1)"}`,
                 }}
               >
                 {(() => {
@@ -141,27 +158,27 @@ const ConversationArea = forwardRef(({
                 <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                   <button
                     style={{
-                      background: "linear-gradient(135deg, #4caf50 0%, #45a049 100%)",
+                      background: "linear-gradient(135deg, #8B5CF6 0%, #3B82F6 100%)",
                       color: "#fff",
                       border: "none",
-                      borderRadius: 8,
+                      borderRadius: 10,
                       padding: "10px 18px",
                       fontSize: 13,
                       cursor: "pointer",
                       fontWeight: 600,
-                      boxShadow: "0 3px 10px rgba(76, 175, 80, 0.3)",
-                      transition: "transform 0.2s",
+                      boxShadow: "0 4px 12px rgba(139, 92, 246, 0.3)",
+                      transition: "all 0.25s ease",
                       display: "flex",
                       alignItems: "center",
                       gap: 8,
                     }}
                     onMouseEnter={(e) => {
                       e.target.style.transform = "translateY(-2px)";
-                      e.target.style.boxShadow = "0 5px 15px rgba(76, 175, 80, 0.4)";
+                      e.target.style.boxShadow = "0 6px 20px rgba(139, 92, 246, 0.4)";
                     }}
                     onMouseLeave={(e) => {
                       e.target.style.transform = "translateY(0)";
-                      e.target.style.boxShadow = "0 3px 10px rgba(76, 175, 80, 0.3)";
+                      e.target.style.boxShadow = "0 4px 12px rgba(139, 92, 246, 0.3)";
                     }}
                     onClick={() => handleShowRecommendations(msg.analysisId)}
                   >
@@ -172,18 +189,18 @@ const ConversationArea = forwardRef(({
                   <button
                     style={{
                       background: isFavourited 
-                        ? "linear-gradient(135deg, #ff9800 0%, #f57c00 100%)"
-                        : darkMode ? "#3d3d3d" : "#e0e0e0",
-                      color: isFavourited ? "#fff" : darkMode ? "#aaa" : "#666",
-                      border: "none",
-                      borderRadius: 8,
+                        ? "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)"
+                        : darkMode ? "rgba(139, 92, 246, 0.15)" : "rgba(139, 92, 246, 0.1)",
+                      color: isFavourited ? "#fff" : darkMode ? "#c4b5fd" : "#8B5CF6",
+                      border: isFavourited ? "none" : `1.5px solid ${darkMode ? "rgba(139, 92, 246, 0.3)" : "rgba(139, 92, 246, 0.2)"}`,
+                      borderRadius: 10,
                       padding: "10px 14px",
                       fontSize: 18,
                       cursor: "pointer",
                       boxShadow: isFavourited 
-                        ? "0 3px 10px rgba(255, 152, 0, 0.3)"
+                        ? "0 4px 12px rgba(245, 158, 11, 0.3)"
                         : "none",
-                      transition: "all 0.2s",
+                      transition: "all 0.25s ease",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",

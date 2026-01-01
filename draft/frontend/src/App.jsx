@@ -8,9 +8,32 @@ import AuthPage from "./components/AuthPage";
 import { signOut } from "firebase/auth";
 import { auth } from "./firebase";
 import "./App.css";
+import "./styles/theme.css";
 import api from "./api/api";
 import AnalysesPage from "./components/Analysis";
 import Profile from "./components/Profile";
+
+// NiagaMap Logo Component
+const NiagaMapLogo = () => (
+  <svg width="32" height="32" viewBox="0 0 100 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="pinGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stopColor="#8B5CF6" />
+        <stop offset="100%" stopColor="#3B82F6" />
+      </linearGradient>
+      <linearGradient id="brainGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+        <stop offset="0%" stopColor="#60A5FA" />
+        <stop offset="100%" stopColor="#A78BFA" />
+      </linearGradient>
+    </defs>
+    <path d="M50 5C28 5 10 23 10 45C10 72 50 115 50 115S90 72 90 45C90 23 72 5 50 5Z" fill="url(#pinGradient)" />
+    <circle cx="50" cy="42" r="28" fill="#0f0f1a" opacity="0.9"/>
+    <path d="M35 35C35 35 40 30 50 30C60 30 65 35 65 35M35 45C35 45 40 50 50 50C60 50 65 45 65 45M38 38L42 42M58 38L62 42M45 32V38M55 32V38M40 48L44 52M56 48L60 52" stroke="url(#brainGradient)" strokeWidth="2" strokeLinecap="round"/>
+    <circle cx="50" cy="80" r="3" fill="white" opacity="0.9"/>
+    <circle cx="42" cy="85" r="1.5" fill="white" opacity="0.6"/>
+    <circle cx="58" cy="85" r="1.5" fill="white" opacity="0.6"/>
+  </svg>
+);
 
 
 function ProtectedRoute({ children }) {
@@ -191,101 +214,115 @@ function App() {
   return (
       <>
           <div className={darkMode ? "dark" : ""}>
-              <nav className="bg-white dark:bg-neutral-900 text-black dark:text-white shadow-md px-8 py-4 flex justify-between items-center">
+              <nav style={{
+                  background: darkMode 
+                    ? 'linear-gradient(135deg, #0f0f1a 0%, #1a1a2e 100%)' 
+                    : 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)',
+                  borderBottom: `1px solid ${darkMode ? 'rgba(139, 92, 246, 0.2)' : '#e2e8f0'}`,
+                  padding: '12px 32px',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  boxShadow: darkMode ? '0 4px 20px rgba(0, 0, 0, 0.3)' : '0 2px 10px rgba(0, 0, 0, 0.05)',
+              }}>
                   {/* Left Side: Logo + Links */}
                   <div
                       style={{
                           display: "flex",
                           alignItems: "center",
-                          gap: "2rem",
+                          gap: "2.5rem",
                       }}
                   >
-                      <span
-                          style={{
-                              fontWeight: 700,
-                              fontSize: 22,
-                              color: "#1976d2",
-                              letterSpacing: 1,
-                              display: "flex",
-                              alignItems: "center",
-                              gap: 8,
+                      <Link 
+                          to="/map" 
+                          style={{ 
+                              display: 'flex', 
+                              alignItems: 'center', 
+                              gap: 10, 
+                              textDecoration: 'none' 
                           }}
                       >
-                          <svg
-                              width="28"
-                              height="28"
-                              fill="#1976d2"
-                              viewBox="0 0 24 24"
+                          <NiagaMapLogo />
+                          <span
+                              style={{
+                                  fontWeight: 700,
+                                  fontSize: 22,
+                                  background: 'linear-gradient(135deg, #8B5CF6 0%, #3B82F6 100%)',
+                                  WebkitBackgroundClip: 'text',
+                                  WebkitTextFillColor: 'transparent',
+                                  letterSpacing: -0.5,
+                              }}
                           >
-                              <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5S10.62 6.5 12 6.5s2.5 1.12 2.5 2.5S13.38 11.5 12 11.5z" />
-                          </svg>
-                          NiagaMap
-                      </span>
+                              NiagaMap
+                          </span>
+                      </Link>
 
                       {user && (
-                          <>
+                          <div style={{ display: 'flex', gap: '8px' }}>
                               <Link
                                   to="/map"
                                   style={{
-                                      color: isActive("/map")
-                                          ? "#fff"
-                                          : "#1976d2", // ✅ White when active
+                                      color: isActive("/map") ? "#fff" : darkMode ? "#94a3b8" : "#64748b",
                                       background: isActive("/map")
-                                          ? "#1976d2"
-                                          : "transparent", // ✅ Blue bg when active
-                                      fontWeight: 600,
+                                          ? "linear-gradient(135deg, #8B5CF6 0%, #3B82F6 100%)"
+                                          : "transparent",
+                                      fontWeight: 500,
                                       textDecoration: "none",
-                                      padding: "10px 18px",
-                                      borderRadius: 8,
-                                      transition: "all 0.2s",
+                                      padding: "10px 20px",
+                                      borderRadius: 10,
+                                      transition: "all 0.25s ease",
+                                      fontSize: 14,
                                       boxShadow: isActive("/map")
-                                          ? "0 2px 8px rgba(25, 118, 210, 0.3)"
+                                          ? "0 4px 15px rgba(139, 92, 246, 0.4)"
                                           : "none",
                                   }}
                                   onMouseOver={(e) => {
                                       if (!isActive("/map")) {
-                                          e.currentTarget.style.background =
-                                              "#f0f7ff";
+                                          e.currentTarget.style.background = darkMode 
+                                            ? "rgba(139, 92, 246, 0.15)" 
+                                            : "rgba(139, 92, 246, 0.1)";
+                                          e.currentTarget.style.color = "#8B5CF6";
                                       }
                                   }}
                                   onMouseOut={(e) => {
                                       if (!isActive("/map")) {
-                                          e.currentTarget.style.background =
-                                              "transparent";
+                                          e.currentTarget.style.background = "transparent";
+                                          e.currentTarget.style.color = darkMode ? "#94a3b8" : "#64748b";
                                       }
                                   }}
                               >
-                                  Places Services
+                                  Map
                               </Link>
 
                               <Link
                                   to="/basemap"
                                   style={{
-                                      color: isActive("/basemap")
-                                          ? "#fff"
-                                          : "#1976d2",
+                                      color: isActive("/basemap") ? "#fff" : darkMode ? "#94a3b8" : "#64748b",
                                       background: isActive("/basemap")
-                                          ? "#1976d2"
+                                          ? "linear-gradient(135deg, #8B5CF6 0%, #3B82F6 100%)"
                                           : "transparent",
-                                      fontWeight: 600,
+                                      fontWeight: 500,
                                       textDecoration: "none",
-                                      padding: "10px 18px",
-                                      borderRadius: 8,
-                                      transition: "all 0.2s",
+                                      padding: "10px 20px",
+                                      borderRadius: 10,
+                                      transition: "all 0.25s ease",
+                                      fontSize: 14,
                                       boxShadow: isActive("/basemap")
-                                          ? "0 2px 8px rgba(25, 118, 210, 0.3)"
+                                          ? "0 4px 15px rgba(139, 92, 246, 0.4)"
                                           : "none",
                                   }}
                                   onMouseOver={(e) => {
                                       if (!isActive("/basemap")) {
-                                          e.currentTarget.style.background =
-                                              "#f0f7ff";
+                                          e.currentTarget.style.background = darkMode 
+                                            ? "rgba(139, 92, 246, 0.15)" 
+                                            : "rgba(139, 92, 246, 0.1)";
+                                          e.currentTarget.style.color = "#8B5CF6";
                                       }
                                   }}
                                   onMouseOut={(e) => {
                                       if (!isActive("/basemap")) {
-                                          e.currentTarget.style.background =
-                                              "transparent";
+                                          e.currentTarget.style.background = "transparent";
+                                          e.currentTarget.style.color = darkMode ? "#94a3b8" : "#64748b";
                                       }
                                   }}
                               >
@@ -295,39 +332,38 @@ function App() {
                               <Link
                                   to="/analysis"
                                   style={{
-                                      color: isActive("/analysis")
-                                          ? "#fff"
-                                          : "#1976d2",
+                                      color: isActive("/analysis") ? "#fff" : darkMode ? "#94a3b8" : "#64748b",
                                       background: isActive("/analysis")
-                                          ? "#1976d2"
+                                          ? "linear-gradient(135deg, #8B5CF6 0%, #3B82F6 100%)"
                                           : "transparent",
-                                      fontWeight: 600,
+                                      fontWeight: 500,
                                       textDecoration: "none",
-                                      padding: "10px 18px",
-                                      borderRadius: 8,
-                                      transition: "all 0.2s",
+                                      padding: "10px 20px",
+                                      borderRadius: 10,
+                                      transition: "all 0.25s ease",
+                                      fontSize: 14,
                                       boxShadow: isActive("/analysis")
-                                          ? "0 2px 8px rgba(25, 118, 210, 0.3)"
+                                          ? "0 4px 15px rgba(139, 92, 246, 0.4)"
                                           : "none",
                                   }}
                                   onMouseOver={(e) => {
                                       if (!isActive("/analysis")) {
-                                          e.currentTarget.style.background =
-                                              "#f0f7ff";
+                                          e.currentTarget.style.background = darkMode 
+                                            ? "rgba(139, 92, 246, 0.15)" 
+                                            : "rgba(139, 92, 246, 0.1)";
+                                          e.currentTarget.style.color = "#8B5CF6";
                                       }
                                   }}
                                   onMouseOut={(e) => {
                                       if (!isActive("/analysis")) {
-                                          e.currentTarget.style.background =
-                                              "transparent";
+                                          e.currentTarget.style.background = "transparent";
+                                          e.currentTarget.style.color = darkMode ? "#94a3b8" : "#64748b";
                                       }
                                   }}
                               >
                                   Analysis
                               </Link>
-
-                              {/* Left Profile link removed in favor of profile icon on the right */}
-                          </>
+                          </div>
                       )}
                   </div>
 
@@ -335,49 +371,54 @@ function App() {
                       style={{
                           display: "flex",
                           alignItems: "center",
-                          gap: "2rem",
+                          gap: "1.5rem",
                       }}
                   >
-                      {/* Right Side: Dark Mode Toggle */}
-                      <div style={{ display: "flex", alignItems: "center" }}>
-                          <span style={{ marginRight: 8, fontSize: 18 }}>
-                              ☀️
-                          </span>
+                      {/* Dark Mode Toggle - Refined */}
+                      <div style={{ 
+                          display: "flex", 
+                          alignItems: "center",
+                          background: darkMode ? 'rgba(139, 92, 246, 0.1)' : 'rgba(0, 0, 0, 0.05)',
+                          borderRadius: 20,
+                          padding: '4px 8px',
+                      }}>
+                          <span style={{ marginRight: 8, fontSize: 14 }}>☀️</span>
                           <div
                               onClick={() => setDarkMode(!darkMode)}
                               style={{
-                                  width: 60,
-                                  height: 30,
-                                  background: darkMode ? "#444" : "#ccc",
+                                  width: 48,
+                                  height: 24,
+                                  background: darkMode 
+                                    ? 'linear-gradient(135deg, #8B5CF6 0%, #3B82F6 100%)' 
+                                    : '#cbd5e1',
                                   borderRadius: 9999,
                                   position: "relative",
                                   cursor: "pointer",
-                                  transition: "background 0.3s",
+                                  transition: "all 0.3s ease",
                               }}
                           >
                               <div
                                   style={{
-                                      width: 26,
-                                      height: 26,
-                                      background: darkMode ? "#fff" : "#000",
+                                      width: 18,
+                                      height: 18,
+                                      background: "#fff",
                                       borderRadius: "50%",
                                       position: "absolute",
-                                      top: 2,
-                                      left: darkMode ? 32 : 2,
-                                      transition: "left 0.25s",
+                                      top: 3,
+                                      left: darkMode ? 27 : 3,
+                                      transition: "left 0.25s ease",
+                                      boxShadow: '0 2px 4px rgba(0, 0, 0, 0.2)',
                                   }}
                               />
                           </div>
-                          <span style={{ marginLeft: 8, fontSize: 18 }}>
-                              🌙
-                          </span>
+                          <span style={{ marginLeft: 8, fontSize: 14 }}>🌙</span>
                       </div>
+
                       {user && (
-                          <>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                               <Link
                                   to="/profile"
                                   aria-label="Profile"
-                                  className="ml-4"
                                   style={{ textDecoration: "none" }}
                               >
                                   {user?.photoURL ? (
@@ -385,27 +426,35 @@ function App() {
                                           src={user.photoURL}
                                           alt="Profile"
                                           style={{
-                                              width: 36,
-                                              height: 36,
+                                              width: 38,
+                                              height: 38,
                                               borderRadius: "50%",
                                               objectFit: "cover",
-                                              border: "1px solid rgba(0,0,0,0.08)",
+                                              border: "2px solid transparent",
+                                              background: 'linear-gradient(135deg, #8B5CF6 0%, #3B82F6 100%) border-box',
+                                              transition: 'transform 0.2s ease',
                                           }}
+                                          onMouseOver={(e) => e.target.style.transform = 'scale(1.1)'}
+                                          onMouseOut={(e) => e.target.style.transform = 'scale(1)'}
                                       />
                                   ) : (
                                       <div
                                           style={{
-                                              width: 36,
-                                              height: 36,
+                                              width: 38,
+                                              height: 38,
                                               borderRadius: "50%",
-                                              background: "#1976d2",
+                                              background: 'linear-gradient(135deg, #8B5CF6 0%, #3B82F6 100%)',
                                               color: "#fff",
                                               display: "flex",
                                               alignItems: "center",
                                               justifyContent: "center",
-                                              fontWeight: 700,
+                                              fontWeight: 600,
+                                              fontSize: 14,
                                               textTransform: "uppercase",
+                                              transition: 'transform 0.2s ease',
                                           }}
+                                          onMouseOver={(e) => e.target.style.transform = 'scale(1.1)'}
+                                          onMouseOut={(e) => e.target.style.transform = 'scale(1)'}
                                       >
                                           {user?.displayName
                                               ? user.displayName.charAt(0)
@@ -418,19 +467,31 @@ function App() {
 
                               <button
                                   onClick={handleLogout}
-                                  className="ml-4 px-4 py-2 rounded bg-gray-200 dark:bg-gray-700 dark:text-white"
-                                  onMouseOver={(e) =>
-                                      (e.currentTarget.style.background =
-                                          "#d32f2f")
-                                  }
-                                  onMouseOut={(e) =>
-                                      (e.currentTarget.style.background =
-                                          "#f44336")
-                                  }
+                                  style={{
+                                      padding: '8px 16px',
+                                      borderRadius: 8,
+                                      background: 'transparent',
+                                      border: `1px solid ${darkMode ? 'rgba(239, 68, 68, 0.5)' : '#fecaca'}`,
+                                      color: '#ef4444',
+                                      fontWeight: 500,
+                                      fontSize: 13,
+                                      cursor: 'pointer',
+                                      transition: 'all 0.2s ease',
+                                  }}
+                                  onMouseOver={(e) => {
+                                      e.currentTarget.style.background = '#ef4444';
+                                      e.currentTarget.style.color = '#fff';
+                                      e.currentTarget.style.borderColor = '#ef4444';
+                                  }}
+                                  onMouseOut={(e) => {
+                                      e.currentTarget.style.background = 'transparent';
+                                      e.currentTarget.style.color = '#ef4444';
+                                      e.currentTarget.style.borderColor = darkMode ? 'rgba(239, 68, 68, 0.5)' : '#fecaca';
+                                  }}
                               >
                                   Logout
                               </button>
-                          </>
+                          </div>
                       )}
                   </div>
               </nav>
@@ -474,7 +535,7 @@ function App() {
                                       />
                                   </div>
 
-                                  {/* Floating Chatbot Button */}
+                                  {/* Floating Chatbot Button - NiagaMap Theme */}
                                   {!chatbotOpen && (
                                       <button
                                           onClick={() => setChatbotOpen(true)}
@@ -486,26 +547,33 @@ function App() {
                                               borderRadius: "50%",
                                               width: 64,
                                               height: 64,
-                                              background: "#1976d2",
+                                              background: "linear-gradient(135deg, #8B5CF6 0%, #3B82F6 100%)",
                                               color: "#fff",
-                                              fontSize: 32,
+                                              fontSize: 28,
                                               border: "none",
-                                              boxShadow:
-                                                  "0 4px 16px rgba(0,0,0,0.2)",
+                                              boxShadow: "0 8px 32px rgba(139, 92, 246, 0.4)",
                                               cursor: "pointer",
-                                              transition: "transform 0.2s",
+                                              transition: "all 0.3s ease",
+                                              display: 'flex',
+                                              alignItems: 'center',
+                                              justifyContent: 'center',
                                           }}
-                                          onMouseEnter={(e) =>
-                                              (e.target.style.transform =
-                                                  "scale(1.1)")
-                                          }
-                                          onMouseLeave={(e) =>
-                                              (e.target.style.transform =
-                                                  "scale(1)")
-                                          }
-                                          aria-label="Open Chatbot"
+                                          onMouseEnter={(e) => {
+                                              e.target.style.transform = "scale(1.1) rotate(5deg)";
+                                              e.target.style.boxShadow = "0 12px 40px rgba(139, 92, 246, 0.5)";
+                                          }}
+                                          onMouseLeave={(e) => {
+                                              e.target.style.transform = "scale(1) rotate(0deg)";
+                                              e.target.style.boxShadow = "0 8px 32px rgba(139, 92, 246, 0.4)";
+                                          }}
+                                          aria-label="Open AI Assistant"
                                       >
-                                          💬
+                                          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                                            <circle cx="9" cy="10" r="1" fill="currentColor"/>
+                                            <circle cx="12" cy="10" r="1" fill="currentColor"/>
+                                            <circle cx="15" cy="10" r="1" fill="currentColor"/>
+                                          </svg>
                                       </button>
                                   )}
 

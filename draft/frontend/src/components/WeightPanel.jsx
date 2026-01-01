@@ -16,10 +16,13 @@ function WeightPanel({
   return (
     <div
       style={{
-        background: darkMode ? "#2a2a2a" : "#fff",
-        border: `2px solid ${isWeightValid ? "#4caf50" : "#ff9800"}`,
-        borderRadius: 8,
+        background: darkMode ? "rgba(37, 37, 64, 0.8)" : "#fff",
+        border: `2px solid ${isWeightValid ? "#10b981" : "#f59e0b"}`,
+        borderRadius: 12,
         padding: 16,
+        boxShadow: isWeightValid 
+          ? "0 4px 12px rgba(16, 185, 129, 0.15)"
+          : "0 4px 12px rgba(245, 158, 11, 0.15)",
       }}
     >
       <div style={{ 
@@ -28,15 +31,23 @@ function WeightPanel({
         alignItems: "center",
         marginBottom: 12,
         paddingBottom: 10,
-        borderBottom: `1px solid ${darkMode ? "#444" : "#e0e0e0"}`,
+        borderBottom: `1px solid ${darkMode ? "rgba(139, 92, 246, 0.2)" : "rgba(139, 92, 246, 0.1)"}`,
       }}>
-        <h4 style={{ margin: 0, fontSize: 14, fontWeight: 600 }}>
+        <h4 style={{ 
+          margin: 0, 
+          fontSize: 14, 
+          fontWeight: 600,
+          background: "linear-gradient(135deg, #8B5CF6 0%, #3B82F6 100%)",
+          WebkitBackgroundClip: "text",
+          WebkitTextFillColor: "transparent",
+          backgroundClip: "text",
+        }}>
           Indicator Weights
         </h4>
         <span style={{ 
           fontSize: 18, 
           fontWeight: 700,
-          color: isWeightValid ? "#4caf50" : "#ff9800",
+          color: isWeightValid ? "#10b981" : "#f59e0b",
         }}>
           {totalWeight}%
         </span>
@@ -44,13 +55,13 @@ function WeightPanel({
 
       {!isWeightValid && (
         <div style={{
-          background: "rgba(255, 152, 0, 0.1)",
-          border: "1px solid #ff9800",
-          borderRadius: 6,
+          background: "rgba(245, 158, 11, 0.1)",
+          border: "1px solid #f59e0b",
+          borderRadius: 8,
           padding: "8px 12px",
           marginBottom: 12,
           fontSize: 12,
-          color: "#ff9800",
+          color: "#f59e0b",
           lineHeight: 1.4,
         }}>
           ⚠️ Adjusting unlocked sliders auto-rebalances to maintain 100%
@@ -91,7 +102,7 @@ function WeightPanel({
                         width: 16,
                         height: 16,
                         cursor: "pointer",
-                        accentColor: "#1976d2",
+                        accentColor: "#8B5CF6",
                       }}
                     />
                     <span
@@ -109,7 +120,7 @@ function WeightPanel({
                   <div style={{ 
                     fontSize: 12, 
                     fontWeight: 600,
-                    color: isLocked ? "#1976d2" : "inherit",
+                    color: isLocked ? "#8B5CF6" : "inherit",
                   }}>
                     {INDICATOR_LABELS[key]}
                   </div>
@@ -118,10 +129,10 @@ function WeightPanel({
                 <span style={{ 
                   fontSize: 16, 
                   fontWeight: 700,
-                  color: isLocked ? "#1976d2" : "#1976d2",
-                  background: isLocked ? "rgba(25, 118, 210, 0.1)" : "transparent",
-                  padding: "2px 6px",
-                  borderRadius: 4,
+                  color: "#8B5CF6",
+                  background: isLocked ? "rgba(139, 92, 246, 0.15)" : "transparent",
+                  padding: "2px 8px",
+                  borderRadius: 6,
                 }}>
                   {value}%
                 </span>
@@ -140,8 +151,8 @@ function WeightPanel({
                   borderRadius: 3,
                   outline: "none",
                   background: isLocked
-                    ? `linear-gradient(to right, #90caf9 0%, #90caf9 ${value}%, ${darkMode ? "#444" : "#ddd"} ${value}%, ${darkMode ? "#444" : "#ddd"} 100%)`
-                    : `linear-gradient(to right, #1976d2 0%, #1976d2 ${value}%, ${darkMode ? "#444" : "#ddd"} ${value}%, ${darkMode ? "#444" : "#ddd"} 100%)`,
+                    ? `linear-gradient(to right, #c4b5fd 0%, #c4b5fd ${value}%, ${darkMode ? "#374151" : "#e2e8f0"} ${value}%, ${darkMode ? "#374151" : "#e2e8f0"} 100%)`
+                    : `linear-gradient(to right, #8B5CF6 0%, #8B5CF6 ${value}%, ${darkMode ? "#374151" : "#e2e8f0"} ${value}%, ${darkMode ? "#374151" : "#e2e8f0"} 100%)`,
                   cursor: isLocked ? "not-allowed" : "pointer",
                   opacity: isLocked ? 0.6 : 1,
                 }}
@@ -154,20 +165,28 @@ function WeightPanel({
       <button
         onClick={resetWeights}
         style={{
-          marginTop: 12,
+          marginTop: 14,
           width: "100%",
-          padding: "8px",
-          borderRadius: 6,
-          background: darkMode ? "#3d3d3d" : "#f5f5f5",
-          color: darkMode ? "#e0e0e0" : "#000",
-          border: `1px solid ${darkMode ? "#555" : "#ccc"}`,
+          padding: "10px",
+          borderRadius: 10,
+          background: darkMode ? "rgba(139, 92, 246, 0.15)" : "rgba(139, 92, 246, 0.1)",
+          color: darkMode ? "#c4b5fd" : "#7c3aed",
+          border: `1.5px solid ${darkMode ? "rgba(139, 92, 246, 0.3)" : "rgba(139, 92, 246, 0.2)"}`,
           cursor: "pointer",
           fontSize: 12,
           fontWeight: 600,
-          transition: "background 0.2s",
+          transition: "all 0.25s ease",
         }}
-        onMouseEnter={(e) => e.target.style.background = darkMode ? "#4a4a4a" : "#e0e0e0"}
-        onMouseLeave={(e) => e.target.style.background = darkMode ? "#3d3d3d" : "#f5f5f5"}
+        onMouseEnter={(e) => {
+          e.target.style.background = "linear-gradient(135deg, #8B5CF6 0%, #3B82F6 100%)";
+          e.target.style.color = "#fff";
+          e.target.style.border = "1.5px solid transparent";
+        }}
+        onMouseLeave={(e) => {
+          e.target.style.background = darkMode ? "rgba(139, 92, 246, 0.15)" : "rgba(139, 92, 246, 0.1)";
+          e.target.style.color = darkMode ? "#c4b5fd" : "#7c3aed";
+          e.target.style.border = `1.5px solid ${darkMode ? "rgba(139, 92, 246, 0.3)" : "rgba(139, 92, 246, 0.2)"}`;
+        }}
       >
         🔄 Reset All (Unlock & Restore Defaults)
       </button>

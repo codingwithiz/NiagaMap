@@ -231,14 +231,14 @@ const MapViewComponent = ({
         setHoveredHexId(hexId);
         highlightLayerRef.current.removeAll();
 
-        // Enhanced highlight for non-recommended hexagons
+        // Enhanced highlight with NiagaMap purple theme
         const highlight = new Graphic({
             geometry: graphic.geometry.clone(),
             symbol: {
                 type: "simple-fill",
-                color: [100, 149, 237, 0.4], // Brighter cornflower blue
+                color: [139, 92, 246, 0.35], // Purple highlight
                 outline: {
-                    color: [70, 120, 220, 1],
+                    color: [139, 92, 246, 1],
                     width: 3.5,
                 },
             },
@@ -250,6 +250,7 @@ const MapViewComponent = ({
             location: graphic.geometry.centroid,
             title: graphic.attributes?.title || "Hexagon",
             content: graphic.attributes?.content || "",
+            alignment: "top-center",
         });
     };
 
@@ -263,13 +264,13 @@ const MapViewComponent = ({
         setHoveredHexId(hexId);
         highlightLayerRef.current.removeAll();
 
-        // Enhanced glow effect for recommended hexagons on hover
+        // Enhanced glow effect with NiagaMap purple-blue theme
         const outerGlow = new Graphic({
             geometry: graphic.geometry.clone(),
             symbol: {
                 type: "simple-fill",
-                color: [65, 165, 255, 0.15],
-                outline: { color: [65, 165, 255, 0.85], width: 8 },
+                color: [139, 92, 246, 0.15],
+                outline: { color: [139, 92, 246, 0.85], width: 8 },
             },
         });
 
@@ -277,8 +278,8 @@ const MapViewComponent = ({
             geometry: graphic.geometry.clone(),
             symbol: {
                 type: "simple-fill",
-                color: [30, 144, 255, 0.3],
-                outline: { color: [30, 144, 255, 1], width: 5 },
+                color: [99, 102, 241, 0.3],
+                outline: { color: [99, 102, 241, 1], width: 5 },
             },
         });
 
@@ -426,36 +427,36 @@ const MapViewComponent = ({
                     spatialReference: { wkid: 4326 },
                 });
 
-                // Enhanced glow effect with smoother gradient
-                // Outer glow layer - Soft blue aura
+                // Enhanced glow effect with NiagaMap purple-blue gradient
+                // Outer glow layer - Soft purple aura
                 const outerGlow = new Graphic({
                     geometry: polygon,
                     symbol: {
                         type: "simple-fill",
-                        color: [65, 165, 255, 0.12],  // Light blue
+                        color: [139, 92, 246, 0.12],  // Light purple
                         outline: {
-                            color: [65, 165, 255, 0.35],
+                            color: [139, 92, 246, 0.35],
                             width: 10,
                         },
                     },
                 });
                 hexagonLayerRef.current.add(outerGlow);
 
-                // Middle glow layer - Medium intensity
+                // Middle glow layer - Medium intensity purple-blue
                 const middleGlow = new Graphic({
                     geometry: polygon,
                     symbol: {
                         type: "simple-fill",
-                        color: [30, 144, 255, 0.3],
+                        color: [99, 102, 241, 0.3],
                         outline: {
-                            color: [30, 144, 255, 0.75],
+                            color: [99, 102, 241, 0.75],
                             width: 6,
                         },
                     },
                 });
                 hexagonLayerRef.current.add(middleGlow);
 
-                // Main hexagon - Vibrant blue with crisp border
+                // Main hexagon - Vibrant gradient purple-blue with crisp border
                 // Build enhanced popup content with AI reasoning for recommended hexagons
                 // Match location data by coordinates instead of array index
                 const matchedLocation = findMatchingLocation(result.centroid);
@@ -465,9 +466,9 @@ const MapViewComponent = ({
                     geometry: polygon,
                     symbol: {
                         type: "simple-fill",
-                        color: [30, 144, 255, 0.7],  // More opaque for better visibility
+                        color: [99, 102, 241, 0.7],  // Indigo for better visibility
                         outline: {
-                            color: [0, 90, 180, 1],  // Rich dark blue outline
+                            color: [79, 70, 229, 1],  // Rich indigo outline
                             width: 2.5,
                         },
                     },
@@ -487,7 +488,7 @@ const MapViewComponent = ({
                 });
                 hexagonLayerRef.current.add(hexGraphic);
 
-                // Add rank label with enhanced styling
+                // Add rank label with NiagaMap styled badge
                 if (result.centroid) {
                     const labelPoint = new Point({ longitude: result.centroid.lon, latitude: result.centroid.lat, spatialReference: { wkid: 4326 } });
 
@@ -496,19 +497,19 @@ const MapViewComponent = ({
                         geometry: labelPoint,
                         symbol: {
                             type: "simple-marker",
-                            color: [0, 0, 0, 0.3],
+                            color: [139, 92, 246, 0.3],
                             size: 36,
                             outline: { color: [0, 0, 0, 0], width: 0 },
                         },
                     });
                     hexagonLayerRef.current.add(shadowCircle);
 
-                    // Background circle for label - Gradient effect via outline
+                    // Background circle for label - Purple gradient effect
                     const labelBg = new Graphic({
                         geometry: labelPoint,
                         symbol: {
                             type: "simple-marker",
-                            color: [20, 120, 220, 1],  // Rich blue
+                            color: [99, 102, 241, 1],  // Rich indigo
                             size: 32,
                             outline: {
                                 color: [255, 255, 255, 1],
@@ -524,7 +525,7 @@ const MapViewComponent = ({
                             type: "text",
                             text: `#${rank}`,
                             color: [255, 255, 255, 1],
-                            haloColor: [0, 50, 100, 0.9],
+                            haloColor: [79, 70, 229, 0.9],
                             haloSize: 1.5,
                             font: {
                                 size: 14,
@@ -563,54 +564,54 @@ const MapViewComponent = ({
         }
     };
 
-    // NEW: Get color based on score (gradient from red to green)
+    // NEW: Get color based on score (NiagaMap gradient: purple to blue)
     const getScoreColor = (normalizedScore, isRecommended) => {
         if (isRecommended) {
-            return [30, 144, 255, 0.65]; // Vibrant dodger blue for recommended
+            return [139, 92, 246, 0.75]; // Vibrant purple for recommended
         }
 
-        // Enhanced gradient: red (low) → orange → yellow → lime → green (high)
+        // NiagaMap gradient: low scores → muted lavender, high scores → vibrant blue
         let r, g, b;
         
         if (normalizedScore < 0.33) {
-            // Red to Orange (0 to 0.33)
+            // Soft pink-lavender (low scores)
             const t = normalizedScore * 3; // 0 to 1
-            r = 255;
-            g = Math.round(100 + 100 * t); // 100 to 200
-            b = 30;
+            r = Math.round(200 - 40 * t); // 200 to 160
+            g = Math.round(150 + 20 * t); // 150 to 170
+            b = Math.round(220 + 20 * t); // 220 to 240
         } else if (normalizedScore < 0.67) {
-            // Orange to Yellow-Green (0.33 to 0.67)
+            // Lavender to purple (mid scores)
             const t = (normalizedScore - 0.33) * 3; // 0 to 1
-            r = Math.round(255 - 100 * t); // 255 to 155
-            g = Math.round(200 + 30 * t); // 200 to 230
-            b = 30;
+            r = Math.round(160 - 21 * t); // 160 to 139
+            g = Math.round(170 - 78 * t); // 170 to 92
+            b = Math.round(240 + 6 * t); // 240 to 246
         } else {
-            // Yellow-Green to Vibrant Green (0.67 to 1)
+            // Purple to bright blue (high scores)
             const t = (normalizedScore - 0.67) * 3; // 0 to 1
-            r = Math.round(155 - 115 * t); // 155 to 40
-            g = Math.round(230 + 25 * t); // 230 to 255
-            b = Math.round(30 + 50 * t); // 30 to 80
+            r = Math.round(139 - 80 * t); // 139 to 59
+            g = Math.round(92 + 38 * t); // 92 to 130
+            b = Math.round(246 + 0 * t); // stays at 246
         }
 
-        const opacity = 0.45 + normalizedScore * 0.3; // 0.45 to 0.75 (better visibility)
+        const opacity = 0.4 + normalizedScore * 0.35; // 0.4 to 0.75 (better visibility)
 
         return [r, g, b, opacity];
     };
 
     // NEW: Build enhanced popup content for recommended hexagons with AI reasoning
     const buildRecommendedHexagonPopup = (result, rank, locationData) => {
-        let content = `<div style="font-family: 'Segoe UI', Arial, sans-serif; padding: 12px; max-width: 400px;">`;
+        let content = `<div style="font-family: 'Segoe UI', 'Inter', system-ui, -apple-system, sans-serif; padding: 20px; max-width: 520px; background: linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(248,250,252,0.95) 100%); border-radius: 16px; box-shadow: 0 8px 32px rgba(139, 92, 246, 0.2);">`;
         
-        // Rank badge
-        content += `<div style="background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%); padding: 12px; border-radius: 10px; margin-bottom: 16px; text-align: center; box-shadow: 0 2px 8px rgba(25, 118, 210, 0.3);">`;
-        content += `<span style="font-size: 28px;">🏆</span>`;
-        content += `<p style="margin: 6px 0 0 0; font-weight: bold; color: #fff; font-size: 16px;">Recommended Location #${rank}</p>`;
+        // Rank badge with NiagaMap gradient
+        content += `<div style="background: linear-gradient(135deg, #8B5CF6 0%, #3B82F6 100%); padding: 14px; border-radius: 14px; margin-bottom: 18px; text-align: center; box-shadow: 0 4px 16px rgba(139, 92, 246, 0.4); border: 2px solid rgba(255, 255, 255, 0.2);">`;
+        content += `<span style="font-size: 32px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));">🏆</span>`;
+        content += `<p style="margin: 8px 0 0 0; font-weight: 700; color: #fff; font-size: 17px; letter-spacing: 0.3px;">Recommended Location #${rank}</p>`;
         content += `</div>`;
 
-        // Total Score
-        content += `<div style="background: linear-gradient(135deg, #e3f2fd 0%, #f5f5f5 100%); padding: 12px; border-radius: 8px; margin-bottom: 12px;">`;
-        content += `<p style="margin: 0; text-align: center;"><b style="color: #555;">📊 Total Score:</b></p>`;
-        content += `<p style="margin: 6px 0 0 0; text-align: center; font-size: 32px; color: #1976d2; font-weight: bold;">${result.finalScore.toFixed(2)}</p>`;
+        // Total Score with gradient
+        content += `<div style="background: linear-gradient(135deg, rgba(139, 92, 246, 0.08) 0%, rgba(59, 130, 246, 0.08) 100%); padding: 16px; border-radius: 12px; margin-bottom: 14px; border: 2px solid rgba(139, 92, 246, 0.2);">`;
+        content += `<p style="margin: 0; text-align: center;"><b style="color: #64748b; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px;">📊 Total Score</b></p>`;
+        content += `<p style="margin: 8px 0 0 0; text-align: center; font-size: 36px; background: linear-gradient(135deg, #8B5CF6 0%, #3B82F6 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; font-weight: 800;">${result.finalScore.toFixed(2)}</p>`;
         content += `</div>`;
 
         // AI Reasoning (if available)
@@ -620,38 +621,38 @@ const MapViewComponent = ({
             result?.reason;
 
         if (reasoning) {
-            content += `<div style="background-color: #e8f5e9; padding: 14px; border-radius: 8px; margin-bottom: 16px; border-left: 4px solid #4caf50; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">`;
-            content += `<p style="margin: 0 0 6px 0; font-weight: bold; color: #2e7d32; font-size: 13px;">💡 AI Analysis</p>`;
-            content += `<p style="margin: 0; color: #1b5e20; line-height: 1.6; font-size: 13px; font-style: italic;">${reasoning}</p>`;
+            content += `<div style="background: linear-gradient(135deg, rgba(139, 92, 246, 0.08) 0%, rgba(99, 102, 241, 0.08) 100%); padding: 16px; border-radius: 12px; margin-bottom: 18px; border-left: 4px solid #8B5CF6; box-shadow: 0 2px 8px rgba(139, 92, 246, 0.15);">`;
+            content += `<p style="margin: 0 0 8px 0; font-weight: 700; color: #8B5CF6; font-size: 14px; display: flex; align-items: center; gap: 6px;"><span>💡</span><span>AI Analysis</span></p>`;
+            content += `<p style="margin: 0; color: #475569; line-height: 1.7; font-size: 13px; font-style: italic;">${reasoning}</p>`;
             content += `</div>`;
         }
 
         console.log("reasoning:", reasoning, { locationData, result });
 
-        // Detailed Score Breakdown
-        content += `<div style="background: #fff; padding: 12px; border-radius: 8px; border: 1px solid #e0e0e0; margin-bottom: 12px;">`;
-        content += `<p style="margin: 0 0 12px 0; font-weight: bold; font-size: 14px; color: #333; border-bottom: 2px solid #1976d2; padding-bottom: 6px;">📈 Score Breakdown</p>`;
+        // Detailed Score Breakdown with glassmorphism
+        content += `<div style="background: rgba(255, 255, 255, 0.6); backdrop-filter: blur(10px); padding: 14px; border-radius: 12px; border: 2px solid rgba(139, 92, 246, 0.15); margin-bottom: 14px; box-shadow: 0 2px 12px rgba(139, 92, 246, 0.1);">`;
+        content += `<p style="margin: 0 0 14px 0; font-weight: 700; font-size: 15px; color: #1e293b; background: linear-gradient(135deg, #8B5CF6 0%, #3B82F6 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; padding-bottom: 8px; border-bottom: 2px solid rgba(139, 92, 246, 0.2);">📈 Score Breakdown</p>`;
         
-        // Demand
+        // Demand with modern styling
         const demandScore = result.demandScore || 0;
         const population = result.demandRaw || 0;
-        content += `<div style="margin-bottom: 10px; padding: 8px; background: #fafafa; border-radius: 6px;">`;
+        content += `<div style="margin-bottom: 10px; padding: 10px; background: rgba(249, 250, 251, 0.8); border-radius: 8px; border: 1px solid rgba(139, 92, 246, 0.1); transition: all 0.2s;">`;
         content += `<div style="display: flex; justify-content: space-between; align-items: center;">`;
-        content += `<span style="font-weight: 600; color: #333;">🛒 Demand</span>`;
-        content += `<span style="font-weight: bold; color: ${demandScore >= 20 ? '#4caf50' : demandScore >= 10 ? '#ff9800' : '#f44336'}; font-size: 16px;">${demandScore.toFixed(2)}</span>`;
+        content += `<span style="font-weight: 600; color: #1e293b; font-size: 13px;">🛒 Demand</span>`;
+        content += `<span style="font-weight: 700; color: ${demandScore >= 20 ? '#10b981' : demandScore >= 10 ? '#f59e0b' : '#ef4444'}; font-size: 17px;">${demandScore.toFixed(2)}</span>`;
         content += `</div>`;
-        content += `<div style="font-size: 11px; color: #666; margin-top: 4px;">Population: ${population.toLocaleString()} residents</div>`;
+        content += `<div style="font-size: 11px; color: #64748b; margin-top: 5px; font-weight: 500;">Population: ${population.toLocaleString()} residents</div>`;
         content += `</div>`;
         
         // POI/Competition
         const poiScore = result.poiScore || 0;
         const poiCount = result.poiRaw || 0;
-        content += `<div style="margin-bottom: 10px; padding: 8px; background: #fafafa; border-radius: 6px;">`;
+        content += `<div style="margin-bottom: 10px; padding: 10px; background: rgba(249, 250, 251, 0.8); border-radius: 8px; border: 1px solid rgba(139, 92, 246, 0.1);">`;
         content += `<div style="display: flex; justify-content: space-between; align-items: center;">`;
-        content += `<span style="font-weight: 600; color: #333;">📍 Competition</span>`;
-        content += `<span style="font-weight: bold; color: ${poiScore >= 20 ? '#2196f3' : poiScore >= 10 ? '#ff9800' : '#f44336'}; font-size: 16px;">${poiScore.toFixed(2)}</span>`;
+        content += `<span style="font-weight: 600; color: #1e293b; font-size: 13px;">📍 Competition</span>`;
+        content += `<span style="font-weight: 700; color: ${poiScore >= 20 ? '#3B82F6' : poiScore >= 10 ? '#f59e0b' : '#ef4444'}; font-size: 17px;">${poiScore.toFixed(2)}</span>`;
         content += `</div>`;
-        content += `<div style="font-size: 11px; color: #666; margin-top: 4px;">${poiCount} nearby businesses</div>`;
+        content += `<div style="font-size: 11px; color: #64748b; margin-top: 5px; font-weight: 500;">${poiCount} nearby businesses</div>`;
         content += `</div>`;
         
         // Risk
@@ -659,15 +660,15 @@ const MapViewComponent = ({
         const riskRaw = result.riskRaw || {};
         const floodAreaHa = riskRaw.floodAreaHa || 0;
         const landslideCount = riskRaw.landslideCount || 0;
-        content += `<div style="margin-bottom: 10px; padding: 8px; background: #fafafa; border-radius: 6px;">`;
+        content += `<div style="margin-bottom: 10px; padding: 10px; background: rgba(249, 250, 251, 0.8); border-radius: 8px; border: 1px solid rgba(139, 92, 246, 0.1);">`;
         content += `<div style="display: flex; justify-content: space-between; align-items: center;">`;
-        content += `<span style="font-weight: 600; color: #333;">⚠️ Risk</span>`;
-        content += `<span style="font-weight: bold; color: ${riskScore >= 20 ? '#4caf50' : riskScore >= 10 ? '#ff9800' : '#f44336'}; font-size: 16px;">${riskScore.toFixed(2)}</span>`;
+        content += `<span style="font-weight: 600; color: #1e293b; font-size: 13px;">⚠️ Risk</span>`;
+        content += `<span style="font-weight: 700; color: ${riskScore >= 20 ? '#10b981' : riskScore >= 10 ? '#f59e0b' : '#ef4444'}; font-size: 17px;">${riskScore.toFixed(2)}</span>`;
         content += `</div>`;
         if (floodAreaHa === 0 && landslideCount === 0) {
-            content += `<div style="font-size: 11px; color: #4caf50; margin-top: 4px;">✅ No hazards detected</div>`;
+            content += `<div style="font-size: 11px; color: #10b981; margin-top: 5px; font-weight: 600;">✅ No hazards detected</div>`;
         } else {
-            content += `<div style="font-size: 11px; color: #ff9800; margin-top: 4px;">`;
+            content += `<div style="font-size: 11px; color: #f59e0b; margin-top: 5px; font-weight: 500;">`;
             if (floodAreaHa > 0) content += `⚠️ Flood zone: ${floodAreaHa.toFixed(2)}ha `;
             if (landslideCount > 0) content += `⚠️ ${landslideCount} landslide area(s)`;
             content += `</div>`;
@@ -678,33 +679,33 @@ const MapViewComponent = ({
         const accessScore = result.accessibilityScore || 0;
         const accessRaw = result.accessibilityRaw || {};
         const distance = accessRaw.distanceMeters || 0;
-        content += `<div style="margin-bottom: 10px; padding: 8px; background: #fafafa; border-radius: 6px;">`;
+        content += `<div style="margin-bottom: 10px; padding: 10px; background: rgba(249, 250, 251, 0.8); border-radius: 8px; border: 1px solid rgba(139, 92, 246, 0.1);">`;
         content += `<div style="display: flex; justify-content: space-between; align-items: center;">`;
-        content += `<span style="font-weight: 600; color: #333;">🚗 Accessibility</span>`;
-        content += `<span style="font-weight: bold; color: ${accessScore >= 20 ? '#9c27b0' : accessScore >= 10 ? '#ff9800' : '#f44336'}; font-size: 16px;">${accessScore.toFixed(2)}</span>`;
+        content += `<span style="font-weight: 600; color: #1e293b; font-size: 13px;">🚗 Accessibility</span>`;
+        content += `<span style="font-weight: 700; color: ${accessScore >= 20 ? '#8B5CF6' : accessScore >= 10 ? '#f59e0b' : '#ef4444'}; font-size: 17px;">${accessScore.toFixed(2)}</span>`;
         content += `</div>`;
-        content += `<div style="font-size: 11px; color: #666; margin-top: 4px;">${distance.toFixed(0)}m from main road</div>`;
+        content += `<div style="font-size: 11px; color: #64748b; margin-top: 5px; font-weight: 500;">${distance.toFixed(0)}m from main road</div>`;
         content += `</div>`;
         
         // Zoning
         const zoningScore = result.zoningScore || 0;
         const zoningRaw = result.zoningRaw || {};
         const landuse = zoningRaw.landuse || 'N/A';
-        content += `<div style="margin-bottom: 0; padding: 8px; background: #fafafa; border-radius: 6px;">`;
+        content += `<div style="margin-bottom: 0; padding: 10px; background: rgba(249, 250, 251, 0.8); border-radius: 8px; border: 1px solid rgba(139, 92, 246, 0.1);">`;
         content += `<div style="display: flex; justify-content: space-between; align-items: center;">`;
-        content += `<span style="font-weight: 600; color: #333;">🏗️ Zoning</span>`;
-        content += `<span style="font-weight: bold; color: ${zoningScore >= 20 ? '#795548' : zoningScore >= 10 ? '#ff9800' : '#f44336'}; font-size: 16px;">${zoningScore.toFixed(2)}</span>`;
+        content += `<span style="font-weight: 600; color: #1e293b; font-size: 13px;">🏗️ Zoning</span>`;
+        content += `<span style="font-weight: 700; color: ${zoningScore >= 20 ? '#6366f1' : zoningScore >= 10 ? '#f59e0b' : '#ef4444'}; font-size: 17px;">${zoningScore.toFixed(2)}</span>`;
         content += `</div>`;
-        content += `<div style="font-size: 11px; color: #666; margin-top: 4px;">Land use: ${landuse}</div>`;
+        content += `<div style="font-size: 11px; color: #64748b; margin-top: 5px; font-weight: 500;">Land use: ${landuse}</div>`;
         content += `</div>`;
         
         content += `</div>`;
 
-        // Map links
+        // Map links with NiagaMap gradient
         if (result.centroid) {
-            content += `<div style="display: flex; gap: 8px; margin-top: 12px;">`;
-            content += `<a href="https://www.google.com/maps/search/?api=1&query=${result.centroid.lat},${result.centroid.lon}" target="_blank" style="flex: 1; text-decoration: none; padding: 10px; background: linear-gradient(135deg, #1976d2, #1565c0); color: white; border-radius: 6px; font-size: 12px; font-weight: 600; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">🌍 Google Maps</a>`;
-            content += `<a href="https://www.openstreetmap.org/?mlat=${result.centroid.lat}&mlon=${result.centroid.lon}#map=19/${result.centroid.lat}/${result.centroid.lon}" target="_blank" style="flex: 1; text-decoration: none; padding: 10px; background: linear-gradient(135deg, #4caf50, #45a049); color: white; border-radius: 6px; font-size: 12px; font-weight: 600; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">🗺️ OpenStreetMap</a>`;
+            content += `<div style="display: flex; gap: 10px; margin-top: 16px;">`;
+            content += `<a href="https://www.google.com/maps/search/?api=1&query=${result.centroid.lat},${result.centroid.lon}" target="_blank" style="flex: 1; text-decoration: none; padding: 11px 14px; background: linear-gradient(135deg, #8B5CF6 0%, #6366f1 100%); color: white; border-radius: 10px; font-size: 13px; font-weight: 600; text-align: center; box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3); transition: all 0.2s;">🌍 Google Maps</a>`;
+            content += `<a href="https://www.openstreetmap.org/?mlat=${result.centroid.lat}&mlon=${result.centroid.lon}#map=19/${result.centroid.lat}/${result.centroid.lon}" target="_blank" style="flex: 1; text-decoration: none; padding: 11px 14px; background: linear-gradient(135deg, #3B82F6 0%, #2563eb 100%); color: white; border-radius: 10px; font-size: 13px; font-weight: 600; text-align: center; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3); transition: all 0.2s;">🗺️ OpenStreetMap</a>`;
             content += `</div>`;
         }
 
@@ -712,73 +713,80 @@ const MapViewComponent = ({
         return content;
     };
 
-    // NEW: Build popup content for hexagon
+    // NEW: Build popup content for hexagon (non-recommended with NiagaMap theme)
     const buildHexagonPopupContent = (result, rank) => {
-        let content = `<div style="font-family: Arial, sans-serif; padding: 8px;">`;
+        let content = `<div style="font-family: 'Segoe UI', 'Inter', system-ui, sans-serif; padding: 18px; background: linear-gradient(180deg, rgba(255,255,255,0.95) 0%, rgba(248,250,252,0.92) 100%); border-radius: 14px; box-shadow: 0 4px 24px rgba(139, 92, 246, 0.15); max-width: 480px;">`;
 
         if (rank > 0) {
-            content += `<div style="background: linear-gradient(135deg, #ffd700, #ffec8b); padding: 8px; border-radius: 8px; margin-bottom: 12px; text-align: center;">`;
-            content += `<span style="font-size: 24px;">🏆</span>`;
-            content += `<p style="margin: 4px 0 0 0; font-weight: bold; color: #333;">Recommended Location #${rank}</p>`;
+            content += `<div style="background: linear-gradient(135deg, #fbbf24, #f59e0b); padding: 10px; border-radius: 10px; margin-bottom: 14px; text-align: center; box-shadow: 0 2px 8px rgba(251, 191, 36, 0.3);">`;
+            content += `<span style="font-size: 26px; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.15));">🏆</span>`;
+            content += `<p style="margin: 5px 0 0 0; font-weight: 700; color: #fff; font-size: 15px;">Recommended Location #${rank}</p>`;
             content += `</div>`;
         }
 
-        content += `<p style="margin: 8px 0;"><b>📊 Total Score:</b> <span style="font-size: 18px; color: #1976d2; font-weight: bold;">${result.finalScore.toFixed(2)}</span></p>`;
+        content += `<div style="text-align: center; margin: 12px 0; padding: 10px; background: rgba(139, 92, 246, 0.06); border-radius: 10px; border: 1px solid rgba(139, 92, 246, 0.15);">`;
+        content += `<p style="margin: 0 0 4px 0; font-size: 12px; color: #64748b; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">📊 Total Score</p>`;
+        content += `<p style="margin: 0; font-size: 28px; background: linear-gradient(135deg, #8B5CF6 0%, #3B82F6 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; font-weight: 800;">${result.finalScore.toFixed(2)}</p>`;
+        content += `</div>`;
 
-        content += `<hr style="margin: 12px 0; border: none; border-top: 1px solid #ddd;">`;
-        content += `<p style="margin: 8px 0 8px 0; font-weight: bold; font-size: 14px;">📈 Score Breakdown:</p>`;
-        content += `<div style="margin-left: 8px; line-height: 1.8;">`;
+        content += `<div style="height: 2px; background: linear-gradient(90deg, transparent, rgba(139, 92, 246, 0.3), transparent); margin: 14px 0;">`;
+        content += `<p style="margin: 12px 0 10px 0; font-weight: 700; font-size: 14px; color: #1e293b;">📈 Score Breakdown</p>`;
+        content += `<div style="display: flex; flex-direction: column; gap: 8px;">`;
 
         // Demand
-        content += `<div style="margin-bottom: 6px;">`;
-        content += `<span style="font-weight: bold;">🛒 Demand:</span> ${result.demandScore.toFixed(2)}`;
-        content += `<span style="color: #666; font-size: 11px;"> (Pop: ${result.demandRaw || 0})</span>`;
+        content += `<div style="padding: 8px 10px; background: rgba(249, 250, 251, 0.7); border-radius: 8px; border-left: 3px solid #8B5CF6; display: flex; justify-content: space-between; align-items: center;">`;
+        content += `<span style="font-weight: 600; font-size: 12px; color: #1e293b;">🛒 Demand <span style="color: #94a3b8; font-size: 10px; font-weight: 500;">(Pop: ${result.demandRaw || 0})</span></span>`;
+        content += `<span style="font-weight: 700; font-size: 15px; color: ${result.demandScore >= 20 ? '#10b981' : result.demandScore >= 10 ? '#f59e0b' : '#ef4444'};">${result.demandScore.toFixed(2)}</span>`;
         content += `</div>`;
 
         // POI
-        content += `<div style="margin-bottom: 6px;">`;
-        content += `<span style="font-weight: bold;">📍 POI:</span> ${result.poiScore.toFixed(2)}`;
-        content += `<span style="color: #666; font-size: 11px;"> (${result.poiRaw || 0} nearby)</span>`;
+        content += `<div style="padding: 8px 10px; background: rgba(249, 250, 251, 0.7); border-radius: 8px; border-left: 3px solid #3B82F6; display: flex; justify-content: space-between; align-items: center;">`;
+        content += `<span style="font-weight: 600; font-size: 12px; color: #1e293b;">📍 Competition <span style="color: #94a3b8; font-size: 10px; font-weight: 500;">(${result.poiRaw || 0} nearby)</span></span>`;
+        content += `<span style="font-weight: 700; font-size: 15px; color: ${result.poiScore >= 20 ? '#3B82F6' : result.poiScore >= 10 ? '#f59e0b' : '#ef4444'};">${result.poiScore.toFixed(2)}</span>`;
         content += `</div>`;
 
         // Risk
         const riskRaw = result.riskRaw || {};
-        content += `<div style="margin-bottom: 6px;">`;
-        content += `<span style="font-weight: bold;">⚠️ Risk:</span> ${result.riskScore.toFixed(2)}`;
+        content += `<div style="padding: 8px 10px; background: rgba(249, 250, 251, 0.7); border-radius: 8px; border-left: 3px solid ${riskRaw.floodAreaHa === 0 && riskRaw.landslideCount === 0 ? '#10b981' : '#f59e0b'}; display: flex; justify-content: space-between; align-items: center;">`;
+        content += `<span style="font-weight: 600; font-size: 12px; color: #1e293b;">⚠️ Risk`;
         if (riskRaw.floodAreaHa === 0 && riskRaw.landslideCount === 0) {
-            content += `<span style="color: #4caf50; font-size: 11px;"> ✅ Safe</span>`;
+            content += ` <span style="color: #10b981; font-size: 10px; font-weight: 600;">✅ Safe</span>`;
         } else {
-            content += `<span style="color: #ff9800; font-size: 11px;">`;
-            if (riskRaw.floodAreaHa > 0) content += ` Flood: ${riskRaw.floodAreaHa.toFixed(2)}ha`;
-            if (riskRaw.landslideCount > 0) content += ` Landslide: ${riskRaw.landslideCount}`;
+            content += ` <span style="color: #f59e0b; font-size: 10px; font-weight: 500;">`;
+            if (riskRaw.floodAreaHa > 0) content += `Flood: ${riskRaw.floodAreaHa.toFixed(1)}ha `;
+            if (riskRaw.landslideCount > 0) content += `Landslide: ${riskRaw.landslideCount}`;
             content += `</span>`;
         }
+        content += `</span>`;
+        content += `<span style="font-weight: 700; font-size: 15px; color: ${result.riskScore >= 20 ? '#10b981' : result.riskScore >= 10 ? '#f59e0b' : '#ef4444'};">${result.riskScore.toFixed(2)}</span>`;
         content += `</div>`;
 
         // Accessibility
         const accessRaw = result.accessibilityRaw || {};
-        content += `<div style="margin-bottom: 6px;">`;
-        content += `<span style="font-weight: bold;">🚗 Accessibility:</span> ${result.accessibilityScore.toFixed(2)}`;
-        content += `<span style="color: #666; font-size: 11px;"> (${(accessRaw.distanceMeters || 0).toFixed(0)}m to road)</span>`;
+        content += `<div style="padding: 8px 10px; background: rgba(249, 250, 251, 0.7); border-radius: 8px; border-left: 3px solid #6366f1; display: flex; justify-content: space-between; align-items: center;">`;
+        content += `<span style="font-weight: 600; font-size: 12px; color: #1e293b;">🚗 Access <span style="color: #94a3b8; font-size: 10px; font-weight: 500;">(${(accessRaw.distanceMeters || 0).toFixed(0)}m)</span></span>`;
+        content += `<span style="font-weight: 700; font-size: 15px; color: ${result.accessibilityScore >= 20 ? '#8B5CF6' : result.accessibilityScore >= 10 ? '#f59e0b' : '#ef4444'};">${result.accessibilityScore.toFixed(2)}</span>`;
         content += `</div>`;
 
         // Zoning
         const zoningRaw = result.zoningRaw || {};
-        content += `<div style="margin-bottom: 6px;">`;
-        content += `<span style="font-weight: bold;">🏗️ Zoning:</span> ${result.zoningScore.toFixed(2)}`;
+        content += `<div style="padding: 8px 10px; background: rgba(249, 250, 251, 0.7); border-radius: 8px; border-left: 3px solid #a855f7; display: flex; justify-content: space-between; align-items: center;">`;
+        content += `<span style="font-weight: 600; font-size: 12px; color: #1e293b;">🏗️ Zoning`;
         if (zoningRaw.landuse) {
-            content += `<span style="color: #666; font-size: 11px;"> (${zoningRaw.landuse})</span>`;
+            content += ` <span style="color: #94a3b8; font-size: 10px; font-weight: 500;">(${zoningRaw.landuse})</span>`;
         }
+        content += `</span>`;
+        content += `<span style="font-weight: 700; font-size: 15px; color: ${result.zoningScore >= 20 ? '#6366f1' : result.zoningScore >= 10 ? '#f59e0b' : '#ef4444'};">${result.zoningScore.toFixed(2)}</span>`;
         content += `</div>`;
 
         content += `</div>`;
 
-        // Map links
+        // Map links with gradient
         if (result.centroid) {
-            content += `<hr style="margin: 12px 0; border: none; border-top: 1px solid #ddd;">`;
-            content += `<div style="display: flex; gap: 10px; margin-top: 6px;">`;
-            content += `<a href="https://www.google.com/maps/search/?api=1&query=${result.centroid.lat},${result.centroid.lon}" target="_blank" style="text-decoration: none; padding: 6px 12px; background-color: #1976d2; color: white; border-radius: 4px; font-size: 12px;">🌍 Google</a>`;
-            content += `<a href="https://www.openstreetmap.org/?mlat=${result.centroid.lat}&mlon=${result.centroid.lon}#map=19/${result.centroid.lat}/${result.centroid.lon}" target="_blank" style="text-decoration: none; padding: 6px 12px; background-color: #4caf50; color: white; border-radius: 4px; font-size: 12px;">🗺️ OSM</a>`;
+            content += `<div style="height: 1px; background: linear-gradient(90deg, transparent, rgba(139, 92, 246, 0.2), transparent); margin: 14px 0;">`;
+            content += `<div style="display: flex; gap: 8px; margin-top: 12px;">`;
+            content += `<a href="https://www.google.com/maps/search/?api=1&query=${result.centroid.lat},${result.centroid.lon}" target="_blank" style="flex: 1; text-decoration: none; padding: 9px 12px; background: linear-gradient(135deg, #8B5CF6, #6366f1); color: white; border-radius: 8px; font-size: 12px; font-weight: 600; text-align: center; box-shadow: 0 2px 8px rgba(139, 92, 246, 0.25);">🌍 Google</a>`;
+            content += `<a href="https://www.openstreetmap.org/?mlat=${result.centroid.lat}&mlon=${result.centroid.lon}#map=19/${result.centroid.lat}/${result.centroid.lon}" target="_blank" style="flex: 1; text-decoration: none; padding: 9px 12px; background: linear-gradient(135deg, #3B82F6, #2563eb); color: white; border-radius: 8px; font-size: 12px; font-weight: 600; text-align: center; box-shadow: 0 2px 8px rgba(59, 130, 246, 0.25);">🗺️ OSM</a>`;
             content += `</div>`;
         }
 

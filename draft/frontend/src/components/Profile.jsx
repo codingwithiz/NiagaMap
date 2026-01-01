@@ -4,6 +4,27 @@ import { auth } from "../firebase";
 import { updateProfile, updatePassword } from "firebase/auth";
 import api from "../api/api";
 
+// NiagaMap Logo Component
+const NiagaMapLogo = ({ size = 48 }) => (
+    <svg width={size} height={size} viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+            <linearGradient id="profileLogoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="#8B5CF6" />
+                <stop offset="100%" stopColor="#3B82F6" />
+            </linearGradient>
+        </defs>
+        <path d="M50 5C30.67 5 15 20.67 15 40c0 25 35 55 35 55s35-30 35-55c0-19.33-15.67-35-35-35z" 
+              fill="url(#profileLogoGradient)" />
+        <circle cx="50" cy="40" r="20" fill="white" fillOpacity="0.95"/>
+        <circle cx="50" cy="40" r="8" fill="url(#profileLogoGradient)"/>
+        <path d="M50 28v-4M50 56v-4M38 40h-4M66 40h-4" stroke="url(#profileLogoGradient)" strokeWidth="2" strokeLinecap="round"/>
+        <circle cx="42" cy="34" r="2" fill="url(#profileLogoGradient)"/>
+        <circle cx="58" cy="34" r="2" fill="url(#profileLogoGradient)"/>
+        <circle cx="42" cy="46" r="2" fill="url(#profileLogoGradient)"/>
+        <circle cx="58" cy="46" r="2" fill="url(#profileLogoGradient)"/>
+    </svg>
+);
+
 const Profile = ({darkMode = false}) => {
     const { user } = useAuth();
     const [name, setName] = useState(user?.displayName || "");
@@ -21,18 +42,74 @@ const Profile = ({darkMode = false}) => {
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                background: darkMode ? "#111827" : "#f3f6fb",
-                padding: 0,
+                background: darkMode 
+                    ? "linear-gradient(135deg, #0f0f1a 0%, #1a1a2e 50%, #16213e 100%)" 
+                    : "linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)",
+                padding: "20px",
+                position: "relative",
+                overflow: "hidden",
             }}
         >
+            {/* Decorative background orbs */}
+            <div style={{
+                position: "absolute",
+                top: "-10%",
+                right: "-5%",
+                width: "300px",
+                height: "300px",
+                borderRadius: "50%",
+                background: "linear-gradient(135deg, rgba(139, 92, 246, 0.15) 0%, rgba(59, 130, 246, 0.1) 100%)",
+                filter: "blur(60px)",
+                pointerEvents: "none",
+            }} />
+            <div style={{
+                position: "absolute",
+                bottom: "-10%",
+                left: "-5%",
+                width: "250px",
+                height: "250px",
+                borderRadius: "50%",
+                background: "linear-gradient(135deg, rgba(59, 130, 246, 0.15) 0%, rgba(139, 92, 246, 0.1) 100%)",
+                filter: "blur(60px)",
+                pointerEvents: "none",
+            }} />
+            
             <div
                 style={{
                     width: "100%",
-                    maxWidth: 520,
+                    maxWidth: 480,
                     margin: "0 auto",
                     padding: "40px 0",
+                    position: "relative",
+                    zIndex: 1,
                 }}
             >
+                {/* Header with Logo */}
+                <div style={{
+                    textAlign: "center",
+                    marginBottom: 24,
+                }}>
+                    <NiagaMapLogo size={56} />
+                    <h1 style={{
+                        fontSize: 24,
+                        fontWeight: 700,
+                        background: "linear-gradient(135deg, #8B5CF6 0%, #3B82F6 100%)",
+                        WebkitBackgroundClip: "text",
+                        WebkitTextFillColor: "transparent",
+                        backgroundClip: "text",
+                        marginTop: 12,
+                        marginBottom: 4,
+                    }}>
+                        Profile Settings
+                    </h1>
+                    <p style={{
+                        color: darkMode ? "#94a3b8" : "#64748b",
+                        fontSize: 14,
+                    }}>
+                        Manage your account information
+                    </p>
+                </div>
+                
                 <ProfileCard
                     user={user}
                     name={name}
@@ -116,34 +193,45 @@ const ProfileCard = ({ user, name, setName, email, password, setPassword, messag
                 width: "100%",
                 margin: "0 auto",
                 padding: "36px 36px 28px 36px",
-                background: darkMode ? "#181f2a" : "#fff",
-                borderRadius: 22,
+                background: darkMode 
+                    ? "rgba(26, 26, 46, 0.8)" 
+                    : "rgba(255, 255, 255, 0.9)",
+                backdropFilter: "blur(20px)",
+                WebkitBackdropFilter: "blur(20px)",
+                borderRadius: 24,
                 boxShadow: darkMode
-                    ? "0 6px 32px rgba(25, 118, 210, 0.13)"
-                    : "0 6px 32px rgba(25, 118, 210, 0.10)",
-                border: `1.5px solid ${darkMode ? "#232b3b" : "#e0e0e0"}`,
+                    ? "0 8px 32px rgba(139, 92, 246, 0.15), 0 4px 16px rgba(0, 0, 0, 0.3)"
+                    : "0 8px 32px rgba(139, 92, 246, 0.1), 0 4px 16px rgba(0, 0, 0, 0.05)",
+                border: `1px solid ${darkMode ? "rgba(139, 92, 246, 0.2)" : "rgba(139, 92, 246, 0.15)"}`,
                 position: "relative",
             }}
         >
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginBottom: 18 }}>
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginBottom: 24 }}>
                 <div style={{
-                    width: 96,
-                    height: 96,
+                    width: 100,
+                    height: 100,
                     borderRadius: "50%",
-                    background: darkMode ? "#232b3b" : "#e3eaf6",
+                    background: "linear-gradient(135deg, #8B5CF6 0%, #3B82F6 100%)",
+                    padding: 3,
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    marginBottom: 6,
-                    boxShadow: "0 2px 8px rgba(25, 118, 210, 0.10)",
-                    border: `2.5px solid #1976d2`,
-                    overflow: "hidden",
+                    marginBottom: 10,
+                    boxShadow: "0 4px 20px rgba(139, 92, 246, 0.3)",
                 }}>
-                    <img
-                        src={photoURL || user?.photoURL || "https://ui-avatars.com/api/?name=" + encodeURIComponent(name || "User")}
-                        alt="Profile"
-                        style={{ width: 96, height: 96, objectFit: "cover" }}
-                    />
+                    <div style={{
+                        width: "100%",
+                        height: "100%",
+                        borderRadius: "50%",
+                        overflow: "hidden",
+                        background: darkMode ? "#1a1a2e" : "#fff",
+                    }}>
+                        <img
+                            src={photoURL || user?.photoURL || "https://ui-avatars.com/api/?name=" + encodeURIComponent(name || "User") + "&background=8B5CF6&color=fff"}
+                            alt="Profile"
+                            style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                        />
+                    </div>
                 </div>
                 <input
                     type="file"
@@ -156,45 +244,43 @@ const ProfileCard = ({ user, name, setName, email, password, setPassword, messag
                     type="button"
                     onClick={() => fileInputRef.current && fileInputRef.current.click()}
                     style={{
-                        background: darkMode ? "#232b3b" : "#e3eaf6",
-                        color: "#1976d2",
-                        border: "1.2px solid #1976d2",
-                        borderRadius: 6,
-                        padding: "3px 12px",
+                        background: "transparent",
+                        color: "#8B5CF6",
+                        border: "1.5px solid #8B5CF6",
+                        borderRadius: 8,
+                        padding: "6px 16px",
                         fontWeight: 500,
                         fontSize: 13,
                         cursor: "pointer",
-                        marginBottom: 2,
-                        marginTop: 0,
+                        marginTop: 4,
                         letterSpacing: 0.2,
-                        boxShadow: "none",
-                        transition: "background 0.2s, color 0.2s, border 0.2s",
+                        transition: "all 0.25s ease",
                     }}
                     onMouseOver={e => {
-                        e.currentTarget.style.background = "#1976d2";
+                        e.currentTarget.style.background = "linear-gradient(135deg, #8B5CF6 0%, #3B82F6 100%)";
                         e.currentTarget.style.color = "#fff";
-                        e.currentTarget.style.border = "1.2px solid #1976d2";
+                        e.currentTarget.style.border = "1.5px solid transparent";
                     }}
                     onMouseOut={e => {
-                        e.currentTarget.style.background = darkMode ? "#232b3b" : "#e3eaf6";
-                        e.currentTarget.style.color = "#1976d2";
-                        e.currentTarget.style.border = "1.2px solid #1976d2";
+                        e.currentTarget.style.background = "transparent";
+                        e.currentTarget.style.color = "#8B5CF6";
+                        e.currentTarget.style.border = "1.5px solid #8B5CF6";
                     }}
                 >
                     Change Photo
                 </button>
             </div>
-            <form onSubmit={handleUpdateName} style={{ marginBottom: 32 }}>
+            <form onSubmit={handleUpdateName} style={{ marginBottom: 28 }}>
                 <label
                     style={{
                         display: "block",
                         fontWeight: 600,
-                        marginBottom: 6,
-                        color: darkMode ? "#d1d5db" : "#333",
-                        fontSize: 15,
+                        marginBottom: 8,
+                        color: darkMode ? "#e2e8f0" : "#374151",
+                        fontSize: 14,
                     }}
                 >
-                    Name:
+                    Name
                 </label>
                 <input
                     type="text"
@@ -202,35 +288,36 @@ const ProfileCard = ({ user, name, setName, email, password, setPassword, messag
                     onChange={(e) => setName(e.target.value)}
                     style={{
                         width: "100%",
-                        padding: "12px 14px",
-                        borderRadius: 8,
-                        border: "1.5px solid #cfd8dc",
-                        fontSize: 16,
-                        marginBottom: 18,
-                        background: darkMode ? "#374151" : "#fff",
-                        color: darkMode ? "#d1d5db" : "#222",
+                        padding: "14px 16px",
+                        borderRadius: 12,
+                        border: darkMode ? "1.5px solid rgba(139, 92, 246, 0.3)" : "1.5px solid #e2e8f0",
+                        fontSize: 15,
+                        marginBottom: 16,
+                        background: darkMode ? "rgba(37, 37, 64, 0.6)" : "#f8fafc",
+                        color: darkMode ? "#e2e8f0" : "#1f2937",
                         outline: "none",
-                        transition: "border 0.2s",
+                        transition: "all 0.25s ease",
+                        boxSizing: "border-box",
                     }}
-                    onFocus={(e) =>
-                        (e.target.style.border = `1.5px solid ${
-                            darkMode ? "#fff" : "#1976d2"
-                        }`)
-                    }
-                    onBlur={(e) =>
-                        (e.target.style.border = "1.5px solid #cfd8dc")
-                    }
+                    onFocus={(e) => {
+                        e.target.style.border = "1.5px solid #8B5CF6";
+                        e.target.style.boxShadow = "0 0 0 3px rgba(139, 92, 246, 0.15)";
+                    }}
+                    onBlur={(e) => {
+                        e.target.style.border = darkMode ? "1.5px solid rgba(139, 92, 246, 0.3)" : "1.5px solid #e2e8f0";
+                        e.target.style.boxShadow = "none";
+                    }}
                 />
                 <label
                     style={{
                         display: "block",
                         fontWeight: 600,
-                        marginBottom: 6,
-                        color: darkMode ? "#d1d5db" : "#333",
-                        fontSize: 15,
+                        marginBottom: 8,
+                        color: darkMode ? "#e2e8f0" : "#374151",
+                        fontSize: 14,
                     }}
                 >
-                    Email:
+                    Email
                 </label>
                 <input
                     type="email"
@@ -238,38 +325,40 @@ const ProfileCard = ({ user, name, setName, email, password, setPassword, messag
                     disabled
                     style={{
                         width: "100%",
-                        padding: "12px 14px",
-                        borderRadius: 8,
-                        border: "1.5px solid #e0e0e0",
-                        fontSize: 16,
-                        marginBottom: 18,
-                        background: darkMode ? "#374151" : "#fff",
-                        color: darkMode ? "#d1d5db" : "#222",
+                        padding: "14px 16px",
+                        borderRadius: 12,
+                        border: darkMode ? "1.5px solid rgba(100, 116, 139, 0.3)" : "1.5px solid #e2e8f0",
+                        fontSize: 15,
+                        marginBottom: 16,
+                        background: darkMode ? "rgba(37, 37, 64, 0.4)" : "#f1f5f9",
+                        color: darkMode ? "#94a3b8" : "#64748b",
                         cursor: "not-allowed",
+                        boxSizing: "border-box",
                     }}
                 />
                 <button
                     type="submit"
                     style={{
-                        padding: "12px 0",
+                        padding: "14px 0",
                         width: "100%",
-                        background: "#1976d2",
+                        background: "linear-gradient(135deg, #8B5CF6 0%, #3B82F6 100%)",
                         color: "#fff",
                         border: "none",
-                        borderRadius: 8,
+                        borderRadius: 12,
                         fontWeight: 600,
-                        fontSize: 16,
-                        marginTop: 4,
+                        fontSize: 15,
                         cursor: "pointer",
-                        boxShadow: "0 2px 8px rgba(25, 118, 210, 0.08)",
-                        transition: "background 0.2s",
+                        boxShadow: "0 4px 16px rgba(139, 92, 246, 0.3)",
+                        transition: "all 0.25s ease",
                     }}
-                    onMouseOver={(e) =>
-                        (e.currentTarget.style.background = "#1251a3")
-                    }
-                    onMouseOut={(e) =>
-                        (e.currentTarget.style.background = "#1976d2")
-                    }
+                    onMouseOver={(e) => {
+                        e.currentTarget.style.transform = "translateY(-2px)";
+                        e.currentTarget.style.boxShadow = "0 6px 20px rgba(139, 92, 246, 0.4)";
+                    }}
+                    onMouseOut={(e) => {
+                        e.currentTarget.style.transform = "translateY(0)";
+                        e.currentTarget.style.boxShadow = "0 4px 16px rgba(139, 92, 246, 0.3)";
+                    }}
                 >
                     Update Name
                 </button>
@@ -279,60 +368,66 @@ const ProfileCard = ({ user, name, setName, email, password, setPassword, messag
                     style={{
                         display: "block",
                         fontWeight: 600,
-                        marginBottom: 6,
-                        color: darkMode ? "#d1d5db" : "#333",
-                        fontSize: 15,
+                        marginBottom: 8,
+                        color: darkMode ? "#e2e8f0" : "#374151",
+                        fontSize: 14,
                     }}
                 >
-                    New Password:
+                    New Password
                 </label>
                 <input
                     type="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Enter new password"
                     style={{
                         width: "100%",
-                        padding: "12px 14px",
-                        borderRadius: 8,
-                        border: "1.5px solid #cfd8dc",
-                        fontSize: 16,
-                        marginBottom: 18,
-                        background: darkMode ? "#374151" : "#fff",
-                        color: darkMode ? "#d1d5db" : "#222",
+                        padding: "14px 16px",
+                        borderRadius: 12,
+                        border: darkMode ? "1.5px solid rgba(139, 92, 246, 0.3)" : "1.5px solid #e2e8f0",
+                        fontSize: 15,
+                        marginBottom: 16,
+                        background: darkMode ? "rgba(37, 37, 64, 0.6)" : "#f8fafc",
+                        color: darkMode ? "#e2e8f0" : "#1f2937",
                         outline: "none",
-                        transition: "border 0.2s",
+                        transition: "all 0.25s ease",
+                        boxSizing: "border-box",
                     }}
-                    onFocus={(e) =>
-                        (e.target.style.border = `1.5px solid ${
-                            darkMode ? "#fff" : "#1976d2"
-                        }`)
-                    }
-                    onBlur={(e) =>
-                        (e.target.style.border = "1.5px solid #cfd8dc")
-                    }
+                    onFocus={(e) => {
+                        e.target.style.border = "1.5px solid #8B5CF6";
+                        e.target.style.boxShadow = "0 0 0 3px rgba(139, 92, 246, 0.15)";
+                    }}
+                    onBlur={(e) => {
+                        e.target.style.border = darkMode ? "1.5px solid rgba(139, 92, 246, 0.3)" : "1.5px solid #e2e8f0";
+                        e.target.style.boxShadow = "none";
+                    }}
                 />
                 <button
                     type="submit"
                     style={{
-                        padding: "12px 0",
+                        padding: "14px 0",
                         width: "100%",
-                        background: "#1976d2",
-                        color: "#fff",
-                        border: "none",
-                        borderRadius: 8,
+                        background: "transparent",
+                        color: "#8B5CF6",
+                        border: "2px solid #8B5CF6",
+                        borderRadius: 12,
                         fontWeight: 600,
-                        fontSize: 16,
-                        marginTop: 4,
+                        fontSize: 15,
                         cursor: "pointer",
-                        boxShadow: "0 2px 8px rgba(25, 118, 210, 0.08)",
-                        transition: "background 0.2s",
+                        transition: "all 0.25s ease",
                     }}
-                    onMouseOver={(e) =>
-                        (e.currentTarget.style.background = "#1251a3")
-                    }
-                    onMouseOut={(e) =>
-                        (e.currentTarget.style.background = "#1976d2")
-                    }
+                    onMouseOver={(e) => {
+                        e.currentTarget.style.background = "linear-gradient(135deg, #8B5CF6 0%, #3B82F6 100%)";
+                        e.currentTarget.style.color = "#fff";
+                        e.currentTarget.style.border = "2px solid transparent";
+                        e.currentTarget.style.transform = "translateY(-2px)";
+                    }}
+                    onMouseOut={(e) => {
+                        e.currentTarget.style.background = "transparent";
+                        e.currentTarget.style.color = "#8B5CF6";
+                        e.currentTarget.style.border = "2px solid #8B5CF6";
+                        e.currentTarget.style.transform = "translateY(0)";
+                    }}
                 >
                     Update Password
                 </button>
@@ -340,31 +435,33 @@ const ProfileCard = ({ user, name, setName, email, password, setPassword, messag
             {message && (
                 <div
                     style={{
-                        color: "#388e3c",
-                        background: "#e8f5e9",
-                        borderRadius: 8,
-                        padding: "10px 16px",
-                        marginTop: 18,
+                        color: "#10b981",
+                        background: darkMode ? "rgba(16, 185, 129, 0.15)" : "rgba(16, 185, 129, 0.1)",
+                        borderRadius: 12,
+                        padding: "12px 16px",
+                        marginTop: 20,
                         fontWeight: 500,
                         textAlign: "center",
+                        border: "1px solid rgba(16, 185, 129, 0.3)",
                     }}
                 >
-                    {message}
+                    ✓ {message}
                 </div>
             )}
             {error && (
                 <div
                     style={{
-                        color: "#d32f2f",
-                        background: "#ffebee",
-                        borderRadius: 8,
-                        padding: "10px 16px",
-                        marginTop: 18,
+                        color: "#ef4444",
+                        background: darkMode ? "rgba(239, 68, 68, 0.15)" : "rgba(239, 68, 68, 0.1)",
+                        borderRadius: 12,
+                        padding: "12px 16px",
+                        marginTop: 20,
                         fontWeight: 500,
                         textAlign: "center",
+                        border: "1px solid rgba(239, 68, 68, 0.3)",
                     }}
                 >
-                    {error}
+                    ✕ {error}
                 </div>
             )}
         </div>

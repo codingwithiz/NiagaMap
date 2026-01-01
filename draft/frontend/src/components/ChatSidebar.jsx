@@ -17,8 +17,10 @@ function ChatSidebar({
     <div
       style={{
         width: sidebarOpen ? 280 : 50,
-        background: darkMode ? "#2b2b2b" : "#f8f9fa",
-        borderRight: `1px solid ${darkMode ? "#444" : "#e0e0e0"}`,
+        background: darkMode 
+          ? "linear-gradient(180deg, rgba(26, 26, 46, 0.95) 0%, rgba(15, 15, 26, 0.98) 100%)" 
+          : "linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%)",
+        borderRight: `1px solid ${darkMode ? "rgba(139, 92, 246, 0.15)" : "rgba(139, 92, 246, 0.1)"}`,
         display: "flex",
         flexDirection: "column",
         transition: "width 0.3s ease",
@@ -27,14 +29,26 @@ function ChatSidebar({
       }}
     >
       <div style={{ padding: 12, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        {sidebarOpen && <h4 style={{ margin: 0, fontSize: 14, fontWeight: 600 }}>Chat History</h4>}
+        {sidebarOpen && (
+          <h4 style={{ 
+            margin: 0, 
+            fontSize: 14, 
+            fontWeight: 600,
+            background: "linear-gradient(135deg, #8B5CF6 0%, #3B82F6 100%)",
+            WebkitBackgroundClip: "text",
+            WebkitTextFillColor: "transparent",
+            backgroundClip: "text",
+          }}>
+            Chat History
+          </h4>
+        )}
         <button
           onClick={() => setSidebarOpen(!sidebarOpen)}
           style={{
-            background: darkMode ? "#3d3d3d" : "#e3f2fd",
-            color: darkMode ? "#e0e0e0" : "#1976d2",
+            background: "linear-gradient(135deg, #8B5CF6 0%, #3B82F6 100%)",
+            color: "#fff",
             border: "none",
-            borderRadius: 6,
+            borderRadius: 8,
             width: 32,
             height: 32,
             cursor: "pointer",
@@ -43,6 +57,8 @@ function ChatSidebar({
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
+            boxShadow: "0 2px 8px rgba(139, 92, 246, 0.3)",
+            transition: "all 0.25s ease",
           }}
           title={sidebarOpen ? "Collapse" : "Expand"}
         >
@@ -59,7 +75,7 @@ function ChatSidebar({
                 margin: "0 0 8px 0", 
                 fontSize: 12, 
                 fontWeight: 600, 
-                color: darkMode ? "#aaa" : "#666",
+                color: "#8B5CF6",
                 textTransform: "uppercase",
                 letterSpacing: "0.5px"
               }}>
@@ -82,27 +98,37 @@ function ChatSidebar({
                     <div
                       key={fav.favourite_id}
                       style={{
-                        background: darkMode ? "#2a2a2a" : "#fff5e6",
+                        background: darkMode 
+                          ? "rgba(139, 92, 246, 0.1)" 
+                          : "rgba(139, 92, 246, 0.05)",
                         padding: "10px 12px",
-                        borderRadius: 8,
+                        borderRadius: 10,
                         display: "flex",
                         justifyContent: "space-between",
                         alignItems: "center",
                         fontSize: 12,
-                        border: `1px solid ${darkMode ? "#3d3d3d" : "#ffe0b2"}`,
+                        border: `1px solid ${darkMode ? "rgba(139, 92, 246, 0.25)" : "rgba(139, 92, 246, 0.15)"}`,
                         cursor: analysisId ? "pointer" : "default",
-                        transition: "all 0.2s",
+                        transition: "all 0.25s ease",
                         opacity: analysisId ? 1 : 0.5,
                       }}
                       onMouseEnter={(e) => {
                         if (analysisId) {
-                          e.currentTarget.style.background = darkMode ? "#333" : "#ffecb3";
+                          e.currentTarget.style.background = darkMode 
+                            ? "rgba(139, 92, 246, 0.2)" 
+                            : "rgba(139, 92, 246, 0.1)";
                           e.currentTarget.style.transform = "translateX(2px)";
+                          e.currentTarget.style.borderColor = "#8B5CF6";
                         }
                       }}
                       onMouseLeave={(e) => {
-                        e.currentTarget.style.background = darkMode ? "#2a2a2a" : "#fff5e6";
+                        e.currentTarget.style.background = darkMode 
+                          ? "rgba(139, 92, 246, 0.1)" 
+                          : "rgba(139, 92, 246, 0.05)";
                         e.currentTarget.style.transform = "translateX(0)";
+                        e.currentTarget.style.borderColor = darkMode 
+                          ? "rgba(139, 92, 246, 0.25)" 
+                          : "rgba(139, 92, 246, 0.15)";
                       }}
                     >
                       <span
@@ -122,8 +148,8 @@ function ChatSidebar({
                       <button
                         style={{
                           marginLeft: 8,
-                          color: "#d32f2f",
-                          background: "rgba(211, 47, 47, 0.1)",
+                          color: "#ef4444",
+                          background: "rgba(239, 68, 68, 0.1)",
                           border: "none",
                           fontWeight: "bold",
                           cursor: "pointer",
@@ -131,10 +157,11 @@ function ChatSidebar({
                           padding: 4,
                           width: 22,
                           height: 22,
-                          borderRadius: 4,
+                          borderRadius: 6,
                           display: "flex",
                           alignItems: "center",
                           justifyContent: "center",
+                          transition: "all 0.2s ease",
                         }}
                         onClick={(e) => {
                           e.stopPropagation();
@@ -149,7 +176,7 @@ function ChatSidebar({
                 })}
               </div>
               <div style={{ 
-                borderTop: `1px solid ${darkMode ? "#444" : "#e0e0e0"}`, 
+                borderTop: `1px solid ${darkMode ? "rgba(139, 92, 246, 0.15)" : "rgba(139, 92, 246, 0.1)"}`, 
                 marginTop: 10, 
                 paddingTop: 10 
               }} />
@@ -164,7 +191,7 @@ function ChatSidebar({
                   key={chat.chat_id}
                   style={{
                     background: selectedChat === chat.chat_id 
-                      ? `linear-gradient(135deg, ${darkMode ? "#1976d2" : "#e3f2fd"} 0%, ${darkMode ? "#1565c0" : "#bbdefb"} 100%)` 
+                      ? "linear-gradient(135deg, rgba(139, 92, 246, 0.2) 0%, rgba(59, 130, 246, 0.15) 100%)" 
                       : "transparent",
                     padding: "12px 14px",
                     borderRadius: 10,
@@ -173,13 +200,13 @@ function ChatSidebar({
                     justifyContent: "space-between",
                     alignItems: "center",
                     fontSize: 13,
-                    transition: "all 0.2s",
+                    transition: "all 0.25s ease",
                     border: selectedChat === chat.chat_id 
-                      ? "2px solid #1976d2" 
-                      : `1px solid ${darkMode ? "#3d3d3d" : "#e0e0e0"}`,
+                      ? "1.5px solid #8B5CF6" 
+                      : `1px solid ${darkMode ? "rgba(139, 92, 246, 0.15)" : "rgba(139, 92, 246, 0.1)"}`,
                     marginBottom: 8,
                     boxShadow: selectedChat === chat.chat_id 
-                      ? "0 4px 12px rgba(25, 118, 210, 0.2)" 
+                      ? "0 4px 12px rgba(139, 92, 246, 0.2)" 
                       : "none",
                   }}
                 >
@@ -204,8 +231,8 @@ function ChatSidebar({
                   <button
                     style={{
                       marginLeft: 8,
-                      color: "#d32f2f",
-                      background: "rgba(211, 47, 47, 0.1)",
+                      color: "#ef4444",
+                      background: "rgba(239, 68, 68, 0.1)",
                       border: "none",
                       fontWeight: "bold",
                       cursor: "pointer",
@@ -213,10 +240,11 @@ function ChatSidebar({
                       padding: 4,
                       width: 24,
                       height: 24,
-                      borderRadius: 4,
+                      borderRadius: 6,
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
+                      transition: "all 0.2s ease",
                     }}
                     onClick={(e) => {
                       e.stopPropagation();
@@ -231,7 +259,7 @@ function ChatSidebar({
             </div>
           </div>
 
-          <div style={{ borderTop: `1px solid ${darkMode ? "#444" : "#e0e0e0"}`, paddingTop: 10 }}>
+          <div style={{ borderTop: `1px solid ${darkMode ? "rgba(139, 92, 246, 0.15)" : "rgba(139, 92, 246, 0.1)"}`, paddingTop: 10 }}>
             <input
               value={newChatTitle}
               onChange={(e) => setNewChatTitle(e.target.value)}
@@ -241,12 +269,22 @@ function ChatSidebar({
                 width: "100%",
                 marginBottom: 6,
                 fontSize: 13,
-                padding: "8px 10px",
-                borderRadius: 6,
-                border: `1px solid ${darkMode ? "#444" : "#ccc"}`,
-                background: darkMode ? "#2e2e2e" : "#fff",
-                color: darkMode ? "#e0e0e0" : "#000",
+                padding: "10px 12px",
+                borderRadius: 10,
+                border: `1.5px solid ${darkMode ? "rgba(139, 92, 246, 0.3)" : "rgba(139, 92, 246, 0.2)"}`,
+                background: darkMode ? "rgba(37, 37, 64, 0.6)" : "#fff",
+                color: darkMode ? "#e2e8f0" : "#1f2937",
                 boxSizing: "border-box",
+                outline: "none",
+                transition: "all 0.25s ease",
+              }}
+              onFocus={(e) => {
+                e.target.style.border = "1.5px solid #8B5CF6";
+                e.target.style.boxShadow = "0 0 0 3px rgba(139, 92, 246, 0.15)";
+              }}
+              onBlur={(e) => {
+                e.target.style.border = `1.5px solid ${darkMode ? "rgba(139, 92, 246, 0.3)" : "rgba(139, 92, 246, 0.2)"}`;
+                e.target.style.boxShadow = "none";
               }}
             />
             <button
@@ -255,13 +293,17 @@ function ChatSidebar({
               style={{
                 width: "100%",
                 fontSize: 13,
-                padding: "8px 0",
-                borderRadius: 6,
-                background: newChatTitle.trim() ? "#1976d2" : "#bdbdbd",
-                color: "#fff",
+                padding: "10px 0",
+                borderRadius: 10,
+                background: newChatTitle.trim() 
+                  ? "linear-gradient(135deg, #8B5CF6 0%, #3B82F6 100%)" 
+                  : darkMode ? "rgba(100, 116, 139, 0.3)" : "#e2e8f0",
+                color: newChatTitle.trim() ? "#fff" : darkMode ? "#64748b" : "#94a3b8",
                 border: "none",
                 cursor: newChatTitle.trim() ? "pointer" : "not-allowed",
                 fontWeight: 600,
+                boxShadow: newChatTitle.trim() ? "0 4px 12px rgba(139, 92, 246, 0.3)" : "none",
+                transition: "all 0.25s ease",
               }}
             >
               + New Chat

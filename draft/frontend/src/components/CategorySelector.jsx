@@ -10,13 +10,16 @@ function CategorySelector({ selectedCategory, setSelectedCategory, weights, disa
           disabled={disabled}
           style={{
             width: "100%",
-            padding: "10px 14px",
-            borderRadius: 8,
-            border: `1px solid ${darkMode ? "#555" : "#ccc"}`,
-            background: darkMode ? "#2e2e2e" : "#fff",
-            color: darkMode ? "#e0e0e0" : "#000",
+            padding: "12px 14px",
+            borderRadius: 10,
+            border: `1.5px solid ${darkMode ? "rgba(139, 92, 246, 0.3)" : "rgba(139, 92, 246, 0.2)"}`,
+            background: darkMode ? "rgba(37, 37, 64, 0.6)" : "#fff",
+            color: darkMode ? "#e2e8f0" : "#1f2937",
             fontSize: 14,
             cursor: disabled ? "not-allowed" : "pointer",
+            outline: "none",
+            transition: "all 0.25s ease",
+            opacity: disabled ? 0.5 : 1,
           }}
         >
           {Object.entries(CATEGORY_PRESETS).map(([key, { label }]) => (
@@ -29,11 +32,13 @@ function CategorySelector({ selectedCategory, setSelectedCategory, weights, disa
 
       <div style={{ 
         fontSize: 11, 
-        color: darkMode ? "#aaa" : "#666",
+        color: darkMode ? "#c4b5fd" : "#7c3aed",
         whiteSpace: "nowrap",
-        padding: "8px 12px",
-        background: darkMode ? "#2a2a2a" : "#f5f5f5",
-        borderRadius: 6,
+        padding: "10px 14px",
+        background: darkMode ? "rgba(139, 92, 246, 0.15)" : "rgba(139, 92, 246, 0.1)",
+        borderRadius: 10,
+        fontWeight: 500,
+        border: `1px solid ${darkMode ? "rgba(139, 92, 246, 0.25)" : "rgba(139, 92, 246, 0.15)"}`,
       }}>
         D:{weights.demand}% C:{weights.competition}% A:{weights.accessibility}% Z:{weights.zoning}% R:{weights.risk}%
       </div>

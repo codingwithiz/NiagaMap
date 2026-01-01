@@ -33,7 +33,7 @@ function Chatbot({ onExtracted, onClose, onShowRecommendations, darkMode = false
   const [conversation, setConversation] = useState([]);
   const [newChatTitle, setNewChatTitle] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [selectedFile, setSelectedFile] = useState(null);
+
 
   // Category and weights
   const [selectedCategory, setSelectedCategory] = useState("retail");
@@ -152,7 +152,7 @@ function Chatbot({ onExtracted, onClose, onShowRecommendations, darkMode = false
   };
 
   const handleSend = async () => {
-    if ((!input.trim() && !selectedFile) || !selectedChat) return;
+    if (!input.trim() || !selectedChat) return;
     
     setIsValidatingLocation(true);
     setLocationError("");
@@ -300,7 +300,7 @@ function Chatbot({ onExtracted, onClose, onShowRecommendations, darkMode = false
         analysisId: analysisId
       }]);
 
-      setSelectedFile(null);
+
       setInput("");
     } catch (err) {
       console.error("Chatbot error:", err);
@@ -403,10 +403,15 @@ function Chatbot({ onExtracted, onClose, onShowRecommendations, darkMode = false
         width: "75vw",
         maxWidth: "1100px",
         minWidth: "800px",
-        background: darkMode ? "#1e1e1e" : "#fff",
-        color: darkMode ? "#e0e0e0" : "#000",
-        borderRadius: 16,
-        boxShadow: "0 12px 48px rgba(0,0,0,0.4)",
+        background: darkMode 
+          ? "linear-gradient(180deg, #1a1a2e 0%, #0f0f1a 100%)" 
+          : "linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)",
+        color: darkMode ? "#e2e8f0" : "#1f2937",
+        borderRadius: 20,
+        boxShadow: darkMode 
+          ? "0 16px 64px rgba(139, 92, 246, 0.2), 0 8px 32px rgba(0, 0, 0, 0.5)"
+          : "0 16px 64px rgba(139, 92, 246, 0.15), 0 8px 32px rgba(0, 0, 0, 0.1)",
+        border: `1px solid ${darkMode ? "rgba(139, 92, 246, 0.2)" : "rgba(139, 92, 246, 0.1)"}`,
         overflow: "hidden",
         flexDirection: "column",
         zIndex: 9999,
@@ -444,8 +449,8 @@ function Chatbot({ onExtracted, onClose, onShowRecommendations, darkMode = false
 
           <div
             style={{
-              borderTop: `1px solid ${darkMode ? "#444" : "#e0e0e0"}`,
-              background: darkMode ? "#252525" : "#fafafa",
+              borderTop: `1px solid ${darkMode ? "rgba(139, 92, 246, 0.2)" : "rgba(139, 92, 246, 0.1)"}`,
+              background: darkMode ? "rgba(26, 26, 46, 0.8)" : "rgba(248, 250, 252, 0.9)",
               padding: "16px 20px",
               flexShrink: 0,
             }}
@@ -466,16 +471,21 @@ function Chatbot({ onExtracted, onClose, onShowRecommendations, darkMode = false
                   disabled={!selectedChat}
                   style={{
                     padding: "10px 16px",
-                    borderRadius: 8,
+                    borderRadius: 10,
                     background: showWeightPanel 
-                      ? (darkMode ? "#d32f2f" : "#f44336") 
-                      : darkMode ? "#3d3d3d" : "#1976d2",
+                      ? "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)" 
+                      : "linear-gradient(135deg, #8B5CF6 0%, #3B82F6 100%)",
                     color: "#fff",
                     border: "none",
                     cursor: selectedChat ? "pointer" : "not-allowed",
                     fontSize: 13,
                     fontWeight: 600,
                     whiteSpace: "nowrap",
+                    boxShadow: showWeightPanel 
+                      ? "0 4px 12px rgba(239, 68, 68, 0.3)"
+                      : "0 4px 12px rgba(139, 92, 246, 0.3)",
+                    transition: "all 0.25s ease",
+                    opacity: selectedChat ? 1 : 0.5,
                   }}
                 >
                   {showWeightPanel ? "✕" : "⚙️"} Weights
@@ -499,8 +509,6 @@ function Chatbot({ onExtracted, onClose, onShowRecommendations, darkMode = false
 
             <InputArea
               selectedChat={selectedChat}
-              selectedFile={selectedFile}
-              setSelectedFile={setSelectedFile}
               input={input}
               handleInputChange={handleInputChange}
               handleSend={handleSend}

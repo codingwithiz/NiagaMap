@@ -2,8 +2,8 @@ import { useRef, useEffect } from "react";
 
 function InputArea({
   selectedChat,
-  selectedFile,
-  setSelectedFile,
+  // selectedFile,
+  // setSelectedFile,
   input,
   handleInputChange,
   handleSend,
@@ -37,84 +37,19 @@ function InputArea({
   return (
     <div
       style={{
-        borderTop: `1px solid ${darkMode ? "#444" : "#e0e0e0"}`,
-        background: darkMode ? "#252525" : "#fafafa",
-        padding: "16px 20px",
+        borderTop: `1px solid ${darkMode ? "rgba(139, 92, 246, 0.15)" : "#e2e8f0"}`,
+        background: darkMode 
+          ? "linear-gradient(180deg, #1a1a2e 0%, #0f0f1a 100%)" 
+          : "linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)",
+        padding: "20px 24px",
         flexShrink: 0,
       }}
     >
-      {/* File Upload Preview */}
-      {selectedFile && (
-        <div style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 8,
-          marginBottom: 10,
-          padding: "7px 12px",
-          background: darkMode ? "#2e2e2e" : "#e3f2fd",
-          borderRadius: 7,
-          border: `1px solid ${darkMode ? "#444" : "#90caf9"}`,
-        }}>
-          <span style={{ 
-            fontSize: 13, 
-            flex: 1, 
-            overflow: "hidden", 
-            textOverflow: "ellipsis", 
-            whiteSpace: "nowrap" 
-          }}>
-            📎 {selectedFile.name}
-          </span>
-          <button
-            onClick={() => setSelectedFile(null)}
-            style={{
-              color: "#d32f2f",
-              background: "none",
-              border: "none",
-              cursor: "pointer",
-              fontWeight: "bold",
-              fontSize: 20,
-            }}
-          >
-            ×
-          </button>
-        </div>
-      )}
+
 
       {/* Message Input */}
-      <div style={{ display: "flex", gap: 10, alignItems: "flex-end" }}>
-        {/* File Upload Button */}
-        <label
-          htmlFor="file-upload"
-          style={{
-            background: darkMode ? "#3d3d3d" : "#e3f2fd",
-            color: darkMode ? "#e0e0e0" : "#1976d2",
-            borderRadius: 8,
-            padding: "10px 12px",
-            cursor: selectedChat ? "pointer" : "not-allowed",
-            fontSize: 20,
-            opacity: selectedChat ? 1 : 0.5,
-            border: `1px solid ${darkMode ? "#555" : "#90caf9"}`,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            transition: "background 0.2s",
-          }}
-          onMouseEnter={(e) => {
-            if (selectedChat) e.target.style.background = darkMode ? "#4a4a4a" : "#bbdefb";
-          }}
-          onMouseLeave={(e) => {
-            e.target.style.background = darkMode ? "#3d3d3d" : "#e3f2fd";
-          }}
-        >
-          📎
-        </label>
-        <input
-          id="file-upload"
-          type="file"
-          onChange={(e) => setSelectedFile(e.target.files[0])}
-          style={{ display: "none" }}
-          disabled={!selectedChat}
-        />
+      <div style={{ display: "flex", gap: 12, alignItems: "flex-end" }}>
+
 
         {/* Text Input with Location Dropdown */}
         <div ref={dropdownRef} style={{ flex: 1, position: 'relative' }}>
@@ -128,20 +63,33 @@ function InputArea({
                 handleSend();
               }
             }}
-            placeholder={selectedChat ? "Describe your location (e.g., 'clinic near Bangsar within 2km')..." : "Create a chat first"}
+            placeholder={selectedChat ? "Describe your ideal location (e.g., 'clinic near Bangsar within 2km')..." : "Create a chat first"}
             disabled={!selectedChat}
             style={{
               width: '100%',
               fontSize: 14,
-              padding: "10px 14px",
-              borderRadius: 8,
-              border: `1px solid ${locationError ? '#d32f2f' : darkMode ? "#555" : "#ccc"}`,
+              padding: "14px 18px",
+              borderRadius: 14,
+              border: `2px solid ${locationError ? '#ef4444' : darkMode ? "rgba(139, 92, 246, 0.2)" : "#e2e8f0"}`,
               resize: "none",
-              background: darkMode ? "#2e2e2e" : "#fff",
-              color: darkMode ? "#e0e0e0" : "#000",
-              minHeight: 42,
+              background: darkMode ? "#1a1a2e" : "#fff",
+              color: darkMode ? "#f1f5f9" : "#1e293b",
+              minHeight: 50,
               maxHeight: 120,
               fontFamily: "inherit",
+              transition: "all 0.25s ease",
+            }}
+            onFocus={(e) => {
+              if (!locationError) {
+                e.target.style.borderColor = "#8B5CF6";
+                e.target.style.boxShadow = "0 0 0 3px rgba(139, 92, 246, 0.15)";
+              }
+            }}
+            onBlur={(e) => {
+              if (!locationError) {
+                e.target.style.borderColor = darkMode ? "rgba(139, 92, 246, 0.2)" : "#e2e8f0";
+                e.target.style.boxShadow = "none";
+              }
             }}
           />
           
@@ -149,57 +97,71 @@ function InputArea({
           {locationError && (
             <div style={{
               position: 'absolute',
-              bottom: -25,
+              bottom: -22,
               left: 0,
               fontSize: 11,
-              color: '#d32f2f',
+              color: '#ef4444',
               display: 'flex',
               alignItems: 'center',
               gap: 4,
+              fontWeight: 500,
             }}>
               ⚠️ {locationError}
             </div>
           )}
           
-          {/* Location Suggestions Dropdown - Updated for ArcGIS format */}
+          {/* Location Suggestions Dropdown */}
           {showLocationDropdown && locationSuggestions.length > 0 && (
             <div style={{
               position: 'absolute',
               bottom: '100%',
               left: 0,
               right: 0,
-              maxHeight: 200,
+              maxHeight: 220,
               overflowY: 'auto',
-              background: darkMode ? "#2e2e2e" : "#fff",
-              border: `1px solid ${darkMode ? "#555" : "#ccc"}`,
-              borderRadius: 8,
-              marginBottom: 8,
-              boxShadow: "0 -4px 12px rgba(0,0,0,0.15)",
+              background: darkMode ? "#1a1a2e" : "#fff",
+              border: `2px solid ${darkMode ? "rgba(139, 92, 246, 0.3)" : "rgba(139, 92, 246, 0.2)"}`,
+              borderRadius: 14,
+              marginBottom: 10,
+              boxShadow: darkMode 
+                ? "0 -8px 32px rgba(0, 0, 0, 0.4)" 
+                : "0 -8px 32px rgba(139, 92, 246, 0.15)",
               zIndex: 1000,
             }}>
               {locationSuggestions.map((suggestion, idx) => (
                 <div
                   key={idx}
                   onClick={() => handleLocationSelect(suggestion)}
-                  
                   style={{
-                    padding: "10px 14px",
+                    padding: "14px 18px",
                     cursor: "pointer",
                     fontSize: 13,
                     borderBottom: idx < locationSuggestions.length - 1 
-                      ? `1px solid ${darkMode ? "#444" : "#e0e0e0"}` 
+                      ? `1px solid ${darkMode ? "rgba(139, 92, 246, 0.15)" : "#f1f5f9"}` 
                       : "none",
-                    transition: "background 0.2s",
+                    transition: "all 0.2s ease",
+                    color: darkMode ? "#f1f5f9" : "#1e293b",
                   }}
-                  onMouseEnter={(e) => e.target.style.background = darkMode ? "#3d3d3d" : "#f5f5f5"}
-                  onMouseLeave={(e) => e.target.style.background = "transparent"}
+                  onMouseEnter={(e) => {
+                    e.target.style.background = darkMode ? "rgba(139, 92, 246, 0.15)" : "rgba(139, 92, 246, 0.08)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.background = "transparent";
+                  }}
                 >
-                  <div style={{ fontWeight: 600, marginBottom: 2 }}>
-                    📍 {suggestion.text}
+                  <div style={{ 
+                    fontWeight: 600, 
+                    marginBottom: 3,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                  }}>
+                    <span style={{ color: "#8B5CF6" }}>📍</span>
+                    {suggestion.text}
                   </div>
                   {suggestion.score && (
-                    <div style={{ fontSize: 11, color: darkMode ? "#aaa" : "#666" }}>
-                      Score: {suggestion.score}
+                    <div style={{ fontSize: 11, color: darkMode ? "#64748b" : "#94a3b8" }}>
+                      Relevance: {Math.round(suggestion.score * 100)}%
                     </div>
                   )}
                 </div>
@@ -211,24 +173,43 @@ function InputArea({
         {/* Send Button */}
         <button
           onClick={handleSend}
-          disabled={loading || isValidatingLocation || !selectedChat || (!input.trim() && !selectedFile)}
+          disabled={loading || isValidatingLocation || !selectedChat || !input.trim()}
           style={{
-            minWidth: 100,
+            minWidth: 110,
             fontSize: 14,
-            padding: "10px 20px",
-            borderRadius: 8,
+            padding: "14px 24px",
+            borderRadius: 14,
             background: isValidatingLocation
-              ? "linear-gradient(135deg, #ff9800 0%, #f57c00 100%)"
-              : loading || !selectedChat || (!input.trim() && !selectedFile)
-                ? darkMode ? "#444" : "#bdbdbd"
-                : "linear-gradient(135deg, #1976d2 0%, #1565c0 100%)",
-            color: "#fff",
+              ? "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)"
+              : loading || !selectedChat || !input.trim()
+                ? darkMode ? "#252540" : "#e2e8f0"
+                : "linear-gradient(135deg, #8B5CF6 0%, #3B82F6 100%)",
+            color: loading || !selectedChat || !input.trim() 
+              ? darkMode ? "#64748b" : "#94a3b8" 
+              : "#fff",
             border: "none",
-            cursor: loading || isValidatingLocation || !selectedChat || (!input.trim() && !selectedFile) ? "not-allowed" : "pointer",
+            cursor: loading || isValidatingLocation || !selectedChat || !input.trim() ? "not-allowed" : "pointer",
             fontWeight: 600,
             display: "flex",
             alignItems: "center",
+            justifyContent: "center",
             gap: 8,
+            boxShadow: loading || !selectedChat || !input.trim() 
+              ? "none" 
+              : "0 8px 24px rgba(139, 92, 246, 0.3)",
+            transition: "all 0.25s ease",
+          }}
+          onMouseEnter={(e) => {
+            if (!loading && !isValidatingLocation && selectedChat && input.trim()) {
+              e.target.style.transform = "translateY(-2px)";
+              e.target.style.boxShadow = "0 12px 32px rgba(139, 92, 246, 0.4)";
+            }
+          }}
+          onMouseLeave={(e) => {
+            e.target.style.transform = "translateY(0)";
+            if (!loading && !isValidatingLocation && selectedChat && input.trim()) {
+              e.target.style.boxShadow = "0 8px 24px rgba(139, 92, 246, 0.3)";
+            }
           }}
         >
           {(loading || isValidatingLocation) && (
@@ -236,8 +217,8 @@ function InputArea({
               style={{
                 width: 16,
                 height: 16,
-                border: "2px solid #fff",
-                borderTopColor: "transparent",
+                border: "2px solid rgba(255, 255, 255, 0.3)",
+                borderTopColor: "#fff",
                 borderRadius: "50%",
                 animation: "spin 0.8s linear infinite",
               }}
