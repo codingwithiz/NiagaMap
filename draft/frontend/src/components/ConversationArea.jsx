@@ -1,5 +1,6 @@
 import { forwardRef } from "react";
 import { extractCleanMessage, extractCategory, extractWeights } from "../utils/messageUtils";
+import EmptyState from "./EmptyState";
 
 const ConversationArea = forwardRef(({ 
   conversation, 
@@ -19,42 +20,16 @@ const ConversationArea = forwardRef(({
           overflowX: "hidden",
           padding: "20px 24px",
           display: "flex",
-          flexDirection: "column",
-          gap: 16,
-          scrollBehavior: "smooth",
+          alignItems: "center",
+          justifyContent: "center",
         }}
       >
-        <div style={{ 
-          textAlign: "center", 
-          color: darkMode ? "#94a3b8" : "#64748b",
-          marginTop: 40,
-          fontSize: 15,
-        }}>
-          <div style={{ 
-            fontSize: 48, 
-            marginBottom: 16,
-            background: "linear-gradient(135deg, #8B5CF6 0%, #3B82F6 100%)",
-            WebkitBackgroundClip: "text",
-            WebkitTextFillColor: "transparent",
-            backgroundClip: "text",
-          }}>
-            🗺️
-          </div>
-          <p style={{ 
-            fontSize: 18, 
-            fontWeight: 600, 
-            marginBottom: 10,
-            background: "linear-gradient(135deg, #8B5CF6 0%, #3B82F6 100%)",
-            WebkitBackgroundClip: "text",
-            WebkitTextFillColor: "transparent",
-            backgroundClip: "text",
-          }}>
-            Welcome to NiagaMap AI
-          </p>
-          <p style={{ fontSize: 14, marginTop: 10, lineHeight: 1.6 }}>
-            Start a new chat to analyze business locations with AI-powered insights.
-          </p>
-        </div>
+        <EmptyState
+          icon="🗺️"
+          title="Welcome to NiagaMap AI"
+          description="Start a new chat to analyze business locations with AI-powered insights. Our intelligent system will help you find the perfect spot for your business."
+          darkMode={darkMode}
+        />
       </div>
     );
   }

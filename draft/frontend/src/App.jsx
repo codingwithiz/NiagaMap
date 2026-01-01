@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Routes, Route, Link, Navigate, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "./context/AuthContext";
 import { useToast } from "./context/ToastContext";
@@ -56,7 +56,18 @@ function App() {
   const [places, setPlaces] = useState([]);
   const [activeCategory, setActiveCategory] = useState("4d4b7105d754a06377d81259");
   const [recommendedPlace, setRecommendedPlace] = useState(null);
-  const [darkMode, setDarkMode] = useState(false);
+  
+  // Dark mode with localStorage persistence
+  const [darkMode, setDarkMode] = useState(() => {
+    const savedMode = localStorage.getItem('niagamap_darkMode');
+    return savedMode ? JSON.parse(savedMode) : false;
+  });
+
+  // Save dark mode preference to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem('niagamap_darkMode', JSON.stringify(darkMode));
+  }, [darkMode]);
+  
   const [workflowResults, setWorkflowResults] = useState(null); // NEW: Add this state
 
   // New: Handler for recommendations from Chatbot

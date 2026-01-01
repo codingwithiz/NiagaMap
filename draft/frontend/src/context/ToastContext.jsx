@@ -7,16 +7,10 @@ export const ToastProvider = ({ children }) => {
   const [toasts, setToasts] = useState([]);
 
   const showToast = (message, type = "info", duration = 4000) => {
-    console.log("🔔 showToast called:", { message, type, duration });
     const id = Date.now() + Math.random();
     const newToast = { id, message, type, duration };
     
-    console.log("🔔 Adding toast to state:", newToast);
-    setToasts((prev) => {
-      const updated = [...prev, newToast];
-      console.log("🔔 Toast state updated:", updated);
-      return updated;
-    });
+    setToasts((prev) => [...prev, newToast]);
 
     // Auto-remove after duration + animation time
     if (duration) {
@@ -47,7 +41,6 @@ export const ToastProvider = ({ children }) => {
           pointerEvents: "none",
         }}
       >
-        {console.log("🔔 Rendering toasts:", toasts)}
         {toasts.map((toast) => (
           <div key={toast.id} style={{ pointerEvents: "auto" }}>
             <Toast

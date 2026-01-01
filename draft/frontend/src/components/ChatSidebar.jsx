@@ -185,8 +185,19 @@ function ChatSidebar({
 
           {/* Chat History Section */}
           <div style={{ flex: 1, overflowY: "auto", minHeight: 0, paddingRight: 6 }}>
-            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-              {chats.map((chat) => (
+            {chats.length === 0 ? (
+              <div style={{ 
+                padding: "20px 10px", 
+                textAlign: "center",
+                color: darkMode ? "#64748b" : "#94a3b8",
+              }}>
+                <div style={{ fontSize: 32, marginBottom: 8 }}>💬</div>
+                <p style={{ fontSize: 12, fontWeight: 500, marginBottom: 4 }}>No chats yet</p>
+                <p style={{ fontSize: 11, lineHeight: 1.4 }}>Create your first chat to get started</p>
+              </div>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                {chats.map((chat) => (
                 <div
                   key={chat.chat_id}
                   style={{
@@ -256,7 +267,8 @@ function ChatSidebar({
                   </button>
                 </div>
               ))}
-            </div>
+              </div>
+            )}
           </div>
 
           <div style={{ borderTop: `1px solid ${darkMode ? "rgba(139, 92, 246, 0.15)" : "rgba(139, 92, 246, 0.1)"}`, paddingTop: 10 }}>

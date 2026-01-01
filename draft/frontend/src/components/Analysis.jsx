@@ -2,6 +2,10 @@ import React, { useEffect, useState } from "react";
 import api from "../api/api";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
+import EmptyState from "./EmptyState";
+import SkeletonLoader from "./SkeletonLoader";
+import html2canvas from "html2canvas";
+import jsPDF from "jspdf";
 
 
 const Analysis = ({darkMode = false}) => {
@@ -96,6 +100,263 @@ const Analysis = ({darkMode = false}) => {
         }
     };
 
+    const handleExportPDF = async (analysis) => {
+        try {
+            showToast("Generating PDF... This may take a moment.", "info", 3000);
+
+            // Fetch recommended locations for this analysis
+            let locations = [];
+            try {
+                const recsResponse = await api.get(`/analysis/${analysis.analysisId}/recommendations`);
+                locations = recsResponse.data.locations || [];
+                
+                // Map to match PDF expectations: breakdown -> score_breakdown, reason -> ai_reason
+                locations = locations.map(loc => ({
+                    ...loc,
+                    score_breakdown: loc.breakdown,  // Already parsed by backend
+                    ai_reason: loc.reason             // AI reasoning text
+                }));
+            } catch (err) {
+                console.warn("Could not fetch recommendations:", err);
+            }
+
+            const pdf = new jsPDF('p', 'mm', 'a4');
+            const pageWidth = pdf.internal.pageSize.getWidth();
+            const pageHeight = pdf.internal.pageSize.getHeight();
+            const margin = 20;
+            let yPos = margin;
+
+            const checkPageBreak = (requiredSpace) => {
+                if (yPos + requiredSpace > pageHeight - 20) {
+                    pdf.addPage();
+                    yPos = margin;
+                    return true;
+                }
+                return false;
+            };
+
+            // Header with gradient effect (simulated with rectangles)
+            pdf.setFillColor(139, 92, 246);
+            pdf.rect(0, 0, pageWidth, 30, 'F');
+            
+            // Title
+            pdf.setTextColor(255, 255, 255);
+            pdf.setFontSize(24);
+            pdf.setFont('helvetica', 'bold');
+            pdf.text('NiagaMap Analysis Report', margin, 20);
+            
+            yPos = 45;
+            pdf.setTextColor(0, 0, 0);
+
+            // Analysis Info Section
+            pdf.setFontSize(16);
+            pdf.setFont('helvetica', 'bold');
+            pdf.text('Analysis Details', margin, yPos);
+            yPos += 10;
+
+            pdf.setFontSize(11);
+            pdf.setFont('helvetica', 'normal');
+            
+            // Reference Point
+            pdf.setFont('helvetica', 'bold');
+            pdf.text('Reference Point:', margin, yPos);
+            pdf.setFont('helvetica', 'normal');
+            pdf.text(analysis.referencePoint?.name || 'N/A', margin + 50, yPos);
+            yPos += 8;
+
+            // Coordinates
+            pdf.setFont('helvetica', 'bold');
+            pdf.text('Coordinates:', margin, yPos);
+            pdf.setFont('helvetica', 'normal');
+            const coords = `${analysis.referencePoint?.lat?.toFixed(4) || 'N/A'}, ${analysis.referencePoint?.lon?.toFixed(4) || 'N/A'}`;
+            pdf.text(coords, margin + 50, yPos);
+            yPos += 8;
+
+            // Analysis ID
+            pdf.setFont('helvetica', 'bold');
+            pdf.text('Analysis ID:', margin, yPos);
+            pdf.setFont('helvetica', 'normal');
+            pdf.text(analysis.analysisId.substring(0, 16) + '...', margin + 50, yPos);
+            yPos += 8;
+
+            // Created At
+            pdf.setFont('helvetica', 'bold');
+            pdf.text('Created:', margin, yPos);
+            pdf.setFont('helvetica', 'normal');
+            pdf.text(formatDateTime(analysis.createdAt), margin + 50, yPos);
+            yPos += 15;
+
+            // Weights Section
+            if (analysis.weights) {
+                checkPageBreak(40);
+                pdf.setFontSize(14);
+                pdf.setFont('helvetica', 'bold');
+                pdf.text('Analysis Weights', margin, yPos);
+                yPos += 8;
+
+                pdf.setFontSize(10);
+                pdf.setFont('helvetica', 'normal');
+                
+                const weights = JSON.parse(analysis.weights);
+                Object.entries(weights).forEach(([key, value]) => {
+                    const displayKey = key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, ' $1');
+                    pdf.text(`${displayKey}: ${(value * 100).toFixed(0)}%`, margin + 5, yPos);
+                    yPos += 6;
+                });
+                yPos += 10;
+            }
+
+            // Recommended Locations Section
+            if (locations && locations.length > 0) {
+                checkPageBreak(50);
+                pdf.setFontSize(16);
+                pdf.setFont('helvetica', 'bold');
+                pdf.text('Recommended Locations', margin, yPos);
+                yPos += 10;
+
+                locations.forEach((loc, index) => {
+                    checkPageBreak(80);
+
+                    // Location box background - make it taller for more content
+                    const boxHeight = 70 + (loc.reasoning ? 15 : 0) + (loc.score_breakdown ? 20 : 0);
+                    pdf.setFillColor(245, 247, 250);
+                    pdf.roundedRect(margin, yPos - 5, pageWidth - 2 * margin, boxHeight, 3, 3, 'F');
+
+                    // Location number and name - use "Location 1", "Location 2" format
+                    pdf.setFontSize(13);
+                    pdf.setFont('helvetica', 'bold');
+                    pdf.setTextColor(139, 92, 246);
+                    pdf.text(`${index + 1}. Location ${index + 1}`, margin + 3, yPos);
+                    yPos += 8;
+
+                    pdf.setTextColor(0, 0, 0);
+                    pdf.setFontSize(9);
+                    pdf.setFont('helvetica', 'normal');
+
+                    // Address
+                    if (loc.address) {
+                        const addressLines = pdf.splitTextToSize(loc.address, pageWidth - 2 * margin - 10);
+                        pdf.text(addressLines, margin + 3, yPos);
+                        yPos += addressLines.length * 4 + 2;
+                    }
+
+                    // Score
+                    pdf.setFont('helvetica', 'bold');
+                    pdf.setTextColor(34, 197, 94);
+                    pdf.text(`Suitability Score: ${loc.score?.toFixed(1) || 'N/A'}%`, margin + 3, yPos);
+                    yPos += 6;
+                    pdf.setTextColor(0, 0, 0);
+
+                    // Score Breakdown
+                    if (loc.score_breakdown) {
+                        pdf.setFont('helvetica', 'bold');
+                        pdf.setFontSize(8);
+                        pdf.text('Score Breakdown:', margin + 3, yPos);
+                        yPos += 5;
+                        
+                        pdf.setFont('helvetica', 'normal');
+                        const breakdown = loc.score_breakdown;
+                        
+                        // Extract score from nested objects
+                        Object.entries(breakdown).forEach(([key, value]) => {
+                            if (value && typeof value === 'object' && 'score' in value) {
+                                const displayKey = key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, ' $1');
+                                const scoreValue = typeof value.score === 'number' ? value.score.toFixed(1) : 'N/A';
+                                pdf.text(`  • ${displayKey}: ${scoreValue}`, margin + 5, yPos);
+                                yPos += 4;
+                            }
+                        });
+                        yPos += 2;
+                    }
+
+                    // Distance
+                    if (loc.distance_km) {
+                        pdf.setFontSize(9);
+                        pdf.setFont('helvetica', 'normal');
+                        pdf.text(`Distance from reference: ${loc.distance_km.toFixed(2)} km`, margin + 3, yPos);
+                        yPos += 5;
+                    }
+
+                    // Coordinates
+                    if (loc.lat && loc.lon) {
+                        pdf.text(`Coordinates: ${loc.lat.toFixed(4)}, ${loc.lon.toFixed(4)}`, margin + 3, yPos);
+                        yPos += 6;
+                    }
+
+                    // AI Reasoning
+                    if (loc.ai_reason) {
+                        pdf.setFont('helvetica', 'bold');
+                        pdf.setFontSize(8);
+                        pdf.setTextColor(0, 0, 0);
+                        pdf.text('AI Analysis:', margin + 3, yPos);
+                        yPos += 5;
+                        
+                        pdf.setFont('helvetica', 'italic');
+                        pdf.setFontSize(9);
+                        pdf.setTextColor(60, 60, 60);
+                        const reasoningLines = pdf.splitTextToSize(`"${loc.ai_reason}"`, pageWidth - 2 * margin - 10);
+                        pdf.text(reasoningLines, margin + 3, yPos);
+                        yPos += reasoningLines.length * 4 + 3;
+                        pdf.setTextColor(0, 0, 0);
+                    }
+
+                    // Quick Links Section
+                    if (loc.lat && loc.lon) {
+                        checkPageBreak(15);
+                        pdf.setFont('helvetica', 'bold');
+                        pdf.setFontSize(8);
+                        pdf.setTextColor(0, 0, 0);
+                        pdf.text('Quick Links:', margin + 3, yPos);
+                        yPos += 5;
+
+                        pdf.setFont('helvetica', 'underline');
+                        pdf.setFontSize(9);
+                        
+                        // OpenStreetMap Link
+                        const osmUrl = `https://www.openstreetmap.org/?mlat=${loc.lat}&mlon=${loc.lon}#map=19/${loc.lat}/${loc.lon}`;
+                        pdf.setTextColor(139, 92, 246); // Purple
+                        pdf.textWithLink('View on OpenStreetMap', margin + 5, yPos, { url: osmUrl });
+                        yPos += 6;
+                        
+                        // Google Maps Navigation Link
+                        const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${loc.lat},${loc.lon}`;
+                        pdf.setTextColor(59, 130, 246); // Blue
+                        pdf.textWithLink('Navigate with Google Maps', margin + 5, yPos, { url: googleMapsUrl });
+                        yPos += 6;
+                        
+                        pdf.setTextColor(0, 0, 0);
+                        pdf.setFont('helvetica', 'normal');
+                    }
+
+                    yPos += 10;
+                });
+            } else {
+                checkPageBreak(20);
+                pdf.setFontSize(12);
+                pdf.setFont('helvetica', 'italic');
+                pdf.setTextColor(100, 100, 100);
+                pdf.text('No recommended locations available for this analysis.', margin, yPos);
+                yPos += 10;
+            }
+
+            // Footer
+            const footerY = pageHeight - 15;
+            pdf.setFontSize(9);
+            pdf.setTextColor(100, 100, 100);
+            pdf.text('Generated by NiagaMap - AI-Powered Location Intelligence', pageWidth / 2, footerY, { align: 'center' });
+            pdf.text(`Generated on: ${new Date().toLocaleString()}`, pageWidth / 2, footerY + 5, { align: 'center' });
+
+            // Save PDF
+            const fileName = `NiagaMap_Analysis_${analysis.referencePoint?.name?.replace(/[^a-z0-9]/gi, '_') || 'Report'}_${new Date().getTime()}.pdf`;
+            pdf.save(fileName);
+            
+            showToast("PDF exported successfully!", "success");
+        } catch (err) {
+            console.error("Failed to export PDF:", err);
+            showToast("Failed to export PDF. Please try again.", "error");
+        }
+    };
+
     const getFilteredAndSortedAnalyses = () => {
         let filtered = analyses.filter((a) => {
             const chatMatch =
@@ -144,22 +405,11 @@ const Analysis = ({darkMode = false}) => {
         return (
             <div style={{
                 minHeight: "100vh",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
                 background: darkMode ? "#0f0f1a" : "#f8fafc",
+                padding: "40px 20px",
             }}>
-                <div style={{ textAlign: "center" }}>
-                    <div style={{
-                        width: 48,
-                        height: 48,
-                        border: "4px solid rgba(139, 92, 246, 0.2)",
-                        borderTopColor: "#8B5CF6",
-                        borderRadius: "50%",
-                        animation: "spin 1s linear infinite",
-                        margin: "0 auto 16px",
-                    }} />
-                    <p style={{ color: darkMode ? "#94a3b8" : "#64748b" }}>Loading analyses...</p>
+                <div style={{ maxWidth: 1200, margin: "0 auto" }}>
+                    <SkeletonLoader darkMode={darkMode} count={3} type="card" />
                 </div>
             </div>
         );
@@ -377,15 +627,16 @@ const Analysis = ({darkMode = false}) => {
 
                 {/* Render each analysis */}
                 {filteredAnalyses.length === 0 ? (
-                    <div style={{
-                        textAlign: "center",
-                        padding: "60px 20px",
-                        color: darkMode ? "#64748b" : "#94a3b8",
-                    }}>
-                        <div style={{ fontSize: 48, marginBottom: 16 }}>📊</div>
-                        <p style={{ fontSize: 18, fontWeight: 500 }}>No analyses found</p>
-                        <p style={{ fontSize: 14, marginTop: 8 }}>Try adjusting your filters or create a new analysis</p>
-                    </div>
+                    <EmptyState
+                        icon={analyses.length === 0 ? "🗺️" : "🔍"}
+                        title={analyses.length === 0 ? "No Analyses Yet" : "No Results Found"}
+                        description={
+                            analyses.length === 0
+                                ? "Start exploring locations with our AI-powered analysis tool. Create your first analysis from the chatbot!"
+                                : "Try adjusting your filters or search criteria to find analyses."
+                        }
+                        darkMode={darkMode}
+                    />
                 ) : (
                     filteredAnalyses.map((analysis) => (
                         <div
@@ -453,6 +704,31 @@ const Analysis = ({darkMode = false}) => {
                                     </div>
                                 </div>
                                 <div style={{ display: "flex", gap: 10 }}>
+                                    <button
+                                        onClick={() => handleExportPDF(analysis)}
+                                        style={{
+                                            padding: "10px 20px",
+                                            borderRadius: 10,
+                                            background: darkMode ? "rgba(34, 197, 94, 0.15)" : "rgba(34, 197, 94, 0.1)",
+                                            color: "#22c55e",
+                                            border: "2px solid rgba(34, 197, 94, 0.3)",
+                                            fontWeight: 600,
+                                            fontSize: 13,
+                                            cursor: "pointer",
+                                            transition: "all 0.25s ease",
+                                        }}
+                                        onMouseEnter={(e) => {
+                                            e.target.style.background = "rgba(34, 197, 94, 0.2)";
+                                            e.target.style.borderColor = "#22c55e";
+                                        }}
+                                        onMouseLeave={(e) => {
+                                            e.target.style.background = darkMode ? "rgba(34, 197, 94, 0.15)" : "rgba(34, 197, 94, 0.1)";
+                                            e.target.style.borderColor = "rgba(34, 197, 94, 0.3)";
+                                        }}
+                                        title="Export to PDF"
+                                    >
+                                        📄 PDF
+                                    </button>
                                     <button
                                         onClick={() => openUpdateModal(analysis)}
                                         style={{
