@@ -236,23 +236,59 @@ function Chatbot({ onExtracted, onClose, onShowRecommendations, darkMode = false
 
         if (botResult.nearbyMe) {
           console.log("Requesting user's current location...");
+          showToast("Getting your location...", "info");
           
           try {
-            const position = await new Promise((resolve, reject) => {
-              if (!navigator.geolocation) {
-                reject(new Error("Geolocation is not supported by your browser"));
-              }
-              
-              navigator.geolocation.getCurrentPosition(
-                (pos) => resolve(pos),
-                (err) => reject(err),
-                { 
-                  enableHighAccuracy: true,
-                  timeout: 10000,
-                  maximumAge: 0
+            // Helper function to get location with specific options
+            const getPosition = (options) => {
+              return new Promise((resolve, reject) => {
+                if (!navigator.geolocation) {
+                  reject(new Error("Geolocation is not supported by your browser"));
+                  return;
                 }
-              );
-            });
+                
+                navigator.geolocation.getCurrentPosition(
+                  (pos) => resolve(pos),
+                  (err) => reject(err),
+                  options
+                );
+              });
+            };
+
+            let position;
+            
+            // First try: High accuracy with 10s timeout
+            try {
+              console.log("Trying high accuracy GPS...");
+              position = await getPosition({ 
+                enableHighAccuracy: true,
+                timeout: 10000,
+                maximumAge: 0  // Force fresh location
+              });
+            } catch (firstError) {
+              console.warn("High accuracy failed, trying low accuracy:", firstError);
+              
+              // Second try: Low accuracy (network-based) with 20s timeout
+              try {
+                showToast("GPS unavailable, using network location...", "info");
+                position = await getPosition({ 
+                  enableHighAccuracy: false,
+                  timeout: 20000,
+                  maximumAge: 0  // Force fresh location
+                });
+              } catch (secondError) {
+                // Both attempts failed, provide helpful error message
+                let errorMsg = "Unable to get your location";
+                if (secondError.code === 1) {
+                  errorMsg = "Location permission denied. Click the 🔒 icon in your address bar to allow location access";
+                } else if (secondError.code === 2) {
+                  errorMsg = "Location unavailable. Please check your device location settings";
+                } else if (secondError.code === 3) {
+                  errorMsg = "Location timed out. Please specify a location name instead (e.g., 'near KLCC')";
+                }
+                throw new Error(errorMsg);
+              }
+            }
 
             currentLocation = {
               lat: position.coords.latitude,
@@ -260,9 +296,10 @@ function Chatbot({ onExtracted, onClose, onShowRecommendations, darkMode = false
             };
 
             console.log("Got current location:", currentLocation);
+            showToast("Location found!", "success");
           } catch (geoError) {
             console.error("Geolocation error:", geoError);
-            throw new Error(`Unable to get your location: ${geoError.message}. Please enable location services or specify a location name.`);
+            throw new Error(geoError.message || "Unable to get your location. Please enable location services or specify a location name.");
           }
         } else {
           locationName = botResult.location;

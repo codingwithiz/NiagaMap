@@ -138,18 +138,61 @@ function App() {
   
       try {
         console.log("Requesting geolocation...");
-        const coord = await new Promise((resolve, reject) => {
+        
+        // Helper function to get location with specific options
+        const getPosition = (options) => {
+          return new Promise((resolve, reject) => {
+            if (!navigator.geolocation) {
+              reject(new Error("Geolocation is not supported by your browser"));
+              return;
+            }
+            
             navigator.geolocation.getCurrentPosition(
-                (position) =>
-                    resolve({
-                        latitude: position.coords.latitude,
-                        longitude: position.coords.longitude,
-                        address: position.coords.address || "Current Location",
-                    }),
-                (error) => reject(error),
-                { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+              (position) => resolve({
+                latitude: position.coords.latitude,
+                longitude: position.coords.longitude,
+                address: position.coords.address || "Current Location",
+              }),
+              (error) => reject(error),
+              options
             );
-        });
+          });
+        };
+
+        let coord;
+        
+        // First try: High accuracy with 10s timeout
+        try {
+          console.log("Trying high accuracy GPS...");
+          coord = await getPosition({ 
+            enableHighAccuracy: true,
+            timeout: 10000,
+            maximumAge: 0  // Force fresh location
+          });
+        } catch (firstError) {
+          console.warn("High accuracy failed, trying low accuracy:", firstError);
+          
+          // Second try: Low accuracy (network-based) with 20s timeout
+          try {
+            coord = await getPosition({ 
+              enableHighAccuracy: false,
+              timeout: 20000,
+              maximumAge: 0  // Force fresh location
+            });
+          } catch (secondError) {
+            // Both attempts failed, provide helpful error message
+            let errorMsg = "Unable to get your location";
+            if (secondError.code === 1) {
+              errorMsg = "Location permission denied. Please allow location access";
+            } else if (secondError.code === 2) {
+              errorMsg = "Location unavailable. Check your GPS/network";
+            } else if (secondError.code === 3) {
+              errorMsg = "Location timed out. Try again or enter a location name";
+            }
+            throw new Error(errorMsg);
+          }
+        }
+        
         console.log("Geolocation received:", coord);
   
         if (
