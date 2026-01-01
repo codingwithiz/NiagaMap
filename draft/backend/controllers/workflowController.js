@@ -323,7 +323,42 @@ async function runWorkflow(opts = {}) {
     //sort the locations by finalScore in descending order
     out.sort((a, b) => b.finalScore - a.finalScore);
 
-    // 4. save the top 3 recommended locations by analysis id
+    // 4. Save all hexagon scores to the database for later retrieval
+    console.log(`Saving ${out.length} hexagon scores to database...`);
+    const supabase = require('../supabase/supabase_client');
+    try {
+        for (const hexResult of out) {
+            const hexData = {
+                hex_id: hexResult.hexagon.hex_id,
+                demand_score: hexResult.demandScore,
+                demand_raw: hexResult.demandRaw,
+                poi_score: hexResult.poiScore,
+                poi_raw: hexResult.poiRaw,
+                risk_score: hexResult.riskScore,
+                risk_raw: hexResult.riskRaw,
+                accessibility_score: hexResult.accessibilityScore,
+                accessibility_raw: hexResult.accessibilityRaw,
+                zoning_score: hexResult.zoningScore,
+                zoning_raw: hexResult.zoningRaw,
+                final_score: hexResult.finalScore,
+                centroid: hexResult.centroid,
+            };
+
+            const { error } = await supabase
+                .from('hexagon')
+                .update(hexData)
+                .eq('hex_id', hexResult.hexagon.hex_id);
+
+            if (error) {
+                console.error(`Error updating hexagon ${hexResult.hexagon.hex_id}:`, error);
+            }
+        }
+        console.log('Successfully saved all hexagon scores to database');
+    } catch (error) {
+        console.error('Error saving hexagon scores:', error);
+    }
+
+    // 5. save the top 3 recommended locations by analysis id
     if (out.length > 0) {
         const topLocations = out.slice(0, 3); // Get top 3 locations
         try {

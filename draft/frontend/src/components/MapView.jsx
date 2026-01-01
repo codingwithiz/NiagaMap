@@ -40,6 +40,7 @@ const MapViewComponent = ({
     const [lastClickPoint, setLastClickPoint] = useState(null);
     const [selectedPlaceId, setSelectedPlaceId] = useState(null);
     const [hoveredHexId, setHoveredHexId] = useState(null); // NEW: Track hovered hexagon
+    const [recommendedLocationsData, setRecommendedLocationsData] = useState(null); // Store AI reasoning data
 
     useEffect(() => {
         defineCustomElements(window);
@@ -86,17 +87,17 @@ const MapViewComponent = ({
             mapView.ui.add(expandGallery, "top-right");
             mapView.ui.add(legend, "bottom-left");
 
-            mapView.on("click", (event) => {
-                // Check if clicking on a hexagon - if so, don't clear graphics
-                mapView.hitTest(event).then((response) => {
-                    const hexGraphic = response.results.find((r) => r.graphic.layer === hexagonLayerRef.current)?.graphic;
-                    if (hexGraphic) return;
+            // Disabled: Places search on map click - focusing on hexagon analysis only
+            // mapView.on("click", (event) => {
+            //     mapView.hitTest(event).then((response) => {
+            //         const hexGraphic = response.results.find((r) => r.graphic.layer === hexagonLayerRef.current)?.graphic;
+            //         if (hexGraphic) return;
 
-                    setLastClickPoint(event.mapPoint);
-                    clearGraphics();
-                    showPlaces(event.mapPoint);
-                });
-            });
+            //         setLastClickPoint(event.mapPoint);
+            //         clearGraphics();
+            //         showPlaces(event.mapPoint);
+            //     });
+            // });
 
             // Enhanced pointer-move for hexagon hover
             mapView.on("pointer-move", (event) => {
@@ -138,19 +139,42 @@ const MapViewComponent = ({
         }
     }, [activeCategory, initialized, lastClickPoint]);
 
-    // NEW: Effect to render workflow hexagons
+    // Store recommended locations data for popup content
+    useEffect(() => {
+        const locations =
+            recommendedPlace?.locations ||
+            recommendedPlace?.recommended_locations ||
+            (Array.isArray(recommendedPlace) ? recommendedPlace : null);
+
+        if (locations) {
+            setRecommendedLocationsData(locations);
+        } else {
+            setRecommendedLocationsData(null);
+        }
+    }, [recommendedPlace]);
+
+    // NEW: Combined effect to render workflow hexagons with recommended locations
     useEffect(() => {
         console.log("Workflow effect triggered:", {
             hasResults: workflowResults?.length > 0,
             hasView: !!view,
             hexagonLayer: !!hexagonLayerRef.current,
+            hasRecommendedPlace: !!recommendedPlace,
         });
 
         if (workflowResults && workflowResults.length > 0 && view) {
             console.log("Rendering hexagons:", workflowResults);
-            renderWorkflowHexagons(workflowResults);
+            
+            // Extract locations directly from recommendedPlace prop
+            const locations =
+                recommendedPlace?.locations ||
+                recommendedPlace?.recommended_locations ||
+                (Array.isArray(recommendedPlace) ? recommendedPlace : null);
+            
+            console.log("Passing locations to render:", locations);
+            renderWorkflowHexagons(workflowResults, locations);
         }
-    }, [workflowResults, view]);
+    }, [workflowResults, view, recommendedPlace]);
 
     const clearGraphics = () => {
         if (!bufferLayerRef.current || !placesLayerRef.current) return;
@@ -207,15 +231,15 @@ const MapViewComponent = ({
         setHoveredHexId(hexId);
         highlightLayerRef.current.removeAll();
 
-        // Simple highlight for non-recommended hexagons
+        // Enhanced highlight for non-recommended hexagons
         const highlight = new Graphic({
             geometry: graphic.geometry.clone(),
             symbol: {
                 type: "simple-fill",
-                color: [100, 149, 237, 0.3], // Cornflower blue
+                color: [100, 149, 237, 0.4], // Brighter cornflower blue
                 outline: {
-                    color: [100, 149, 237, 1],
-                    width: 3,
+                    color: [70, 120, 220, 1],
+                    width: 3.5,
                 },
             },
         });
@@ -239,13 +263,13 @@ const MapViewComponent = ({
         setHoveredHexId(hexId);
         highlightLayerRef.current.removeAll();
 
-        // Enhanced glow effect for recommended hexagons - Blue
+        // Enhanced glow effect for recommended hexagons on hover
         const outerGlow = new Graphic({
             geometry: graphic.geometry.clone(),
             symbol: {
                 type: "simple-fill",
-                color: [30, 144, 255, 0.1],
-                outline: { color: [30, 144, 255, 0.8], width: 6 },
+                color: [65, 165, 255, 0.15],
+                outline: { color: [65, 165, 255, 0.85], width: 8 },
             },
         });
 
@@ -253,8 +277,8 @@ const MapViewComponent = ({
             geometry: graphic.geometry.clone(),
             symbol: {
                 type: "simple-fill",
-                color: [30, 144, 255, 0.2],
-                outline: { color: [30, 144, 255, 1], width: 4 },
+                color: [30, 144, 255, 0.3],
+                outline: { color: [30, 144, 255, 1], width: 5 },
             },
         });
 
@@ -262,8 +286,8 @@ const MapViewComponent = ({
             geometry: graphic.geometry.clone(),
             symbol: {
                 type: "simple-fill",
-                color: [30, 144, 255, 0.4],
-                outline: { color: [255, 255, 255, 1], width: 2 },
+                color: [255, 255, 255, 0.25],
+                outline: { color: [255, 255, 255, 0.95], width: 2.5 },
             },
         });
 
@@ -281,8 +305,9 @@ const MapViewComponent = ({
     };
 
     // NEW: Render workflow hexagons on map
-    const renderWorkflowHexagons = (results) => {
+    const renderWorkflowHexagons = (results, locationsData) => {
         console.log("renderWorkflowHexagons called with:", results);
+        console.log("Locations data received:", locationsData);
         
         if (!hexagonLayerRef.current) {
             console.error("Missing hexagonLayer:", { hexagonLayer: !!hexagonLayerRef.current });
@@ -304,6 +329,31 @@ const MapViewComponent = ({
 
         console.log("Score range:", { minScore, maxScore, scoreRange });
         console.log("Top 3 hex IDs:", top3HexIds);
+        console.log("Recommended locations data available:", locationsData);
+
+        // Helper function to find matching location data by coordinates
+        const findMatchingLocation = (hexagonCentroid) => {
+            if (!locationsData || !hexagonCentroid) {
+                console.log("Missing data - locationsData:", !!locationsData, "centroid:", !!hexagonCentroid);
+                return null;
+            }
+            
+            // Find location with closest matching coordinates (within ~50m tolerance)
+            const tolerance = 0.0005; // roughly 50 meters
+            
+            const match = locationsData.find(loc => {
+                const latDiff = Math.abs(loc.lat - hexagonCentroid.lat);
+                const lonDiff = Math.abs(loc.lon - hexagonCentroid.lon);
+                return latDiff < tolerance && lonDiff < tolerance;
+            });
+            
+            if (match) {
+                console.log("✅ Match found for centroid", hexagonCentroid, ":", match.location_id);
+            } else {
+                console.log("❌ No match for centroid", hexagonCentroid);
+            }
+            return match;
+        };
 
         // First pass: render all non-recommended hexagons
         results.forEach((result, index) => {
@@ -334,9 +384,10 @@ const MapViewComponent = ({
                         type: "simple-fill",
                         color: color,
                         outline: {
-                            color: [80, 80, 80, 0.6],
-                            width: 1,
+                            color: [60, 60, 60, 0.85],
+                            width: 1.5,
                         },
+                        style: "solid",
                     },
                     attributes: {
                         hexId: hexagon.hex_id,
@@ -375,43 +426,49 @@ const MapViewComponent = ({
                     spatialReference: { wkid: 4326 },
                 });
 
-                // Outer glow layer - Blue
+                // Enhanced glow effect with smoother gradient
+                // Outer glow layer - Soft blue aura
                 const outerGlow = new Graphic({
                     geometry: polygon,
                     symbol: {
                         type: "simple-fill",
-                        color: [30, 144, 255, 0.15],  // Dodger blue
+                        color: [65, 165, 255, 0.12],  // Light blue
                         outline: {
-                            color: [30, 144, 255, 0.4],
-                            width: 8,
+                            color: [65, 165, 255, 0.35],
+                            width: 10,
                         },
                     },
                 });
                 hexagonLayerRef.current.add(outerGlow);
 
-                // Middle glow layer - Blue
+                // Middle glow layer - Medium intensity
                 const middleGlow = new Graphic({
                     geometry: polygon,
                     symbol: {
                         type: "simple-fill",
-                        color: [30, 144, 255, 0.25],
+                        color: [30, 144, 255, 0.3],
                         outline: {
-                            color: [30, 144, 255, 0.7],
-                            width: 5,
+                            color: [30, 144, 255, 0.75],
+                            width: 6,
                         },
                     },
                 });
                 hexagonLayerRef.current.add(middleGlow);
 
-                // Main hexagon - Blue
+                // Main hexagon - Vibrant blue with crisp border
+                // Build enhanced popup content with AI reasoning for recommended hexagons
+                // Match location data by coordinates instead of array index
+                const matchedLocation = findMatchingLocation(result.centroid);
+                const popupContent = buildRecommendedHexagonPopup(result, rank, matchedLocation);
+                
                 const hexGraphic = new Graphic({
                     geometry: polygon,
                     symbol: {
                         type: "simple-fill",
-                        color: [30, 144, 255, 0.5],  // Dodger blue with transparency
+                        color: [30, 144, 255, 0.7],  // More opaque for better visibility
                         outline: {
-                            color: [0, 100, 200, 1],  // Darker blue outline
-                            width: 3,
+                            color: [0, 90, 180, 1],  // Rich dark blue outline
+                            width: 2.5,
                         },
                     },
                     attributes: {
@@ -421,25 +478,41 @@ const MapViewComponent = ({
                         isRecommended: true,
                         rank: rank,
                         score: result.finalScore,
-                        title: `🏆 Rank #${rank} Location`,
+                        title: `🏆 Recommended Location #${rank}`,
+                    },
+                    popupTemplate: {
+                        title: `🏆 Recommended Location #${rank}`,
+                        content: popupContent,
                     },
                 });
                 hexagonLayerRef.current.add(hexGraphic);
 
-                // Add rank label
+                // Add rank label with enhanced styling
                 if (result.centroid) {
-                            const labelPoint = new Point({ longitude: result.centroid.lon, latitude: result.centroid.lat, spatialReference: { wkid: 4326 } });
+                    const labelPoint = new Point({ longitude: result.centroid.lon, latitude: result.centroid.lat, spatialReference: { wkid: 4326 } });
 
-                    // Background circle for label - Blue
+                    // Shadow/glow effect for badge
+                    const shadowCircle = new Graphic({
+                        geometry: labelPoint,
+                        symbol: {
+                            type: "simple-marker",
+                            color: [0, 0, 0, 0.3],
+                            size: 36,
+                            outline: { color: [0, 0, 0, 0], width: 0 },
+                        },
+                    });
+                    hexagonLayerRef.current.add(shadowCircle);
+
+                    // Background circle for label - Gradient effect via outline
                     const labelBg = new Graphic({
                         geometry: labelPoint,
                         symbol: {
                             type: "simple-marker",
-                            color: [30, 144, 255, 1],  // Dodger blue
-                            size: 28,
+                            color: [20, 120, 220, 1],  // Rich blue
+                            size: 32,
                             outline: {
                                 color: [255, 255, 255, 1],
-                                width: 2,
+                                width: 3,
                             },
                         },
                     });
@@ -451,12 +524,12 @@ const MapViewComponent = ({
                             type: "text",
                             text: `#${rank}`,
                             color: [255, 255, 255, 1],
-                            haloColor: [0, 0, 0, 0.8],
-                            haloSize: 1,
+                            haloColor: [0, 50, 100, 0.9],
+                            haloSize: 1.5,
                             font: {
-                                size: 12,
+                                size: 14,
                                 weight: "bold",
-                                family: "Arial",
+                                family: "'Segoe-UI', Arial, sans-serif",
                             },
                         },
                     });
@@ -493,29 +566,150 @@ const MapViewComponent = ({
     // NEW: Get color based on score (gradient from red to green)
     const getScoreColor = (normalizedScore, isRecommended) => {
         if (isRecommended) {
-            return [30, 144, 255, 0.5]; // Dodger blue for recommended
+            return [30, 144, 255, 0.65]; // Vibrant dodger blue for recommended
         }
 
-        // Gradient from red (low score) to yellow (medium) to green (high score)
+        // Enhanced gradient: red (low) → orange → yellow → lime → green (high)
         let r, g, b;
         
-        if (normalizedScore < 0.5) {
-            // Red to Yellow (0 to 0.5)
-            const t = normalizedScore * 2; // 0 to 1
+        if (normalizedScore < 0.33) {
+            // Red to Orange (0 to 0.33)
+            const t = normalizedScore * 3; // 0 to 1
             r = 255;
-            g = Math.round(200 * t);
-            b = 50;
+            g = Math.round(100 + 100 * t); // 100 to 200
+            b = 30;
+        } else if (normalizedScore < 0.67) {
+            // Orange to Yellow-Green (0.33 to 0.67)
+            const t = (normalizedScore - 0.33) * 3; // 0 to 1
+            r = Math.round(255 - 100 * t); // 255 to 155
+            g = Math.round(200 + 30 * t); // 200 to 230
+            b = 30;
         } else {
-            // Yellow to Green (0.5 to 1)
-            const t = (normalizedScore - 0.5) * 2; // 0 to 1
-            r = Math.round(255 * (1 - t));
-            g = Math.round(200 + 55 * t);
-            b = 50;
+            // Yellow-Green to Vibrant Green (0.67 to 1)
+            const t = (normalizedScore - 0.67) * 3; // 0 to 1
+            r = Math.round(155 - 115 * t); // 155 to 40
+            g = Math.round(230 + 25 * t); // 230 to 255
+            b = Math.round(30 + 50 * t); // 30 to 80
         }
 
-        const opacity = 0.35 + normalizedScore * 0.25; // 0.35 to 0.6
+        const opacity = 0.45 + normalizedScore * 0.3; // 0.45 to 0.75 (better visibility)
 
         return [r, g, b, opacity];
+    };
+
+    // NEW: Build enhanced popup content for recommended hexagons with AI reasoning
+    const buildRecommendedHexagonPopup = (result, rank, locationData) => {
+        let content = `<div style="font-family: 'Segoe UI', Arial, sans-serif; padding: 12px; max-width: 400px;">`;
+        
+        // Rank badge
+        content += `<div style="background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%); padding: 12px; border-radius: 10px; margin-bottom: 16px; text-align: center; box-shadow: 0 2px 8px rgba(25, 118, 210, 0.3);">`;
+        content += `<span style="font-size: 28px;">🏆</span>`;
+        content += `<p style="margin: 6px 0 0 0; font-weight: bold; color: #fff; font-size: 16px;">Recommended Location #${rank}</p>`;
+        content += `</div>`;
+
+        // Total Score
+        content += `<div style="background: linear-gradient(135deg, #e3f2fd 0%, #f5f5f5 100%); padding: 12px; border-radius: 8px; margin-bottom: 12px;">`;
+        content += `<p style="margin: 0; text-align: center;"><b style="color: #555;">📊 Total Score:</b></p>`;
+        content += `<p style="margin: 6px 0 0 0; text-align: center; font-size: 32px; color: #1976d2; font-weight: bold;">${result.finalScore.toFixed(2)}</p>`;
+        content += `</div>`;
+
+        // AI Reasoning (if available)
+        const reasoning =
+            (locationData && (locationData.ai_reason || locationData.reason)) ||
+            result?.ai_reason ||
+            result?.reason;
+
+        if (reasoning) {
+            content += `<div style="background-color: #e8f5e9; padding: 14px; border-radius: 8px; margin-bottom: 16px; border-left: 4px solid #4caf50; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">`;
+            content += `<p style="margin: 0 0 6px 0; font-weight: bold; color: #2e7d32; font-size: 13px;">💡 AI Analysis</p>`;
+            content += `<p style="margin: 0; color: #1b5e20; line-height: 1.6; font-size: 13px; font-style: italic;">${reasoning}</p>`;
+            content += `</div>`;
+        }
+
+        console.log("reasoning:", reasoning, { locationData, result });
+
+        // Detailed Score Breakdown
+        content += `<div style="background: #fff; padding: 12px; border-radius: 8px; border: 1px solid #e0e0e0; margin-bottom: 12px;">`;
+        content += `<p style="margin: 0 0 12px 0; font-weight: bold; font-size: 14px; color: #333; border-bottom: 2px solid #1976d2; padding-bottom: 6px;">📈 Score Breakdown</p>`;
+        
+        // Demand
+        const demandScore = result.demandScore || 0;
+        const population = result.demandRaw || 0;
+        content += `<div style="margin-bottom: 10px; padding: 8px; background: #fafafa; border-radius: 6px;">`;
+        content += `<div style="display: flex; justify-content: space-between; align-items: center;">`;
+        content += `<span style="font-weight: 600; color: #333;">🛒 Demand</span>`;
+        content += `<span style="font-weight: bold; color: ${demandScore >= 20 ? '#4caf50' : demandScore >= 10 ? '#ff9800' : '#f44336'}; font-size: 16px;">${demandScore.toFixed(2)}</span>`;
+        content += `</div>`;
+        content += `<div style="font-size: 11px; color: #666; margin-top: 4px;">Population: ${population.toLocaleString()} residents</div>`;
+        content += `</div>`;
+        
+        // POI/Competition
+        const poiScore = result.poiScore || 0;
+        const poiCount = result.poiRaw || 0;
+        content += `<div style="margin-bottom: 10px; padding: 8px; background: #fafafa; border-radius: 6px;">`;
+        content += `<div style="display: flex; justify-content: space-between; align-items: center;">`;
+        content += `<span style="font-weight: 600; color: #333;">📍 Competition</span>`;
+        content += `<span style="font-weight: bold; color: ${poiScore >= 20 ? '#2196f3' : poiScore >= 10 ? '#ff9800' : '#f44336'}; font-size: 16px;">${poiScore.toFixed(2)}</span>`;
+        content += `</div>`;
+        content += `<div style="font-size: 11px; color: #666; margin-top: 4px;">${poiCount} nearby businesses</div>`;
+        content += `</div>`;
+        
+        // Risk
+        const riskScore = result.riskScore || 0;
+        const riskRaw = result.riskRaw || {};
+        const floodAreaHa = riskRaw.floodAreaHa || 0;
+        const landslideCount = riskRaw.landslideCount || 0;
+        content += `<div style="margin-bottom: 10px; padding: 8px; background: #fafafa; border-radius: 6px;">`;
+        content += `<div style="display: flex; justify-content: space-between; align-items: center;">`;
+        content += `<span style="font-weight: 600; color: #333;">⚠️ Risk</span>`;
+        content += `<span style="font-weight: bold; color: ${riskScore >= 20 ? '#4caf50' : riskScore >= 10 ? '#ff9800' : '#f44336'}; font-size: 16px;">${riskScore.toFixed(2)}</span>`;
+        content += `</div>`;
+        if (floodAreaHa === 0 && landslideCount === 0) {
+            content += `<div style="font-size: 11px; color: #4caf50; margin-top: 4px;">✅ No hazards detected</div>`;
+        } else {
+            content += `<div style="font-size: 11px; color: #ff9800; margin-top: 4px;">`;
+            if (floodAreaHa > 0) content += `⚠️ Flood zone: ${floodAreaHa.toFixed(2)}ha `;
+            if (landslideCount > 0) content += `⚠️ ${landslideCount} landslide area(s)`;
+            content += `</div>`;
+        }
+        content += `</div>`;
+        
+        // Accessibility
+        const accessScore = result.accessibilityScore || 0;
+        const accessRaw = result.accessibilityRaw || {};
+        const distance = accessRaw.distanceMeters || 0;
+        content += `<div style="margin-bottom: 10px; padding: 8px; background: #fafafa; border-radius: 6px;">`;
+        content += `<div style="display: flex; justify-content: space-between; align-items: center;">`;
+        content += `<span style="font-weight: 600; color: #333;">🚗 Accessibility</span>`;
+        content += `<span style="font-weight: bold; color: ${accessScore >= 20 ? '#9c27b0' : accessScore >= 10 ? '#ff9800' : '#f44336'}; font-size: 16px;">${accessScore.toFixed(2)}</span>`;
+        content += `</div>`;
+        content += `<div style="font-size: 11px; color: #666; margin-top: 4px;">${distance.toFixed(0)}m from main road</div>`;
+        content += `</div>`;
+        
+        // Zoning
+        const zoningScore = result.zoningScore || 0;
+        const zoningRaw = result.zoningRaw || {};
+        const landuse = zoningRaw.landuse || 'N/A';
+        content += `<div style="margin-bottom: 0; padding: 8px; background: #fafafa; border-radius: 6px;">`;
+        content += `<div style="display: flex; justify-content: space-between; align-items: center;">`;
+        content += `<span style="font-weight: 600; color: #333;">🏗️ Zoning</span>`;
+        content += `<span style="font-weight: bold; color: ${zoningScore >= 20 ? '#795548' : zoningScore >= 10 ? '#ff9800' : '#f44336'}; font-size: 16px;">${zoningScore.toFixed(2)}</span>`;
+        content += `</div>`;
+        content += `<div style="font-size: 11px; color: #666; margin-top: 4px;">Land use: ${landuse}</div>`;
+        content += `</div>`;
+        
+        content += `</div>`;
+
+        // Map links
+        if (result.centroid) {
+            content += `<div style="display: flex; gap: 8px; margin-top: 12px;">`;
+            content += `<a href="https://www.google.com/maps/search/?api=1&query=${result.centroid.lat},${result.centroid.lon}" target="_blank" style="flex: 1; text-decoration: none; padding: 10px; background: linear-gradient(135deg, #1976d2, #1565c0); color: white; border-radius: 6px; font-size: 12px; font-weight: 600; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">🌍 Google Maps</a>`;
+            content += `<a href="https://www.openstreetmap.org/?mlat=${result.centroid.lat}&mlon=${result.centroid.lon}#map=19/${result.centroid.lat}/${result.centroid.lon}" target="_blank" style="flex: 1; text-decoration: none; padding: 10px; background: linear-gradient(135deg, #4caf50, #45a049); color: white; border-radius: 6px; font-size: 12px; font-weight: 600; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">🗺️ OpenStreetMap</a>`;
+            content += `</div>`;
+        }
+
+        content += `</div>`;
+        return content;
     };
 
     // NEW: Build popup content for hexagon
@@ -750,127 +944,12 @@ const MapViewComponent = ({
     const addSuitabilityMarkers = (data) => {
         if (!placesLayerRef.current) return;
 
+        // Clear any existing markers
         placesLayerRef.current.removeAll();
-
-        const locations = Array.isArray(data)
-            ? data
-            : (data.locations || data.recommended_locations || []);
 
         const referencePoint = data.referencePoint || data.reference_point;
 
-        console.log("Adding suitability markers:", { locations, referencePoint });
-
-        locations.forEach((location, index) => {
-            const point = new Point({
-                latitude: location.lat,
-                longitude: location.lon,
-            });
-
-            let breakdown = location.breakdown;
-            if (typeof breakdown === 'string') {
-                try {
-                    breakdown = JSON.parse(breakdown);
-                } catch (e) {
-                    console.error("Failed to parse breakdown:", e);
-                    breakdown = null;
-                }
-            }
-
-            console.log(`Location ${index + 1} breakdown:`, breakdown);
-            console.log(`Location ${index + 1} reasoning:`, location.reason);
-
-            let content = `<div style="font-family: Arial, sans-serif; padding: 8px;">`;
-            content += `<p style="margin: 8px 0;"><b>📊 Total Score:</b> <span style="font-size: 18px; color: #1976d2; font-weight: bold;">${location.score.toFixed(2)}</span></p>`;
-
-            if (location.reason) {
-                content += `<div style="background-color: #e3f2fd; padding: 12px; border-radius: 8px; margin: 12px 0; border-left: 4px solid #1976d2;">`;
-                content += `<p style="margin: 0; color: #333; line-height: 1.6; font-size: 13px; font-style: italic;">${location.reason}</p>`;
-                content += `</div>`;
-            }
-
-            if (breakdown) {
-                content += `<hr style="margin: 12px 0; border: none; border-top: 1px solid #ddd;">`;
-                content += `<p style="margin: 8px 0 8px 0; font-weight: bold; font-size: 14px;">📈 Detailed Score Breakdown:</p>`;
-                content += `<div style="margin-left: 8px; line-height: 2;">`;
-                
-                const demandScore = breakdown.demand?.score || 0;
-                const population = breakdown.demand?.population || 0;
-                content += `<div style="margin-bottom: 8px;">`;
-                content += `<div style="font-weight: bold;">🛒 Demand: <span style="color: ${demandScore >= 15 ? '#4caf50' : '#ff9800'};">${demandScore.toFixed(2)}</span></div>`;
-                content += `<div style="font-size: 11px; color: #666; margin-left: 20px;">Population: ${population} residents</div>`;
-                content += `</div>`;
-                
-                const poiScore = breakdown.poi?.score || 0;
-                const poiCount = breakdown.poi?.count || 0;
-                content += `<div style="margin-bottom: 8px;">`;
-                content += `<div style="font-weight: bold;">📍 POI: <span style="color: ${poiScore >= 15 ? '#2196f3' : '#ff9800'};">${poiScore.toFixed(2)}</span></div>`;
-                content += `<div style="font-size: 11px; color: #666; margin-left: 20px;">${poiCount} nearby businesses</div>`;
-                content += `</div>`;
-                
-                const riskScore = breakdown.risk?.score || 0;
-                const floodAreaHa = breakdown.risk?.floodAreaHa || 0;
-                const landslideCount = breakdown.risk?.landslideCount || 0;
-                
-                content += `<div style="margin-bottom: 8px;">`;
-                content += `<div style="font-weight: bold;">⚠️ Risk: <span style="color: ${riskScore >= 15 ? '#4caf50' : '#ff9800'};">${riskScore.toFixed(2)}</span></div>`;
-                content += `<div style="font-size: 11px; color: #666; margin-left: 20px;">`;
-                
-                if (floodAreaHa === 0 && landslideCount === 0) {
-                    content += `✅ Excellent safety - No hazards detected`;
-                } else {
-                    if (floodAreaHa > 0) {
-                        content += `• Flood zone: ${floodAreaHa.toFixed(2)} hectares<br>`;
-                    }
-                    if (landslideCount > 0) {
-                        content += `• Landslide areas: ${landslideCount}`;
-                    }
-                }
-                
-                content += `</div>`;
-                content += `</div>`;
-                
-                const accessScore = breakdown.accessibility?.score || 0;
-                const distance = breakdown.accessibility?.distanceMeters || 0;
-                content += `<div style="margin-bottom: 8px;">`;
-                content += `<div style="font-weight: bold;">🚗 Accessibility: <span style="color: ${accessScore >= 15 ? '#9c27b0' : '#ff9800'};">${accessScore.toFixed(2)}</span></div>`;
-                content += `<div style="font-size: 11px; color: #666; margin-left: 20px;">${distance.toFixed(0)}m from main road</div>`;
-                content += `</div>`;
-                
-                const zoningScore = breakdown.zoning?.score || 0;
-                const landuse = breakdown.zoning?.landuse || 'N/A';
-                content += `<div style="margin-bottom: 8px;">`;
-                content += `<div style="font-weight: bold;">🏗️ Zoning: <span style="color: ${zoningScore >= 15 ? '#795548' : '#ff9800'};">${zoningScore.toFixed(2)}</span></div>`;
-                content += `<div style="font-size: 11px; color: #666; margin-left: 20px;">Land use: ${landuse}</div>`;
-                content += `</div>`;
-                
-                content += `</div>`;
-            }
-
-            content += `<hr style="margin: 12px 0; border: none; border-top: 1px solid #ddd;">`;
-            content += `<p style="margin: 8px 0 4px 0; font-weight: bold;">🗺️ View on Map:</p>`;
-            content += `<div style="display: flex; gap: 10px; margin-top: 6px;">`;
-            content += `<a href="https://www.google.com/maps/search/?api=1&query=${location.lat},${location.lon}" target="_blank" style="text-decoration: none; padding: 6px 12px; background-color: #1976d2; color: white; border-radius: 4px; font-size: 12px;">🌍 Google</a>`;
-            content += `<a href="https://www.openstreetmap.org/?mlat=${location.lat}&mlon=${location.lon}#map=19/${location.lat}/${location.lon}" target="_blank" style="text-decoration: none; padding: 6px 12px; background-color: #4caf50; color: white; border-radius: 4px; font-size: 12px;">🗺️ OSM</a>`;
-            content += `</div>`;
-            content += `</div>`;
-
-            const marker = new Graphic({
-                geometry: point,
-                symbol: {
-                    type: "picture-marker",
-                    url: "/recommended-location.svg",
-                    width: "48px",
-                    height: "48px",
-                },
-                popupTemplate: {
-                    title: `📍 Location #${index + 1}`,
-                    content: content,
-                },
-            });
-
-            placesLayerRef.current.add(marker);
-        });
-
+        // Only add reference point marker (hexagons now handle recommended locations)
         if (referencePoint) {
             const refPoint = new Point({
                 latitude: referencePoint.lat,
@@ -898,23 +977,7 @@ const MapViewComponent = ({
             placesLayerRef.current.add(refMarker);
         }
 
-        if (locations.length > 0 && view) {
-            const targetPoints = locations.map(
-                (loc) => new Point({ latitude: loc.lat, longitude: loc.lon })
-            );
-            
-            if (referencePoint) {
-                targetPoints.push(new Point({ 
-                    latitude: referencePoint.lat, 
-                    longitude: referencePoint.lon 
-                }));
-            }
-            
-            safeGoTo(targetPoints, { 
-                duration: 1000,
-                easing: "ease-in-out"
-            });
-        }
+        // Hexagons will handle zooming, no need to zoom to markers
     };
 
     useEffect(() => {

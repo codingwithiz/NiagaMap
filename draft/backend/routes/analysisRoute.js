@@ -110,6 +110,54 @@ router.delete("/analysis/:analysisId", async (req, res) => {
     }
 });
 
+// NEW: Get all hexagons with scores for an analysis
+router.get("/analysis/:analysisId/hexagons", async (req, res) => {
+    const { analysisId } = req.params;
+
+    try {
+        console.log("Fetching hexagons for analysis:", analysisId);
+        
+        const { data: hexagons, error } = await supabase
+            .from("hexagon")
+            .select("*")
+            .eq("analysis_id", analysisId)
+            .order("hex_index", { ascending: true });
+
+        if (error) {
+            console.error("Error fetching hexagons:", error);
+            throw error;
+        }
+
+        // Transform the data to match the frontend expectations
+        const results = hexagons.map(hex => ({
+            hexagon: {
+                hex_id: hex.hex_id,
+                analysis_id: hex.analysis_id,
+                coordinates: hex.coordinates,
+                hex_index: hex.hex_index,
+            },
+            centroid: hex.centroid,
+            demandScore: hex.demand_score || 0,
+            poiScore: hex.poi_score || 0,
+            riskScore: hex.risk_score || 0,
+            zoningScore: hex.zoning_score || 0,
+            accessibilityScore: hex.accessibility_score || 0,
+            demandRaw: hex.demand_raw || 0,
+            poiRaw: hex.poi_raw || 0,
+            riskRaw: hex.risk_raw || {},
+            zoningRaw: hex.zoning_raw || {},
+            accessibilityRaw: hex.accessibility_raw || {},
+            finalScore: hex.final_score || 0,
+        }));
+
+        console.log(`Retrieved ${results.length} hexagons with scores`);
+        res.status(200).json({ hexagons: results });
+    } catch (err) {
+        console.error("Failed to fetch hexagons:", err);
+        res.status(500).json({ error: "Failed to fetch hexagons" });
+    }
+});
+
 // Get top 3 recommended locations with AI-generated reasoning
 router.get("/analysis/:analysisId/recommendations", async (req, res) => {
     try {

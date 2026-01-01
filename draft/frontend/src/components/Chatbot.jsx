@@ -54,9 +54,6 @@ function Chatbot({ onExtracted, onClose, onShowRecommendations, darkMode = false
   const debounceTimeout = useRef(null);
   const conversationRef = useRef(null);
 
-  // Add a ref to store workflow results by analysis ID
-  const workflowCache = useRef({});
-
   useEffect(() => {
     if (userId) {
       fetchChats();
@@ -265,9 +262,6 @@ function Chatbot({ onExtracted, onClose, onShowRecommendations, darkMode = false
         if (analysisResults && analysisResults.length > 0) {
           analysisId = analysisResults[0].hexagon.analysis_id;
           
-          // Cache the workflow results for later use
-          workflowCache.current[analysisId] = analysisResults;
-          
           console.log("Updating conversation", conversationId, "with analysis_id", analysisId);
 
           await axios.patch(`${API}/conversations/${conversationId}`, {
@@ -286,6 +280,8 @@ function Chatbot({ onExtracted, onClose, onShowRecommendations, darkMode = false
             // Trigger map update with AI-generated recommendations AND workflow results (hexagons)
             if (onShowRecommendations) {
               onShowRecommendations(locations, referencePoint, analysisResults);
+              // Auto-close chatbot after showing recommendations
+              if (onClose) onClose();
             }
           } catch (recError) {
             console.error("Error fetching recommendations:", recError);
@@ -317,35 +313,25 @@ function Chatbot({ onExtracted, onClose, onShowRecommendations, darkMode = false
 
   const handleShowRecommendations = async (analysisId) => {
     try {
-      // First, check if we have cached workflow results
-      let workflowData = workflowCache.current[analysisId];
+      console.log("Fetching hexagons and recommendations for analysis:", analysisId);
       
-      // If not cached, fetch from the recommended_location table
-      if (!workflowData) {
-        console.log("No cached workflow data, fetching from recommendations...");
-        
-        // Fetch recommendations (which we know exists)
-        const recsResponse = await axios.get(`${API}/analysis/${analysisId}/recommendations`);
-        const { locations, referencePoint } = recsResponse.data;
-        
-        console.log("Fetched recommendations:", { locations, referencePoint });
-        
-        // Pass only recommendations (no hexagons) if workflow data isn't cached
-        if (onShowRecommendations) {
-          onShowRecommendations(locations, referencePoint, null);
-        }
-        return;
-      }
+      // Fetch hexagons with scores from the database
+      const hexagonsResponse = await axios.get(`${API}/analysis/${analysisId}/hexagons`);
+      const workflowData = hexagonsResponse.data.hexagons;
       
-      console.log("Using cached workflow results:", workflowData);
+      console.log("Fetched hexagons from database:", workflowData);
       
       // Fetch recommendations with reasoning
       const recsResponse = await axios.get(`${API}/analysis/${analysisId}/recommendations`);
       const { locations, referencePoint } = recsResponse.data;
       
-      // Pass all three: locations, referencePoint, and full workflowData
+      console.log("Fetched recommendations:", { locations, referencePoint });
+      
+      // Pass all three: locations, referencePoint, and full workflowData (hexagons)
       if (onShowRecommendations) {
         onShowRecommendations(locations, referencePoint, workflowData);
+        // Auto-close chatbot after navigating to the map
+        if (onClose) onClose();
       }
     } catch (error) {
       console.error("Error fetching recommendations:", error);
@@ -379,6 +365,7 @@ function Chatbot({ onExtracted, onClose, onShowRecommendations, darkMode = false
 
   const handleViewFavourite = async (analysisId) => {
     await handleShowRecommendations(analysisId);
+    // handleShowRecommendations already closes on success
   };
 
   const handleRemoveFavourite = async (analysisId) => {
