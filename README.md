@@ -274,19 +274,16 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 👥 Authors
 
 - **Ing Zhen** - _Initial work_ - [@codingwithiz](https://github.com/codingwithiz)
-- **Lee Weng** - _Contributor_ - [@AsynchronousNotAvailable](https://github.com/AsynchronousNotAvailable)
+- **Weng Hong** - _Contributor_ - [@AsynchronousNotAvailable](https://github.com/AsynchronousNotAvailable)
 
 ## 🙏 Acknowledgments
 
-- ArcGIS Maps SDK for JavaScript
-- OpenAI GPT-4o
-- Firebase Authentication
-- Supabase PostgreSQL
-- Vercel & Render hosting platforms
+- Kleos Technologies (Mr. Raja Khuzairie)
+- Dr. Chiam Yin Kia (Supervisor)
 
 ## 📞 Support
 
-For support, email support@niagamap.com or open an issue in the GitHub repository.
+For support, email ingzhen2003@gmail.com / wenghong03.work@gmail.com or open an issue in the GitHub repository.
 
 ---
 
