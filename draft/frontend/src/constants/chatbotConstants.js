@@ -1,4 +1,4 @@
-export const API = "http://localhost:3001";
+export const API = import.meta.env.VITE_API_URL || "http://localhost:3001";
 
 export const CATEGORY_PRESETS = {
   retail: { label: "Retail", weights: { demand: 30, competition: 20, accessibility: 25, zoning: 15, risk: 10 } },
