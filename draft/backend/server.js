@@ -37,6 +37,13 @@ app.use(
 );
 
 // ----------------------------
+// Health Check
+// ----------------------------
+app.get("/", (req, res) => {
+    res.json({ status: "ok", message: "NiagaMap API is running" });
+});
+
+// ----------------------------
 // Routes
 // ----------------------------
 app.use("/users", userRoutes);
