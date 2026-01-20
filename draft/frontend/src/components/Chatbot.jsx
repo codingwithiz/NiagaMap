@@ -22,7 +22,7 @@ import {
   buildEnrichedMessage 
 } from "../utils/messageUtils";
 
-function Chatbot({ onExtracted, onClose, onShowRecommendations, darkMode = false }) {
+function Chatbot({ onExtracted, onClose, onShowRecommendations, onViewFavourite, darkMode = false }) {
   const { user } = useAuth();
   const userId = user?.uid;
   const { showToast } = useToast();
@@ -433,11 +433,6 @@ function Chatbot({ onExtracted, onClose, onShowRecommendations, darkMode = false
     }
   };
 
-  const handleViewFavourite = async (analysisId) => {
-    await handleShowRecommendations(analysisId);
-    // handleShowRecommendations already closes on success
-  };
-
   const handleRemoveFavourite = async (analysisId) => {
     if (!analysisId || !userId) return;
     try {
@@ -502,7 +497,7 @@ function Chatbot({ onExtracted, onClose, onShowRecommendations, darkMode = false
           setNewChatTitle={setNewChatTitle}
           handleCreateChat={handleCreateChat}
           favourites={favourites}
-          handleViewFavourite={handleViewFavourite}
+          handleViewFavourite={(analysisId) => onViewFavourite(analysisId, true)}
           handleRemoveFavourite={handleRemoveFavourite}
           darkMode={darkMode}
         />

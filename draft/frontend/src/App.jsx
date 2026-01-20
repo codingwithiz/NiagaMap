@@ -13,6 +13,8 @@ import "./styles/theme.css";
 import api from "./api/api";
 import AnalysesPage from "./components/Analysis";
 import Profile from "./components/Profile";
+import FavoritesWidget from "./components/FavoritesWidget";
+import axios from "axios";
 
 // NiagaMap Logo Component
 const NiagaMapLogo = () => (
@@ -92,6 +94,38 @@ function App() {
     if (workflowData && workflowData.length > 0) {
       console.log("Setting workflow results for hexagons:", workflowData);
       setWorkflowResults(workflowData);
+    }
+  };
+
+  // Shared handler for viewing favorites - used by both Chatbot and FavoritesWidget
+  const handleViewFavourite = async (analysisId, shouldCloseChatbot = false) => {
+    try {
+      const API = import.meta.env.VITE_API_URL || "http://localhost:3001";
+      console.log("Fetching hexagons and recommendations for analysis:", analysisId);
+      
+      // Fetch hexagons with scores from the database
+      const hexagonsResponse = await axios.get(`${API}/analysis/${analysisId}/hexagons`);
+      const workflowData = hexagonsResponse.data.hexagons;
+      
+      console.log("Fetched hexagons from database:", workflowData);
+      
+      // Fetch recommendations with reasoning
+      const recsResponse = await axios.get(`${API}/analysis/${analysisId}/recommendations`);
+      const { locations, referencePoint } = recsResponse.data;
+      
+      console.log("Fetched recommendations:", { locations, referencePoint });
+      
+      // Pass all three: locations, referencePoint, and full workflowData (hexagons)
+      handleShowRecommendations(locations, referencePoint, workflowData);
+      showToast("Loaded saved analysis successfully!", "success");
+      
+      // Close chatbot if requested (when called from Chatbot itself)
+      if (shouldCloseChatbot) {
+        setChatbotOpen(false);
+      }
+    } catch (error) {
+      console.error("Error fetching recommendations:", error);
+      showToast("Failed to load recommendations. Please try again.", "error");
     }
   };
 
@@ -563,6 +597,12 @@ function App() {
                                       />
                                   </div>
 
+                                  {/* Favorites Widget */}
+                                  <FavoritesWidget 
+                                      darkMode={darkMode}
+                                      onViewFavourite={handleViewFavourite}
+                                  />
+
                                   {/* Floating Chatbot Button - NiagaMap Theme */}
                                   {!chatbotOpen && (
                                       <button
@@ -613,6 +653,7 @@ function App() {
                                           onShowRecommendations={
                                               handleShowRecommendations
                                           }
+                                          onViewFavourite={handleViewFavourite}
                                           darkMode={darkMode}
                                       />
                                   )}
