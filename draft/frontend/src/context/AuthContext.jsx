@@ -29,8 +29,8 @@ export const AuthProvider = ({ children }) => {
                         email: currentUser.email,
                         displayName: response.data.name || currentUser.displayName,
                         dbName: response.data.name,
-                        photoURL: currentUser.photoURL,
-                        });
+                        photoURL: response.data.photoURL || currentUser.photoURL,
+                    });
                 } catch (err) {
                     console.error("Error verifying user with backend:", err);
                     // Still set the user even if backend fails
