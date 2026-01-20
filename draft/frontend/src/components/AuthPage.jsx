@@ -79,7 +79,7 @@ const AuthPage = ({ darkMode = false }) => {
             await verifyWithBackend(userCredential.user);
 
             setSuccess(isLogin ? "Login successful!" : "Signup successful!");
-            navigate("/map");
+            // Navigation will happen automatically via AuthContext
         } catch (err) {
             console.error("Auth error:", err);
             setError(err.message);
@@ -94,7 +94,7 @@ const AuthPage = ({ darkMode = false }) => {
             await verifyWithBackend(result.user);
             console.log("Google user displayName:", result.user.displayName);
             setSuccess("Google login successful!");
-            navigate("/map");
+            // Navigation will happen automatically via AuthContext
         } catch (err) {
             console.error("Google auth error:", err);
             setError(err.message);

@@ -52,7 +52,9 @@ function ProtectedRoute({ children }) {
 
 function App() {
   const location = useLocation();
+  const navigate = useNavigate();
   const { showToast } = useToast();
+  const { user, loading } = useAuth();
   const [places, setPlaces] = useState([]);
   const [activeCategory, setActiveCategory] = useState("4d4b7105d754a06377d81259");
   const [recommendedPlace, setRecommendedPlace] = useState(null);
@@ -96,8 +98,13 @@ function App() {
   const [currentLocationCoordinate, setCurrentLocationCoordinate] =
       useState(null);
   const [currentLocation, setCurrentLocation] = useState(null);
-  const { user } = useAuth();
-  const navigate = useNavigate();
+  
+  // Auto-redirect to /map after successful login
+  useEffect(() => {
+    if (!loading && user && location.pathname === '/auth') {
+      navigate('/map', { replace: true });
+    }
+  }, [user, loading, location.pathname, navigate]);
   const [chatbotOpen, setChatbotOpen] = useState(false);
 
   const apiKey = import.meta.env.VITE_ESRI_API_KEY;
@@ -348,41 +355,6 @@ function App() {
                                   }}
                               >
                                   Map
-                              </Link>
-
-                              <Link
-                                  to="/basemap"
-                                  style={{
-                                      color: isActive("/basemap") ? "#fff" : darkMode ? "#94a3b8" : "#64748b",
-                                      background: isActive("/basemap")
-                                          ? "linear-gradient(135deg, #8B5CF6 0%, #3B82F6 100%)"
-                                          : "transparent",
-                                      fontWeight: 500,
-                                      textDecoration: "none",
-                                      padding: "10px 20px",
-                                      borderRadius: 10,
-                                      transition: "all 0.25s ease",
-                                      fontSize: 14,
-                                      boxShadow: isActive("/basemap")
-                                          ? "0 4px 15px rgba(139, 92, 246, 0.4)"
-                                          : "none",
-                                  }}
-                                  onMouseOver={(e) => {
-                                      if (!isActive("/basemap")) {
-                                          e.currentTarget.style.background = darkMode 
-                                            ? "rgba(139, 92, 246, 0.15)" 
-                                            : "rgba(139, 92, 246, 0.1)";
-                                          e.currentTarget.style.color = "#8B5CF6";
-                                      }
-                                  }}
-                                  onMouseOut={(e) => {
-                                      if (!isActive("/basemap")) {
-                                          e.currentTarget.style.background = "transparent";
-                                          e.currentTarget.style.color = darkMode ? "#94a3b8" : "#64748b";
-                                      }
-                                  }}
-                              >
-                                  Basemap
                               </Link>
 
                               <Link
@@ -650,15 +622,6 @@ function App() {
                   />
 
                   <Route
-                      path="/basemap"
-                      element={
-                          <ProtectedRoute>
-                              <Basemap />
-                          </ProtectedRoute>
-                      }
-                  />
-
-                  <Route
                       path="/analysis"
                       element={
                           <ProtectedRoute>
@@ -675,6 +638,16 @@ function App() {
                           </ProtectedRoute>
                       }
                   />
+
+                  {/* Root path - redirect based on auth state */}
+                  <Route 
+                      path="/" 
+                      element={
+                          loading ? null : user ? <Navigate to="/map" replace /> : <Navigate to="/auth" replace />
+                      } 
+                  />
+
+                  <Route path="/auth" element={<AuthPage darkMode={darkMode} />} />
 
                   {/* Any other path redirects to auth */}
                   <Route path="*" element={<Navigate to="/auth" replace />} />
