@@ -22,7 +22,7 @@ import {
   buildEnrichedMessage 
 } from "../utils/messageUtils";
 
-function Chatbot({ onExtracted, onClose, onShowRecommendations, onViewFavourite, darkMode = false }) {
+function Chatbot({ onExtracted, onClose, onShowRecommendations, onViewFavourite, analysisRunning = false, activeChatId = null, onAnalysisStart, onAnalysisEnd, darkMode = false }) {
   const { user } = useAuth();
   const userId = user?.uid;
   const { showToast } = useToast();
@@ -58,6 +58,25 @@ function Chatbot({ onExtracted, onClose, onShowRecommendations, onViewFavourite,
   const messagesEndRef = useRef(null);
   const debounceTimeout = useRef(null);
   const conversationRef = useRef(null);
+
+  // Draggable and Resizable state
+  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [size, setSize] = useState({ width: 1100, height: 900 });
+  const [isDragging, setIsDragging] = useState(false);
+  const [isResizing, setIsResizing] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const [resizeStart, setResizeStart] = useState({ x: 0, y: 0, width: 0, height: 0 });
+  const chatbotRef = useRef(null);
+
+  const effectiveLoading = loading || analysisRunning;
+
+  // If parent tells us which chat is running, auto-select and fetch it when opened
+  useEffect(() => {
+    if (activeChatId) {
+      setSelectedChat(activeChatId);
+      fetchConversation(activeChatId);
+    }
+  }, [activeChatId]);
 
   // Chat templates
   const chatTemplates = [
@@ -139,6 +158,60 @@ function Chatbot({ onExtracted, onClose, onShowRecommendations, onViewFavourite,
     setConversation([]);
   };
 
+  // Dragging handlers
+  const handleMouseDown = (e) => {
+    if (e.target.closest('.chatbot-header')) {
+      setIsDragging(true);
+      setDragStart({
+        x: e.clientX - position.x,
+        y: e.clientY - position.y
+      });
+    }
+  };
+
+  const handleMouseMove = (e) => {
+    if (isDragging) {
+      setPosition({
+        x: e.clientX - dragStart.x,
+        y: e.clientY - dragStart.y
+      });
+    } else if (isResizing) {
+      const deltaX = e.clientX - resizeStart.x;
+      const deltaY = e.clientY - resizeStart.y;
+      setSize({
+        width: Math.max(800, resizeStart.width + deltaX),
+        height: Math.max(600, resizeStart.height + deltaY)
+      });
+    }
+  };
+
+  const handleMouseUp = () => {
+    setIsDragging(false);
+    setIsResizing(false);
+  };
+
+  const handleResizeMouseDown = (e) => {
+    e.stopPropagation();
+    setIsResizing(true);
+    setResizeStart({
+      x: e.clientX,
+      y: e.clientY,
+      width: size.width,
+      height: size.height
+    });
+  };
+
+  useEffect(() => {
+    if (isDragging || isResizing) {
+      window.addEventListener('mousemove', handleMouseMove);
+      window.addEventListener('mouseup', handleMouseUp);
+      return () => {
+        window.removeEventListener('mousemove', handleMouseMove);
+        window.removeEventListener('mouseup', handleMouseUp);
+      };
+    }
+  }, [isDragging, isResizing, dragStart, position, resizeStart, size]);
+
   // Template Selection
   const handleTemplateSelect = (template) => {
     setInput(template.text + " ");
@@ -181,6 +254,7 @@ function Chatbot({ onExtracted, onClose, onShowRecommendations, onViewFavourite,
   };
 
   const handleSend = async () => {
+    if (analysisRunning || loading) return;
     if (!input.trim() || !selectedChat) return;
     
     setIsValidatingLocation(true);
@@ -194,6 +268,7 @@ function Chatbot({ onExtracted, onClose, onShowRecommendations, onViewFavourite,
       return;
     }
     
+    onAnalysisStart?.(selectedChat);
     setLoading(true);
 
     try {
@@ -375,6 +450,7 @@ function Chatbot({ onExtracted, onClose, onShowRecommendations, onViewFavourite,
       showToast(err.response?.data?.error || err.message || "An error occurred", "error");
     } finally {
       setLoading(false);
+      onAnalysisEnd?.();
     }
   };
 
@@ -457,18 +533,20 @@ function Chatbot({ onExtracted, onClose, onShowRecommendations, onViewFavourite,
 
   return (
     <div
+      ref={chatbotRef}
       onClick={(e) => e.stopPropagation()}
+      onMouseDown={handleMouseDown}
       style={{
         position: "fixed",
-        top: "50%",
-        left: "50%",
-        transform: "translate(-50%, -50%)",
+        top: position.y === 0 ? "50%" : "auto",
+        left: position.x === 0 ? "50%" : position.x + "px",
+        transform: position.x === 0 && position.y === 0 ? "translate(-50%, -50%)" : "none",
+        top: position.y !== 0 ? position.y + "px" : "50%",
         display: "flex",
-        height: "88vh",
-        maxHeight: "900px",
-        width: "75vw",
-        maxWidth: "1100px",
+        height: size.height + "px",
+        width: size.width + "px",
         minWidth: "800px",
+        minHeight: "600px",
         background: darkMode 
           ? "linear-gradient(180deg, #1a1a2e 0%, #0f0f1a 100%)" 
           : "linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)",
@@ -481,9 +559,38 @@ function Chatbot({ onExtracted, onClose, onShowRecommendations, onViewFavourite,
         overflow: "hidden",
         flexDirection: "column",
         zIndex: 9999,
+        cursor: isDragging ? "grabbing" : "auto",
+        userSelect: isDragging || isResizing ? "none" : "auto",
       }}
     >
-      <ChatbotHeader onClose={onClose} darkMode={darkMode} />
+      <div className="chatbot-header" style={{ cursor: "grab" }}>
+        <ChatbotHeader onClose={onClose} darkMode={darkMode} />
+      </div>
+
+      {/* Resize Handle */}
+      <div
+        onMouseDown={handleResizeMouseDown}
+        style={{
+          position: "absolute",
+          bottom: 0,
+          right: 0,
+          width: 20,
+          height: 20,
+          cursor: "nwse-resize",
+          zIndex: 10000,
+        }}
+      >
+        <div style={{
+          position: "absolute",
+          bottom: 4,
+          right: 4,
+          width: 0,
+          height: 0,
+          borderStyle: "solid",
+          borderWidth: "0 0 12px 12px",
+          borderColor: `transparent transparent ${darkMode ? "rgba(139, 92, 246, 0.5)" : "rgba(139, 92, 246, 0.3)"} transparent`,
+        }} />
+      </div>
 
       <div style={{ display: "flex", flex: 1, minHeight: 0 }}>
         <ChatSidebar
@@ -499,6 +606,7 @@ function Chatbot({ onExtracted, onClose, onShowRecommendations, onViewFavourite,
           favourites={favourites}
           handleViewFavourite={(analysisId) => onViewFavourite(analysisId, true)}
           handleRemoveFavourite={handleRemoveFavourite}
+          loading={effectiveLoading}
           darkMode={darkMode}
         />
 
@@ -778,7 +886,7 @@ function Chatbot({ onExtracted, onClose, onShowRecommendations, onViewFavourite,
               input={input}
               handleInputChange={handleInputChange}
               handleSend={handleSend}
-              loading={loading}
+              loading={effectiveLoading}
               isValidatingLocation={isValidatingLocation}
               locationError={locationError}
               showLocationDropdown={showLocationDropdown}

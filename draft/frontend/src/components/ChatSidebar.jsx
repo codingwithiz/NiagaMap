@@ -11,6 +11,7 @@ function ChatSidebar({
   favourites = [],
   handleViewFavourite,
   handleRemoveFavourite,
+  loading = false,
   darkMode 
 }) {
   return (
@@ -108,12 +109,13 @@ function ChatSidebar({
                         alignItems: "center",
                         fontSize: 12,
                         border: `1px solid ${darkMode ? "rgba(139, 92, 246, 0.25)" : "rgba(139, 92, 246, 0.15)"}`,
-                        cursor: analysisId ? "pointer" : "default",
+                          cursor: analysisId && !loading ? "pointer" : "default",
                         transition: "all 0.25s ease",
-                        opacity: analysisId ? 1 : 0.5,
+                          opacity: analysisId && !loading ? 1 : 0.5,
+                          pointerEvents: loading ? "none" : "auto",
                       }}
                       onMouseEnter={(e) => {
-                        if (analysisId) {
+                          if (analysisId && !loading) {
                           e.currentTarget.style.background = darkMode 
                             ? "rgba(139, 92, 246, 0.2)" 
                             : "rgba(139, 92, 246, 0.1)";
@@ -206,7 +208,7 @@ function ChatSidebar({
                       : "transparent",
                     padding: "12px 14px",
                     borderRadius: 10,
-                    cursor: "pointer",
+                      cursor: loading ? "not-allowed" : "pointer",
                     display: "flex",
                     justifyContent: "space-between",
                     alignItems: "center",
@@ -219,6 +221,8 @@ function ChatSidebar({
                     boxShadow: selectedChat === chat.chat_id 
                       ? "0 4px 12px rgba(139, 92, 246, 0.2)" 
                       : "none",
+                      opacity: loading ? 0.5 : 1,
+                      pointerEvents: loading ? "none" : "auto",
                   }}
                 >
                   {selectedChat === chat.chat_id && (
@@ -275,8 +279,9 @@ function ChatSidebar({
             <input
               value={newChatTitle}
               onChange={(e) => setNewChatTitle(e.target.value)}
-              onKeyPress={(e) => e.key === "Enter" && handleCreateChat()}
-              placeholder="New chat name..."
+              onKeyPress={(e) => !loading && e.key === "Enter" && handleCreateChat()}
+              placeholder={loading ? "Please wait..." : "New chat name..."}
+              disabled={loading}
               style={{
                 width: "100%",
                 marginBottom: 6,
@@ -284,13 +289,18 @@ function ChatSidebar({
                 padding: "10px 12px",
                 borderRadius: 10,
                 border: `1.5px solid ${darkMode ? "rgba(139, 92, 246, 0.3)" : "rgba(139, 92, 246, 0.2)"}`,
-                background: darkMode ? "rgba(37, 37, 64, 0.6)" : "#fff",
+                background: loading
+                  ? darkMode ? "rgba(37, 37, 64, 0.3)" : "#f1f5f9"
+                  : darkMode ? "rgba(37, 37, 64, 0.6)" : "#fff",
                 color: darkMode ? "#e2e8f0" : "#1f2937",
                 boxSizing: "border-box",
                 outline: "none",
                 transition: "all 0.25s ease",
+                opacity: loading ? 0.6 : 1,
+                cursor: loading ? "not-allowed" : "text",
               }}
               onFocus={(e) => {
+                if (loading) return;
                 e.target.style.border = "1.5px solid #8B5CF6";
                 e.target.style.boxShadow = "0 0 0 3px rgba(139, 92, 246, 0.15)";
               }}
@@ -301,24 +311,25 @@ function ChatSidebar({
             />
             <button
               onClick={handleCreateChat}
-              disabled={!newChatTitle.trim()}
+              disabled={loading || !newChatTitle.trim()}
               style={{
                 width: "100%",
                 fontSize: 13,
                 padding: "10px 0",
                 borderRadius: 10,
-                background: newChatTitle.trim() 
+                background: !loading && newChatTitle.trim() 
                   ? "linear-gradient(135deg, #8B5CF6 0%, #3B82F6 100%)" 
                   : darkMode ? "rgba(100, 116, 139, 0.3)" : "#e2e8f0",
-                color: newChatTitle.trim() ? "#fff" : darkMode ? "#64748b" : "#94a3b8",
+                color: !loading && newChatTitle.trim() ? "#fff" : darkMode ? "#64748b" : "#94a3b8",
                 border: "none",
-                cursor: newChatTitle.trim() ? "pointer" : "not-allowed",
+                cursor: !loading && newChatTitle.trim() ? "pointer" : "not-allowed",
                 fontWeight: 600,
-                boxShadow: newChatTitle.trim() ? "0 4px 12px rgba(139, 92, 246, 0.3)" : "none",
+                boxShadow: !loading && newChatTitle.trim() ? "0 4px 12px rgba(139, 92, 246, 0.3)" : "none",
                 transition: "all 0.25s ease",
+                opacity: loading ? 0.7 : 1,
               }}
             >
-              + New Chat
+              {loading ? "Analysis running..." : "+ New Chat"}
             </button>
           </div>
         </div>

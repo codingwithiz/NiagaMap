@@ -140,6 +140,8 @@ function App() {
     }
   }, [user, loading, location.pathname, navigate]);
   const [chatbotOpen, setChatbotOpen] = useState(false);
+  const [analysisRunning, setAnalysisRunning] = useState(false);
+  const [analysisChatId, setAnalysisChatId] = useState(null);
 
   const apiKey = import.meta.env.VITE_ESRI_API_KEY;
 
@@ -654,6 +656,16 @@ function App() {
                                               handleShowRecommendations
                                           }
                                           onViewFavourite={handleViewFavourite}
+                                        analysisRunning={analysisRunning}
+                                        activeChatId={analysisChatId}
+                                        onAnalysisStart={(chatId) => {
+                                          setAnalysisRunning(true);
+                                          setAnalysisChatId(chatId || null);
+                                        }}
+                                        onAnalysisEnd={() => {
+                                          setAnalysisRunning(false);
+                                          setAnalysisChatId(null);
+                                        }}
                                           darkMode={darkMode}
                                       />
                                   )}
