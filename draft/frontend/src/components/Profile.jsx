@@ -233,7 +233,7 @@ const ProfileCard = ({ user, name, setName, email, password, setPassword, messag
                         />
                     </div>
                 </div>
-                <input
+                {/* <input
                     type="file"
                     accept="image/*"
                     ref={fileInputRef}
@@ -268,7 +268,7 @@ const ProfileCard = ({ user, name, setName, email, password, setPassword, messag
                     }}
                 >
                     Change Photo
-                </button>
+                </button> */}
             </div>
             <form onSubmit={handleUpdateName} style={{ marginBottom: 28 }}>
                 <label
