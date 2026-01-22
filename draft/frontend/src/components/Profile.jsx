@@ -133,6 +133,8 @@ const Profile = ({darkMode = false}) => {
 // The original profile card UI moved to a new component
 const ProfileCard = ({ user, name, setName, email, password, setPassword, message, setMessage, error, setError, darkMode, photoURL, setPhotoURL }) => {
     const fileInputRef = useRef();
+    const [confirmPassword, setConfirmPassword] = useState("");
+    const [showPassword, setShowPassword] = useState(false);
 
     // Update profile photo in Firebase and Supabase
     const handlePhotoChange = async (e) => {
@@ -177,10 +179,16 @@ const ProfileCard = ({ user, name, setName, email, password, setPassword, messag
         e.preventDefault();
         setMessage("");
         setError("");
+        // client-side validation: ensure confirmation matches
+        if (password !== confirmPassword) {
+            setError("Passwords do not match");
+            return;
+        }
         try {
             await updatePassword(auth.currentUser, password);
             setMessage("Password updated successfully!");
             setPassword("");
+            setConfirmPassword("");
         } catch (err) {
             setError("Failed to update password: " + err.message);
         }
@@ -286,6 +294,7 @@ const ProfileCard = ({ user, name, setName, email, password, setPassword, messag
                     type="text"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
+                    required
                     style={{
                         width: "100%",
                         padding: "14px 16px",
@@ -375,11 +384,67 @@ const ProfileCard = ({ user, name, setName, email, password, setPassword, messag
                 >
                     New Password
                 </label>
+                <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 12 }}>
+                    <input
+                        type={showPassword ? "text" : "password"}
+                        value={password}
+                        required
+                        onChange={(e) => setPassword(e.target.value)}
+                        placeholder="Enter new password"
+                        style={{
+                            flex: 1,
+                            padding: "14px 12px",
+                            borderRadius: 12,
+                            border: darkMode ? "1.5px solid rgba(139, 92, 246, 0.3)" : "1.5px solid #e2e8f0",
+                            fontSize: 15,
+                            background: darkMode ? "rgba(37, 37, 64, 0.6)" : "#f8fafc",
+                            color: darkMode ? "#e2e8f0" : "#1f2937",
+                            outline: "none",
+                            transition: "all 0.25s ease",
+                            boxSizing: "border-box",
+                        }}
+                        onFocus={(e) => {
+                            e.target.style.border = "1.5px solid #8B5CF6";
+                            e.target.style.boxShadow = "0 0 0 3px rgba(139, 92, 246, 0.15)";
+                        }}
+                        onBlur={(e) => {
+                            e.target.style.border = darkMode ? "1.5px solid rgba(139, 92, 246, 0.3)" : "1.5px solid #e2e8f0";
+                            e.target.style.boxShadow = "none";
+                        }}
+                    />
+                    <button
+                        type="button"
+                        onClick={() => setShowPassword((s) => !s)}
+                        style={{
+                            padding: "10px 12px",
+                            borderRadius: 10,
+                            border: "1px solid rgba(0,0,0,0.08)",
+                            background: showPassword ? "#e6f0ff" : "transparent",
+                            cursor: "pointer",
+                        }}
+                        aria-label={showPassword ? "Hide password" : "Show password"}
+                    >
+                        {showPassword ? "Hide" : "Show"}
+                    </button>
+                </div>
+
+                <label
+                    style={{
+                        display: "block",
+                        fontWeight: 600,
+                        marginBottom: 8,
+                        color: darkMode ? "#e2e8f0" : "#374151",
+                        fontSize: 14,
+                    }}
+                >
+                    Confirm Password
+                </label>
                 <input
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Enter new password"
+                    type={showPassword ? "text" : "password"}
+                    value={confirmPassword}
+                    required
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="Re-enter new password"
                     style={{
                         width: "100%",
                         padding: "14px 16px",
