@@ -684,7 +684,7 @@ const MapViewComponent = ({
         content += `<span style="font-weight: 600; color: #1e293b; font-size: 13px;">🚗 Accessibility</span>`;
         content += `<span style="font-weight: 700; color: ${accessScore >= 20 ? '#8B5CF6' : accessScore >= 10 ? '#f59e0b' : '#ef4444'}; font-size: 17px;">${accessScore.toFixed(2)}</span>`;
         content += `</div>`;
-        content += `<div style="font-size: 11px; color: #64748b; margin-top: 5px; font-weight: 500;">${distance.toFixed(0)}m from main road</div>`;
+        content += `<div style="font-size: 11px; color: #64748b; margin-top: 5px; font-weight: 500;">${distance.toFixed(0)}m from nearest facilities</div>`;
         content += `</div>`;
         
         // Zoning
